@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AE Toolkit CEP</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header>
+      <div>
+        <p class="eyebrow">AE TOOLKIT CEP</p>
+        <h1>Project Navigator</h1>
+      </div>
+      <span class="badge">0.1.0</span>
+    </header>
+
+    <nav class="tabs" aria-label="Project navigator views">
+      <button class="tab active" data-view="projects">Projects</button>
+      <button class="tab" data-view="templates">Templates</button>
+    </nav>
+
+    <section id="projects" class="view active">
+      <article class="card">
+        <h2>Connect project</h2>
+        <label>Project name<input id="project-name" placeholder="Campaign 2026"></label>
+        <label>Project root<input id="project-root" placeholder="/Volumes/Jobs/Campaign_2026"></label>
+        <label>Template<select id="project-template"></select></label>
+        <button id="connect-project" class="primary">Connect project</button>
+      </article>
+      <article class="card">
+        <div class="card-heading"><h2>Connected projects</h2><button id="refresh-projects" class="quiet">Refresh</button></div>
+        <div id="project-list" class="item-list"></div>
+      </article>
+    </section>
+
+    <section id="templates" class="view">
+      <article class="card">
+        <div class="card-heading"><h2>Template library</h2><button id="new-template" class="quiet">New</button></div>
+        <div id="template-list" class="item-list"></div>
+      </article>
+      <article class="card">
+        <h2 id="template-form-title">Edit template</h2>
+        <label>Template name<input id="template-name" placeholder="Default Motion Project"></label>
+        <p class="help">Use paths relative to the project root.</p>
+        <div id="template-folders" class="folder-grid"></div>
+        <button id="save-template" class="primary">Save template</button>
+      </article>
+    </section>
+    <p id="status" class="status" aria-live="polite"></p>
+  </main>
+  <script src="js/CSInterface.js"></script>
+  <script src="js/template-store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

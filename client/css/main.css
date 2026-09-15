@@ -1,0 +1,32 @@
+:root { color-scheme: dark; font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #151a20; color: #e7edf5; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #151a20; }
+.app-shell { padding: 16px; }
+header, .card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+header { border-bottom: 1px solid #344250; padding-bottom: 14px; }
+h1, h2, p { margin: 0; }
+h1 { font-size: 20px; font-weight: 650; }
+h2 { font-size: 14px; }
+.eyebrow { color: #78b7ff; font-size: 10px; font-weight: 700; letter-spacing: .09em; }
+.badge { background: #253240; color: #a7c9ee; padding: 4px 7px; border-radius: 5px; font-size: 11px; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; margin: 14px 0; border: 1px solid #354554; border-radius: 6px; overflow: hidden; }
+button { border: 1px solid #495b6c; background: #27313d; color: #e7edf5; border-radius: 5px; padding: 8px 10px; font: inherit; cursor: pointer; }
+button:hover { background: #334253; }
+.tab { border: 0; border-radius: 0; background: #1d252e; }
+.tab.active { background: #2b5d93; color: #fff; }
+.view { display: none; }
+.view.active { display: block; }
+.card { background: #1c242d; border: 1px solid #33404c; border-radius: 7px; padding: 13px; margin: 11px 0; }
+label { display: block; color: #b9c8d8; font-size: 11px; font-weight: 650; margin-top: 11px; text-transform: uppercase; }
+input, select { display: block; width: 100%; margin-top: 5px; border: 1px solid #46596c; border-radius: 4px; padding: 8px; background: #11171d; color: #eef4fb; font: inherit; text-transform: none; }
+.primary { width: 100%; margin-top: 14px; background: #2967a5; border-color: #4e91d0; color: #fff; font-weight: 650; }
+.quiet { padding: 4px 7px; font-size: 11px; }
+.help, .status { color: #9fb1c3; font-size: 11px; margin-top: 7px; }
+.folder-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.folder-grid label { margin-top: 3px; }
+.item-list:empty::after { content: "Nothing connected yet."; color: #8697a8; display: block; padding: 10px 0 0; }
+.list-item { padding: 10px 0; border-top: 1px solid #2c3945; }
+.list-item:first-child { border-top: 0; }
+.list-item strong, .list-item small { display: block; }
+.list-item small { color: #9aabba; margin-top: 3px; overflow-wrap: anywhere; }
+.status { min-height: 16px; color: #91d0a4; }
