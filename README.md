@@ -28,6 +28,8 @@ Before publishing the first release, configure these repository secrets:
 
 Optionally configure the `ZXP_TSA_URL` repository variable for a timestamp authority. For a local signed package, set `ZXPSIGNCMD_PATH`, `ZXP_CERT_PATH`, and `ZXP_CERT_PASSWORD`, then run `npm run package:zxp`.
 
+To publish a test build while the extension manifest remains at its package version, use a GitHub prerelease tag such as `v0.1.0-alpha.1`. The packaging workflow accepts that suffix and attaches a matching ZXP asset.
+
 ## Migration direction
 
 The project-template system replaces hard-coded Project Navigation paths first. Existing Toolbox operations will migrate into explicit ExtendScript backend modules and be called from the CEP panel as each workflow is rebuilt.
