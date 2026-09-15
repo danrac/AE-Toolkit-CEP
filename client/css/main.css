@@ -31,6 +31,7 @@ textarea { min-height: 120px; resize: vertical; }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .field-grid label { margin-top: 3px; }
 .toggle-grid { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 12px; }
+.compact-toggles { grid-template-columns: repeat(3, 1fr); }
 .toggle-grid label { align-items: center; display: flex; font-size: 11px; gap: 7px; margin: 0; text-transform: none; }
 .toggle-grid input { margin: 0; width: auto; }
 .inline-toggle { align-items: center; display: flex; gap: 7px; margin-top: 12px; text-transform: none; }

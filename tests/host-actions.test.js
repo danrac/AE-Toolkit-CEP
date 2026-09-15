@@ -234,3 +234,29 @@ assert.equal(normalLayer.guideLayer, true);
 assert.equal(JSON.parse(toolsContext.aetoolkitCepReplaceSelectedText('Updated')).changed, 1);
 assert.equal(textLayer.textProperty.value.text, 'Updated');
 console.log('PASS host tools preserve frame limits and update only selected layers');
+
+function TransformProperty(value, keyed) { this.value = value; this.numKeys = keyed ? 1 : 0; this.isTimeVarying = !!keyed; }
+TransformProperty.prototype.setValue = function (value) { this.value = value; this.setDirect = true; };
+TransformProperty.prototype.setValueAtTime = function (time, value) { this.value = value; this.setAtTime = [time, value]; };
+function SelectLayer(name, index, kind) { this.name = name; this.index = index; this.kind = kind; this.matchName = kind === 'shape' ? 'ADBE Vector Layer' : kind === 'camera' ? 'ADBE Camera Layer' : ''; this.nullLayer = kind === 'null'; this._position = new TransformProperty([index * 10, index * 20], kind === 'keyed'); this._scale = new TransformProperty([100, 100]); this._rotation = new TransformProperty(0); this.source = kind === 'comp' ? new ToolComp('Nested') : kind === 'footage' ? new SelectFootage() : null; }
+SelectLayer.prototype.property = function (name) { if (name === 'ADBE Text Properties') return this.kind === 'text' ? {} : null; if (name === 'ADBE Transform Group') { const layer = this; return { property(match) { return match === 'ADBE Position' ? layer._position : match === 'ADBE Scale' ? layer._scale : match === 'ADBE Rotate Z' ? layer._rotation : null; } }; } return null; };
+SelectLayer.prototype.moveToBeginning = function () { this.movedToBeginning = true; };
+function SelectFootage() { this.mainSource = { isStill: false }; }
+function SelectComp() { ToolComp.call(this, 'Select'); this._layers = [new SelectLayer('Shape', 1, 'shape'), new SelectLayer('Text', 2, 'text'), new SelectLayer('Null', 3, 'null')]; this.numLayers = this._layers.length; }
+SelectComp.prototype = Object.create(ToolComp.prototype);
+SelectComp.prototype.layer = function (index) { return this._layers[index - 1]; };
+Object.defineProperty(SelectComp.prototype, 'selectedLayers', { get() { return this._layers.filter(layer => layer.selected); }, set() {} });
+const selectComp = new SelectComp();
+const selectContext = { JSON, CompItem: ToolComp, FootageItem: SelectFootage, SolidSource: function () {}, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { activeItem: selectComp } } };
+vm.createContext(selectContext);
+vm.runInContext(source, selectContext);
+assert.equal(JSON.parse(selectContext.aetoolkitCepSelectLayersByType(JSON.stringify({ type: 'text', mode: 'only' }))).changed, 1);
+assert.equal(selectComp._layers[1].selected, true);
+selectComp._layers[0].selected = true;
+assert.equal(JSON.parse(selectContext.aetoolkitCepReverseSelectedLayerOrder()).changed, 2);
+assert.equal(selectComp._layers[0].movedToBeginning, true);
+assert.equal(JSON.parse(selectContext.aetoolkitCepSnapSelectedLayers()).changed, 1);
+assert.deepEqual(selectComp._layers[0]._position.value, selectComp._layers[1]._position.value);
+assert.equal(JSON.parse(selectContext.aetoolkitCepTransferTransform(JSON.stringify({ position: true, scale: true, rotation: true }))).changed, 1);
+assert.deepEqual(selectComp._layers[0]._scale.value, selectComp._layers[1]._scale.value);
+console.log('PASS host layer selection, stacking, snapping, and transform transfer');

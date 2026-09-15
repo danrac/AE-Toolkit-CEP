@@ -233,6 +233,28 @@
         </div>
       </article>
       <article class="card">
+        <h2>Select and align layers</h2>
+        <div class="field-grid">
+          <label>Layer type<select id="tool-select-type"><option value="null">Nulls</option><option value="solid">Solids</option><option value="shape">Shapes</option><option value="comp">Comp layers</option><option value="footage">Footage</option><option value="text">Text</option><option value="camera">Cameras</option><option value="light">Lights</option></select></label>
+          <label>Selection mode<select id="tool-select-mode"><option value="only">Only</option><option value="add">Add</option><option value="subtract">Subtract</option></select></label>
+        </div>
+        <div class="action-grid maintenance-grid">
+          <button id="select-layer-type">Select layers</button>
+          <button id="flip-layer-order">Reverse selected order</button>
+          <button id="snap-to-last">Snap to last selected</button>
+        </div>
+      </article>
+      <article class="card">
+        <h2>Transfer transform</h2>
+        <p class="help">Copies selected properties from the last selected layer to the other selected layers. Animated properties receive a key at the current time.</p>
+        <div class="toggle-grid compact-toggles">
+          <label><input id="transfer-position" type="checkbox" checked> Position</label>
+          <label><input id="transfer-scale" type="checkbox" checked> Scale</label>
+          <label><input id="transfer-rotation" type="checkbox" checked> Rotation</label>
+        </div>
+        <button id="transfer-transform">Transfer transform</button>
+      </article>
+      <article class="card">
         <h2>Replace selected text</h2>
         <p class="help">Updates selected text layers at the current comp time. Existing animated text receives a keyframe at that time.</p>
         <textarea id="tool-replace-text" rows="3" placeholder="Replacement text"></textarea>

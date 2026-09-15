@@ -866,3 +866,80 @@ function aetoolkitCepReplaceSelectedText(text) {
         return JSON.stringify({ changed: changed });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepLayerMatchesType(layer, type) {
+    var source;
+    try { source = layer.source; } catch (sourceError) { source = null; }
+    if (type === "null") return !!layer.nullLayer;
+    if (type === "solid") { try { return !layer.nullLayer && source && source.mainSource instanceof SolidSource; } catch (solidError) { return false; } }
+    if (type === "shape") return layer.matchName === "ADBE Vector Layer";
+    if (type === "camera") return layer.matchName === "ADBE Camera Layer";
+    if (type === "light") return layer.matchName === "ADBE Light Layer";
+    if (type === "comp") return source instanceof CompItem;
+    if (type === "footage") { try { return !layer.nullLayer && source instanceof FootageItem && !(source.mainSource instanceof SolidSource); } catch (footageError) { return false; } }
+    if (type === "text") { try { return !!layer.property("ADBE Text Properties"); } catch (textError) { return false; } }
+    return false;
+}
+function aetoolkitCepSelectLayersByType(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), allowed = { "null": true, solid: true, shape: true, comp: true, footage: true, text: true, camera: true, light: true }, context = aetoolkitCepActiveCompLayers(0), comp = context.comp, mode = options.mode, changed = 0, i, layer, matches;
+        if (!allowed[options.type]) throw new Error("Choose a layer type.");
+        if (mode !== "only" && mode !== "add" && mode !== "subtract") throw new Error("Choose a selection mode.");
+        for (i = 1; i <= comp.numLayers; i++) {
+            layer = comp.layer(i); matches = aetoolkitCepLayerMatchesType(layer, options.type);
+            if (mode === "only") layer.selected = matches;
+            else if (matches && mode === "add") layer.selected = true;
+            else if (matches && mode === "subtract") layer.selected = false;
+            if (matches) changed++;
+        }
+        return JSON.stringify({ changed: changed });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepReverseSelectedLayerOrder() {
+    try {
+        var context = aetoolkitCepActiveCompLayers(1), layers = [], i;
+        for (i = 0; i < context.layers.length; i++) layers.push(context.layers[i]);
+        layers.sort(function (first, second) { return first.index - second.index; });
+        app.beginUndoGroup("AE Toolkit CEP: Reverse layer order");
+        try { for (i = 0; i < layers.length; i++) layers[i].moveToBeginning(); }
+        finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: layers.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepTransformProperty(layer, matchName) {
+    var transform = layer.property("ADBE Transform Group"), property = transform && transform.property(matchName);
+    if (!property) throw new Error("Layer does not support " + matchName + ".");
+    return property;
+}
+function aetoolkitCepSetCurrentPropertyValue(property, value, time) {
+    if (property.numKeys > 0 || property.isTimeVarying) property.setValueAtTime(time, value); else property.setValue(value);
+}
+function aetoolkitCepSnapSelectedLayers() {
+    try {
+        var context = aetoolkitCepActiveCompLayers(2), source = aetoolkitCepTransformProperty(context.layers[context.layers.length - 1], "ADBE Position").value, i, property;
+        app.beginUndoGroup("AE Toolkit CEP: Snap selected layers");
+        try { for (i = 0; i < context.layers.length - 1; i++) { property = aetoolkitCepTransformProperty(context.layers[i], "ADBE Position"); aetoolkitCepSetCurrentPropertyValue(property, source, context.comp.time); } }
+        finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: context.layers.length - 1 });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepTransferTransform(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), context = aetoolkitCepActiveCompLayers(2), source = context.layers[context.layers.length - 1], properties = [], i, target, propertyIndex, sourceProperty, targetProperty;
+        if (options.position) properties.push("ADBE Position");
+        if (options.scale) properties.push("ADBE Scale");
+        if (options.rotation) properties.push("ADBE Rotate Z");
+        if (!properties.length) throw new Error("Choose one or more transform properties.");
+        app.beginUndoGroup("AE Toolkit CEP: Transfer transform");
+        try {
+            for (i = 0; i < context.layers.length - 1; i++) {
+                target = context.layers[i];
+                for (propertyIndex = 0; propertyIndex < properties.length; propertyIndex++) {
+                    sourceProperty = aetoolkitCepTransformProperty(source, properties[propertyIndex]);
+                    targetProperty = aetoolkitCepTransformProperty(target, properties[propertyIndex]);
+                    aetoolkitCepSetCurrentPropertyValue(targetProperty, sourceProperty.value, context.comp.time);
+                }
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: context.layers.length - 1 });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
