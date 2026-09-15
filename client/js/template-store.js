@@ -12,8 +12,11 @@
         if (/^[A-Za-z]:\//.test(path) || path.indexOf("../") === 0 || path.indexOf("/../") !== -1) throw new Error("Template folders must be relative paths without '..'.");
         return path;
     }
+    function defaultCompPresets() {
+        return [{ id: "hd", name: "HD", width: 1920, height: 1080, assets: {} }, { id: "uhd", name: "UHD", width: 3840, height: 2160, assets: {} }, { id: "square", name: "Square", width: 1080, height: 1080, assets: {} }, { id: "vertical", name: "Vertical", width: 1080, height: 1920, assets: {} }];
+    }
     function defaultState() {
-        return { version: 1, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "05_GFX/02_AfterEffects", assets: "05_GFX/03_Assets", toGfx: "05_GFX/06_ToGFX", outputs: "05_GFX/07_Output", styleFrames: "05_GFX/07_Output/_StyleFrames" }, customFolders: [] }], projects: [], activeProjectId: "" };
+        return { version: 2, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "05_GFX/02_AfterEffects", assets: "05_GFX/03_Assets", toGfx: "05_GFX/06_ToGFX", outputs: "05_GFX/07_Output", styleFrames: "05_GFX/07_Output/_StyleFrames" }, customFolders: [] }], compPresets: defaultCompPresets(), projects: [], activeProjectId: "" };
     }
     function validateTemplate(template) {
         if (!template || !String(template.name || "").replace(/^\s+|\s+$/g, "")) throw new Error("Template name is required.");
@@ -79,5 +82,20 @@
         (template.customFolders || []).forEach(function (entry) { result[entry.id] = entry.path ? project.root + "/" + entry.path : ""; });
         return result;
     }
-    return { FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
+    function normalizeCompPreset(preset) {
+        var name = String(preset.name || "").replace(/^\s+|\s+$/g, ""), width = Number(preset.width), height = Number(preset.height), assets = preset.assets || {};
+        if (!name) throw new Error("Preset name is required.");
+        if (!isFinite(width) || Math.floor(width) !== width || width < 1 || width > 30000) throw new Error("Preset width must be between 1 and 30000.");
+        if (!isFinite(height) || Math.floor(height) !== height || height < 1 || height > 30000) throw new Error("Preset height must be between 1 and 30000.");
+        return { id: preset.id || idFromName(name), name: name, width: width, height: height, assets: { matte: assets.matte || "", chartOne: assets.chartOne || "", chartTwo: assets.chartTwo || "" } };
+    }
+    function compPresets(state) { return state.compPresets && state.compPresets.length ? state.compPresets : defaultCompPresets(); }
+    function upsertCompPreset(state, preset) {
+        var next = clone(state), normalized = normalizeCompPreset(preset), presets = compPresets(next), found = false;
+        next.compPresets = presets;
+        for (var i = 0; i < presets.length; i++) if (presets[i].id === normalized.id) { presets[i] = normalized; found = true; }
+        if (!found) presets.push(normalized);
+        return next;
+    }
+    return { FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));

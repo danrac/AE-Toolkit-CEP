@@ -18,6 +18,7 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 - Native editable Covers and held-frame Checkers, with checker rendering routed through the safe Project output workflow
 - Cleanup, collecting, asset localization, and Basic/DMS/XAV 2025 project organization workflows
 - Core Tools for composition timing, fades, sequencing, layer parenting, guide marking, and selected-text replacement
+- Custom composition formats with validated dimensions and safely stored matte/chart guide assets
 
 ## Create / Modify
 
@@ -38,6 +39,10 @@ The organizer snapshots project items before it creates folders, runs as one und
 ## Tools
 
 The CEP Tools panel carries over the reliable, focused layer and composition utilities. Duration controls preserve a one-frame minimum; fades set explicit opacity keys over the requested frames; text replacement writes at the current time when the source text is animated. AutoSplice is intentionally excluded.
+
+## Custom composition formats
+
+Manage formats from **Templates → Composition formats**. A format validates its name and dimensions, then stores selected matte or chart guide files in AE Toolkit CEP’s user-data folder before the preset is saved. Files already stored there are reused and no existing resource is overwritten. Enable **Add this format’s stored guide assets** when creating a composition to add the matte and charts as guide layers.
 
 ## Development
 

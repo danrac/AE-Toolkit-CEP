@@ -346,9 +346,61 @@ function aetoolkitCepCreateComp(jsonText) {
         try {
             comp = app.project.items.addComp(name, settings.width, settings.height, 1, settings.duration, settings.fps);
             comp.label = 14;
+            if (options.addGuides) aetoolkitCepAddPresetGuides(comp, options.guideAssets || {});
         } finally { app.endUndoGroup(); }
         return JSON.stringify({ id: comp.id, name: comp.name, width: comp.width, height: comp.height, fps: comp.frameRate });
     } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepChooseGuideAsset() {
+    try {
+        var file = File.openDialog("Choose a guide asset", function (entry) { return entry instanceof Folder || /\.(ai|jpg|jpeg|png|psd|tif|tiff)$/i.test(entry.name); });
+        return file ? file.fsName : "";
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepPresetAssetFolder(id) {
+    var safeId = String(id || "").replace(/[^a-z0-9_-]/ig, "");
+    if (!safeId) throw new Error("Preset needs a safe name before copying guide assets.");
+    return aetoolkitCepEnsureFolder(aetoolkitCepDataFolder().fsName + "/guide-assets/" + safeId);
+}
+function aetoolkitCepCopyPresetAsset(folder, sourcePath, label) {
+    var source = new File(sourcePath), safeLabel = String(label).replace(/[^a-z0-9_-]/ig, ""), target, attempt = 0, dot, base, extension;
+    if (!source.exists) throw new Error(label + " guide file is unavailable: " + source.fsName);
+    dot = source.name.lastIndexOf("."); base = dot > 0 ? source.name.substring(0, dot) : source.name; extension = dot > 0 ? source.name.substring(dot) : "";
+    do { target = new File(folder.fsName + "/" + safeLabel + "_" + base + (attempt ? "_" + aetoolkitCepPadNumber(attempt, 2) : "") + extension); attempt++; } while (target.exists && target.fsName !== source.fsName && attempt < 10000);
+    if (target.fsName === source.fsName || target.exists) return target.fsName;
+    if (!source.copy(target.fsName)) throw new Error("Could not copy " + source.name + " into " + folder.fsName);
+    return target.fsName;
+}
+function aetoolkitCepStorePresetAssets(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), assets = options.assets || {}, folder = aetoolkitCepPresetAssetFolder(options.id), saved = {};
+        saved.matte = assets.matte ? aetoolkitCepCopyPresetAsset(folder, assets.matte, "matte") : "";
+        saved.chartOne = assets.chartOne ? aetoolkitCepCopyPresetAsset(folder, assets.chartOne, "chart-one") : "";
+        saved.chartTwo = assets.chartTwo ? aetoolkitCepCopyPresetAsset(folder, assets.chartTwo, "chart-two") : "";
+        return JSON.stringify(saved);
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepGuideFootage(file) {
+    var item, i;
+    for (i = 1; i <= app.project.numItems; i++) {
+        item = app.project.item(i);
+        try { if (item instanceof FootageItem && item.file && item.file.fsName === file.fsName) return item; } catch (ignoreError) {}
+    }
+    return app.project.importFile(new ImportOptions(file));
+}
+function aetoolkitCepAddPresetGuides(comp, assets) {
+    var keys = ["matte", "chartOne", "chartTwo"], i, path, file, footage, layer;
+    for (i = 0; i < keys.length; i++) {
+        path = assets[keys[i]];
+        if (!path) continue;
+        file = new File(path);
+        if (!file.exists) throw new Error("Stored " + keys[i] + " guide file is unavailable: " + file.fsName);
+        footage = aetoolkitCepGuideFootage(file);
+        layer = comp.layers.add(footage);
+        layer.guideLayer = true;
+        try { layer.transform.position.setValue([comp.width / 2, comp.height / 2]); } catch (positionError) {}
+        if (keys[i] !== "matte") try { layer.opacity.setValue(50); } catch (opacityError) {}
+    }
 }
 function aetoolkitCepModifySelectedComps(jsonText) {
     try {

@@ -42,3 +42,11 @@ test('Connected projects retain one active project and can be removed safely', (
 });
 
 console.log(`${passed} tests passed.`);
+
+const presetState = store.defaultState();
+const savedPresetState = store.upsertCompPreset(presetState, { name: '2.39 Scope', width: 2048, height: 858, assets: { matte: '/UserData/matte.png' } });
+const scopePreset = store.compPresets(savedPresetState).filter(preset => preset.name === '2.39 Scope')[0];
+assert.equal(scopePreset.width, 2048);
+assert.equal(scopePreset.assets.matte, '/UserData/matte.png');
+assert.throws(() => store.normalizeCompPreset({ name: 'Bad', width: 0, height: 100 }));
+console.log('PASS composition formats validate dimensions and retain guide asset locations');

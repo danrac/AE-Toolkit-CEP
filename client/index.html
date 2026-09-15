@@ -90,13 +90,7 @@
       <article class="card">
         <h2>Create composition</h2>
         <div class="field-grid">
-          <label>Format<select id="comp-preset">
-            <option value="1920x1080">HD · 1920 × 1080</option>
-            <option value="3840x2160">UHD · 3840 × 2160</option>
-            <option value="1080x1080">Square · 1080 × 1080</option>
-            <option value="1080x1920">Vertical · 1080 × 1920</option>
-            <option value="custom">Custom</option>
-          </select></label>
+          <label>Format<select id="comp-preset"></select></label>
           <label>Width<input id="comp-width" type="number" min="1" max="30000" value="1920"></label>
           <label>Height<input id="comp-height" type="number" min="1" max="30000" value="1080"></label>
           <label>FPS<input id="comp-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
@@ -109,6 +103,7 @@
           <label>Description<input id="comp-description" placeholder="Description"></label>
           <label>Initials<input id="comp-initials" maxlength="12" placeholder="AB"></label>
         </div>
+        <label class="inline-toggle"><input id="comp-add-guides" type="checkbox"> Add this format’s stored guide assets</label>
         <button id="create-comp" class="primary">Create composition</button>
       </article>
       <article class="card">
@@ -150,13 +145,7 @@
         <h2>Create cover</h2>
         <p class="help">Creates an editable native cover comp, so it is not dependent on a fragile Photoshop layer order.</p>
         <div class="field-grid">
-          <label>Format<select id="cover-preset">
-            <option value="1920x1080">HD · 1920 × 1080</option>
-            <option value="3840x2160">UHD · 3840 × 2160</option>
-            <option value="1080x1080">Square · 1080 × 1080</option>
-            <option value="1080x1920">Vertical · 1080 × 1920</option>
-            <option value="custom">Custom</option>
-          </select></label>
+          <label>Format<select id="cover-preset"></select></label>
           <label>Width<input id="cover-width" type="number" min="1" max="30000" value="1920"></label>
           <label>Height<input id="cover-height" type="number" min="1" max="30000" value="1080"></label>
           <label>Duration (seconds)<input id="cover-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
@@ -172,13 +161,7 @@
         <h2>Create checkers from selected comps</h2>
         <p class="help">Select comps in the Project panel. Each checker holds on the chosen source frame and adds editable frame information.</p>
         <div class="field-grid">
-          <label>Format<select id="checker-preset">
-            <option value="1920x1080">HD · 1920 × 1080</option>
-            <option value="3840x2160">UHD · 3840 × 2160</option>
-            <option value="1080x1080">Square · 1080 × 1080</option>
-            <option value="1080x1920">Vertical · 1080 × 1920</option>
-            <option value="custom">Custom</option>
-          </select></label>
+          <label>Format<select id="checker-preset"></select></label>
           <label>Width<input id="checker-width" type="number" min="1" max="30000" value="1920"></label>
           <label>Height<input id="checker-height" type="number" min="1" max="30000" value="1080"></label>
           <label>Frame to hold<input id="checker-frame" type="number" min="0" max="999999" value="10"></label>
@@ -258,6 +241,24 @@
     </section>
 
     <section id="templates" class="view">
+      <article class="card">
+        <div class="card-heading"><h2>Composition formats</h2><button id="new-comp-preset" class="quiet">New</button></div>
+        <select id="saved-comp-preset"></select>
+        <div class="field-grid">
+          <label>Name<input id="saved-comp-preset-name" placeholder="16 × 9"></label>
+          <label>Width<input id="saved-comp-preset-width" type="number" min="1" max="30000"></label>
+          <label>Height<input id="saved-comp-preset-height" type="number" min="1" max="30000"></label>
+          <label>Matte guide<input id="saved-comp-preset-matte" readonly placeholder="Optional"></label>
+          <label>Chart guide 1<input id="saved-comp-preset-chart-one" readonly placeholder="Optional"></label>
+          <label>Chart guide 2<input id="saved-comp-preset-chart-two" readonly placeholder="Optional"></label>
+        </div>
+        <div class="action-grid maintenance-grid">
+          <button data-guide-asset="matte">Choose matte</button>
+          <button data-guide-asset="chartOne">Choose chart 1</button>
+          <button data-guide-asset="chartTwo">Choose chart 2</button>
+        </div>
+        <button id="save-comp-preset" class="primary">Save format</button>
+      </article>
       <article class="card">
         <div class="card-heading"><h2>Template library</h2><button id="new-template" class="quiet">New</button></div>
         <div id="template-list" class="item-list"></div>
