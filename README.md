@@ -70,3 +70,11 @@ To publish a test build while the extension manifest remains at its package vers
 The project-template system replaces hard-coded Project Navigation paths first. Existing Toolbox operations will migrate into explicit ExtendScript backend modules and be called from the CEP panel as each workflow is rebuilt.
 
 Before releasing host changes, run `tests/after-effects-load-check.jsx` through After Effects File → Scripts → Run Script File. It loads the complete host and exercises filename sanitizing. Read `ae-toolkit-cep-host-check.txt` in the system temporary folder for PASS or FAIL. Node syntax checks alone do not establish ExtendScript compatibility.
+
+## Path portability audit
+
+Runtime project locations come from the selected project root and its editable template. Fresh installs use generic relative folders: `After Effects`, `Assets`, `Incoming`, `Outputs`, and `Outputs/Style Frames`. Existing saved templates are preserved. Mac/Windows absolute paths belong in the project-root field, not in relative template-folder or render-subfolder fields.
+
+DMS organization routes supported video files by media type without requiring a `06_ToGFX` disk folder. Organizer names describe folders inside the AE project, not directories that must exist on disk. App settings and copied guides live beneath Adobe’s OS-resolved `Folder.userData`; localized media is created beneath the configured Assets location. Packaging paths are relative to the repository, and signing-tool/certificate locations come from environment variables. Absolute paths in tests are fixtures only.
+
+Known non-path dependency: the render modes still require the named `X_...` output-module templates. These should become selectable installed templates in a subsequent render-workflow update.

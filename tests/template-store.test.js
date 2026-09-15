@@ -7,8 +7,8 @@ test('Default template resolves semantic locations from a Mac root', () => {
     let state = store.defaultState();
     state = store.assignProject(state, { name: 'Launch', root: '/Volumes/Jobs/Launch', templateId: 'default-motion' });
     const paths = store.resolveProjectPaths(state, 'launch');
-    assert.equal(paths.assets, '/Volumes/Jobs/Launch/05_GFX/03_Assets');
-    assert.equal(paths.outputs, '/Volumes/Jobs/Launch/05_GFX/07_Output');
+    assert.equal(paths.assets, '/Volumes/Jobs/Launch/Assets');
+    assert.equal(paths.outputs, '/Volumes/Jobs/Launch/Outputs');
 });
 
 test('Custom templates support Windows project roots and assignment', () => {
@@ -50,3 +50,8 @@ assert.equal(scopePreset.width, 2048);
 assert.equal(scopePreset.assets.matte, '/UserData/matte.png');
 assert.throws(() => store.normalizeCompPreset({ name: 'Bad', width: 0, height: 100 }));
 console.log('PASS composition formats validate dimensions and retain guide asset locations');
+
+for (const invalid of ['/Users/example/Assets', '//server/share', 'C:relative', 'Assets/..', '.', '..']) {
+    assert.throws(() => store.validateTemplate({ name: 'Unsafe', folders: { assets: invalid } }));
+}
+console.log('PASS Mac, Windows, UNC, and trailing traversal paths are rejected in templates');

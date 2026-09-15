@@ -30,7 +30,7 @@
       <article class="card">
         <h2>Connect project</h2>
         <label>Project name<input id="project-name" placeholder="Campaign 2026"></label>
-        <label>Project root<input id="project-root" placeholder="/Volumes/Jobs/Campaign_2026"></label>
+        <label>Project root<input id="project-root" placeholder="Choose or paste an absolute project folder path"></label>
         <button id="choose-project-root" class="quiet choose-folder">Choose folder</button>
         <label>Template<select id="project-template"></select></label>
         <button id="connect-project" class="primary">Connect project</button>
@@ -73,7 +73,7 @@
       <article class="card">
         <h2>Import asset paths</h2>
         <details class="module-help"><summary>Help</summary><p class="help">Paste absolute files, file URLs, or a folder followed by file names. Use one item per line.</p></details>
-        <textarea id="source-asset-paths" rows="8" placeholder="/Volumes/Jobs/Campaign/Assets/logo.png&#10;/Volumes/Jobs/Campaign/Assets/&#10;lower-third.mov"></textarea>
+        <textarea id="source-asset-paths" rows="8" placeholder="Paste full file paths, one per line. You can also paste a folder path followed by filenames."></textarea>
         <button id="source-import-assets" class="primary">Import assets</button>
         <p id="source-import-result" class="help" aria-live="polite"></p>
       </article>

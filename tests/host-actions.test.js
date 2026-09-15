@@ -10,7 +10,8 @@ vm.createContext(context);
 vm.runInContext(source, context);
 
 assert.equal(context.aetoolkitCepNormalizeSubfolder('Delivery\\v01'), 'Delivery/v01');
-assert.equal(context.aetoolkitCepNormalizeSubfolder('/Delivery/v01/'), 'Delivery/v01');
+assert.throws(() => context.aetoolkitCepNormalizeSubfolder('/Delivery/v01/'));
+for (const invalid of ['//server/share', 'C:relative', 'Delivery/..', '.']) assert.throws(() => context.aetoolkitCepNormalizeSubfolder(invalid));
 assert.equal(context.aetoolkitCepRenderDate(), '260915');
 assert.equal(context.aetoolkitCepCleanImportPath('file:///Volumes/Jobs/a%20b.mov'), '/Volumes/Jobs/a b.mov');
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('../outside'));
@@ -206,6 +207,10 @@ assert.equal(stillFootage.parentFolder.name, 'Images');
 assert.equal(videoFootage.parentFolder.name, 'Footage');
 assert.equal(solidFootage.parentFolder.name, 'Solids');
 console.log('PASS host organizer snapshots first and keeps selected items at the root');
+videoFootage.file = { name: 'Edit.mov', fsName: '/Any Project/Custom Media/Edit.mov' };
+organizeContext.aetoolkitCepOrganizeDms(organizeContext.aetoolkitCepOrganizerSnapshot(), '16x9');
+assert.equal(videoFootage.parentFolder.parentFolder.name, '4_FOOTAGE');
+console.log('PASS DMS video routing does not depend on a legacy disk folder');
 
 function ToolComp(name) { this.name = name; this.frameRate = 24; this.frameDuration = 1 / 24; this.duration = 10; this.time = 2; this.selectedLayers = []; }
 function ToolLayer(name, index, inPoint, outPoint) { this.name = name; this.index = index; this.inPoint = inPoint; this.outPoint = outPoint; this.startTime = inPoint; this.opacity = { setValueAtTime(time, value) { this.values = this.values || []; this.values.push([time, value]); } }; }

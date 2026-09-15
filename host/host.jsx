@@ -5,7 +5,7 @@ function aetoolkitCepDataFolder() {
 }
 function aetoolkitCepStateFile() { return new File(aetoolkitCepDataFolder().fsName + "/project-templates.json"); }
 function aetoolkitCepDefaultState() {
-    return '{"version":1,"templates":[{"id":"default-motion","name":"Default Motion Project","folders":{"afterEffects":"05_GFX/02_AfterEffects","assets":"05_GFX/03_Assets","toGfx":"05_GFX/06_ToGFX","outputs":"05_GFX/07_Output","styleFrames":"05_GFX/07_Output/_StyleFrames"},"customFolders":[]}],"projects":[],"activeProjectId":""}';
+    return '{"version":1,"templates":[{"id":"default-motion","name":"Default Motion Project","folders":{"afterEffects":"After Effects","assets":"Assets","toGfx":"Incoming","outputs":"Outputs","styleFrames":"Outputs/Style Frames"},"customFolders":[]}],"projects":[],"activeProjectId":""}';
 }
 function aetoolkitCepLoadState() {
     try {
@@ -89,9 +89,9 @@ function aetoolkitCepRenderDate() {
     return year + (month < 10 ? "0" : "") + month + (day < 10 ? "0" : "") + day;
 }
 function aetoolkitCepNormalizeSubfolder(value) {
-    var path = String(value || "").replace(/\\/g, "/").replace(/^\s+|\s+$/g, "").replace(/^\/+|\/+$/g, "");
+    var path = String(value || "").replace(/\\/g, "/").replace(/^\s+|\s+$/g, "").replace(/\/+$/g, "");
     if (!path) return "";
-    if (/^[A-Za-z]:\//.test(path) || /(^|\/)\.\.?($|\/)/.test(path)) throw new Error("Render subfolders must stay inside the selected project output folder.");
+    if (path.charAt(0) === "/" || /^[A-Za-z]:/.test(path) || /(^|\/)\.\.?($|\/)/.test(path)) throw new Error("Render subfolders must stay inside the selected project output folder.");
     return path;
 }
 function aetoolkitCepEnsureFolder(pathText) {
@@ -683,7 +683,7 @@ function aetoolkitCepOrganizeBasic(snapshot) {
     return moved;
 }
 function aetoolkitCepOrganizeDms(snapshot, ratio) {
-    var comps = aetoolkitCepOrganizerFolder(snapshot, "1_COMPS"), precomps = aetoolkitCepOrganizerFolder(snapshot, "2_PRE_COMPS"), gfx = aetoolkitCepOrganizerFolder(snapshot, "3_GFX"), footage = aetoolkitCepOrganizerFolder(snapshot, "4_FOOTAGE"), compRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, comps), precompRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, precomps), footageRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, footage), solids = aetoolkitCepOrganizerFolder(snapshot, "SOLIDS", gfx), moved = 0, item, ext, sourceName, normalizedPath, destination;
+    var comps = aetoolkitCepOrganizerFolder(snapshot, "1_COMPS"), precomps = aetoolkitCepOrganizerFolder(snapshot, "2_PRE_COMPS"), gfx = aetoolkitCepOrganizerFolder(snapshot, "3_GFX"), footage = aetoolkitCepOrganizerFolder(snapshot, "4_FOOTAGE"), compRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, comps), precompRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, precomps), footageRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, footage), solids = aetoolkitCepOrganizerFolder(snapshot, "SOLIDS", gfx), moved = 0, item, ext, destination;
     for (var i = 0; i < snapshot.items.length; i++) {
         item = snapshot.items[i];
         if (snapshot.protectedIds[item.id]) continue;
@@ -692,10 +692,8 @@ function aetoolkitCepOrganizeDms(snapshot, ratio) {
             if (aetoolkitCepIsSolid(item)) destination = solids;
             else {
                 ext = aetoolkitCepOrganizerExtension(item);
-                sourceName = item.file ? item.file.name : item.name;
-                normalizedPath = item.file ? ("/" + item.file.fsName.split("\\").join("/").toLowerCase()) : "";
                 if (!aetoolkitCepIsStill(item) && (/^(wav|aif|aiff|mp3|m4a|aac)$/.test(ext) || item.hasAudio && !item.hasVideo)) destination = footageRatio;
-                else if (!aetoolkitCepIsStill(item) && /^(mov|mp4|mxf|avi)$/.test(ext) && normalizedPath.indexOf("/06_togfx/") !== -1) destination = footageRatio;
+                else if (!aetoolkitCepIsStill(item) && /^(mov|mp4|mxf|avi)$/.test(ext)) destination = footageRatio;
                 else destination = aetoolkitCepOrganizerFolder(snapshot, (ext === "jpg" ? "JPEG" : ext === "tiff" ? "TIF" : ext ? ext.toUpperCase() : "OTHER"), gfx);
             }
         } else continue;
