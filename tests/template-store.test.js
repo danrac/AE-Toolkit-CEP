@@ -31,4 +31,14 @@ test('Custom locations require unique labels and safe relative paths', () => {
     assert.throws(() => store.validateTemplate({ name: 'Unsafe', folders: {}, customFolders: [{ label: 'Delivery', path: '../delivery' }] }));
 });
 
+test('Connected projects retain one active project and can be removed safely', () => {
+    let state = store.defaultState();
+    state = store.assignProject(state, { name: 'One', root: '/Jobs/One', templateId: 'default-motion' });
+    state = store.assignProject(state, { name: 'Two', root: '/Jobs/Two', templateId: 'default-motion' });
+    state = store.setActiveProject(state, 'two');
+    state = store.removeProject(state, 'two');
+    assert.equal(state.activeProjectId, 'one');
+    assert.equal(state.projects.length, 1);
+});
+
 console.log(`${passed} tests passed.`);

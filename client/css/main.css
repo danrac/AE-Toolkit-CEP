@@ -7,6 +7,7 @@ header { border-bottom: 1px solid #344250; padding-bottom: 14px; }
 h1, h2, p { margin: 0; }
 h1 { font-size: 20px; font-weight: 650; }
 h2 { font-size: 14px; }
+h3 { color: #b9c8d8; font-size: 11px; letter-spacing: .04em; margin: 0; text-transform: uppercase; }
 .eyebrow { color: #78b7ff; font-size: 10px; font-weight: 700; letter-spacing: .09em; }
 .badge { background: #253240; color: #a7c9ee; padding: 4px 7px; border-radius: 5px; font-size: 11px; }
 .tabs { display: grid; grid-template-columns: 1fr 1fr; margin: 14px 0; border: 1px solid #354554; border-radius: 6px; overflow: hidden; }
@@ -21,6 +22,8 @@ label { display: block; color: #b9c8d8; font-size: 11px; font-weight: 650; margi
 input, select { display: block; width: 100%; margin-top: 5px; border: 1px solid #46596c; border-radius: 4px; padding: 8px; background: #11171d; color: #eef4fb; font: inherit; text-transform: none; }
 .primary { width: 100%; margin-top: 14px; background: #2967a5; border-color: #4e91d0; color: #fff; font-weight: 650; }
 .quiet { padding: 4px 7px; font-size: 11px; }
+.danger { border-color: #754653; color: #ffb5bd; }
+.danger:hover { background: #4b2932; }
 .choose-folder { margin-top: 6px; }
 .help, .status { color: #9fb1c3; font-size: 11px; margin-top: 7px; }
 .folder-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
@@ -32,6 +35,12 @@ input, select { display: block; width: 100%; margin-top: 5px; border: 1px solid 
 .resolved-paths { display: grid; gap: 5px; margin-top: 9px; }
 .resolved-path { display: grid; grid-template-columns: 78px 1fr auto; gap: 6px; align-items: center; font-size: 11px; }
 .resolved-path span { color: #aabccc; overflow-wrap: anywhere; }
+.project-actions, .action-grid, .render-grid { display: grid; gap: 7px; margin-top: 10px; }
+.project-actions { grid-template-columns: 1fr 1fr; }
+.action-grid, .render-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.action-grid button, .render-grid button { min-width: 0; font-size: 11px; padding: 8px 4px; }
+.project-operation { border-top: 1px solid #2c3945; margin-top: 13px; padding-top: 12px; }
+button:disabled { cursor: default; opacity: .45; }
 .item-list:empty::after { content: "Nothing connected yet."; color: #8697a8; display: block; padding: 10px 0 0; }
 .list-item { padding: 10px 0; border-top: 1px solid #2c3945; }
 .list-item:first-child { border-top: 0; }

@@ -13,7 +13,7 @@
         return path;
     }
     function defaultState() {
-        return { version: 1, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "05_GFX/02_AfterEffects", assets: "05_GFX/03_Assets", toGfx: "05_GFX/06_ToGFX", outputs: "05_GFX/07_Output", styleFrames: "05_GFX/07_Output/_StyleFrames" }, customFolders: [] }], projects: [] };
+        return { version: 1, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "05_GFX/02_AfterEffects", assets: "05_GFX/03_Assets", toGfx: "05_GFX/06_ToGFX", outputs: "05_GFX/07_Output", styleFrames: "05_GFX/07_Output/_StyleFrames" }, customFolders: [] }], projects: [], activeProjectId: "" };
     }
     function validateTemplate(template) {
         if (!template || !String(template.name || "").replace(/^\s+|\s+$/g, "")) throw new Error("Template name is required.");
@@ -48,6 +48,25 @@
         var replaced = false;
         for (var i = 0; i < next.projects.length; i++) if (next.projects[i].id === record.id) { next.projects[i] = record; replaced = true; }
         if (!replaced) next.projects.push(record);
+        if (!next.activeProjectId) next.activeProjectId = record.id;
+        return next;
+    }
+    function setActiveProject(state, projectId) {
+        var next = clone(state), found = false;
+        for (var i = 0; i < next.projects.length; i++) if (next.projects[i].id === projectId) found = true;
+        if (!found) throw new Error("Choose a connected project.");
+        next.activeProjectId = projectId;
+        return next;
+    }
+    function removeProject(state, projectId) {
+        var next = clone(state), kept = [], found = false;
+        for (var i = 0; i < next.projects.length; i++) {
+            if (next.projects[i].id === projectId) found = true;
+            else kept.push(next.projects[i]);
+        }
+        if (!found) throw new Error("Project not found.");
+        next.projects = kept;
+        if (next.activeProjectId === projectId) next.activeProjectId = kept.length ? kept[0].id : "";
         return next;
     }
     function resolveProjectPaths(state, projectId) {
@@ -60,5 +79,5 @@
         (template.customFolders || []).forEach(function (entry) { result[entry.id] = entry.path ? project.root + "/" + entry.path : ""; });
         return result;
     }
-    return { FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, resolveProjectPaths: resolveProjectPaths };
+    return { FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));

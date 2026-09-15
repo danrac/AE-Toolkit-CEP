@@ -31,6 +31,34 @@
         <button id="connect-project" class="primary">Connect project</button>
       </article>
       <article class="card">
+        <div class="card-heading"><h2>Active project</h2><button id="remove-project" class="quiet danger">Remove</button></div>
+        <select id="active-project"></select>
+        <div id="active-project-actions" class="project-actions">
+          <button id="open-project-file">Open project file</button>
+          <button id="reveal-project-root">Reveal project root</button>
+        </div>
+        <div class="project-operation">
+          <h3>Reveal folder</h3>
+          <div id="reveal-actions" class="action-grid"></div>
+        </div>
+        <div class="project-operation">
+          <h3>Import assets</h3>
+          <p class="help">Opens After Effects' import dialog in the selected folder.</p>
+          <div id="import-actions" class="action-grid"></div>
+        </div>
+      </article>
+      <article class="card">
+        <h2>Render to outputs</h2>
+        <label>Optional subfolder<input id="render-subfolder" placeholder="Version or delivery folder"></label>
+        <button id="choose-render-subfolder" class="quiet choose-folder">Choose subfolder</button>
+        <div class="render-grid">
+          <button data-render-mode="offline">Offline</button>
+          <button data-render-mode="online">Online</button>
+          <button data-render-mode="styleFrames">Style frames</button>
+          <button data-render-mode="checker">Checker</button>
+        </div>
+      </article>
+      <article class="card">
         <div class="card-heading"><h2>Connected projects</h2><button id="refresh-projects" class="quiet">Refresh</button></div>
         <div id="project-list" class="item-list"></div>
       </article>

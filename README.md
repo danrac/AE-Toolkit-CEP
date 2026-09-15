@@ -12,6 +12,7 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 - Relative, semantic folder mappings for After Effects, Assets, To GFX, Outputs, and Style Frames
 - macOS and Windows project-root resolution, including a native folder chooser
 - Resolved project paths with one-click reveal controls
+- Active-project controls for opening project files, importing from mapped folders, and rendering selected compositions to dated project outputs
 
 ## Development
 
