@@ -280,3 +280,7 @@ vm.createContext(assetContext);
 vm.runInContext(source, assetContext);
 assert.equal(assetContext.aetoolkitCepCopyPresetAsset(new AssetFolder('/UserData/AE-Toolkit-CEP/guide-assets/scope'), '/UserData/AE-Toolkit-CEP/guide-assets/scope/matte.png', 'matte'), '/UserData/AE-Toolkit-CEP/guide-assets/scope/matte.png');
 console.log('PASS host reuses guide assets already stored for a format');
+
+// ExtendScript rejects unescaped slash delimiters inside regex character classes.
+assert.equal(context.aetoolkitCepSafeName('a/b:c'), 'abc');
+assert.ok(!source.includes(String.raw`[\\/`), 'Escape slash delimiters for the ExtendScript parser');

@@ -64,3 +64,5 @@ To publish a test build while the extension manifest remains at its package vers
 ## Migration direction
 
 The project-template system replaces hard-coded Project Navigation paths first. Existing Toolbox operations will migrate into explicit ExtendScript backend modules and be called from the CEP panel as each workflow is rebuilt.
+
+Before releasing host changes, run `tests/after-effects-load-check.jsx` through After Effects File → Scripts → Run Script File. It loads the complete host and exercises filename sanitizing. Read `ae-toolkit-cep-host-check.txt` in the system temporary folder for PASS or FAIL. Node syntax checks alone do not establish ExtendScript compatibility.

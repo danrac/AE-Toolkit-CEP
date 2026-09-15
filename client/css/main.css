@@ -10,10 +10,13 @@ h2 { font-size: 14px; }
 h3 { color: #b9c8d8; font-size: 11px; letter-spacing: .04em; margin: 0; text-transform: uppercase; }
 .eyebrow { color: #78b7ff; font-size: 10px; font-weight: 700; letter-spacing: .09em; }
 .badge { background: #253240; color: #a7c9ee; padding: 4px 7px; border-radius: 5px; font-size: 11px; }
-.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin: 14px 0; border: 1px solid #354554; border-radius: 6px; overflow: hidden; }
+.tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 14px 0; border: 1px solid #354554; border-radius: 6px; overflow: hidden; }
 button { border: 1px solid #495b6c; background: #27313d; color: #e7edf5; border-radius: 5px; padding: 8px 10px; font: inherit; cursor: pointer; }
 button:hover { background: #334253; }
-.tab { border: 0; border-radius: 0; background: #1d252e; }
+.tab { border: 0; border-radius: 0; background: #1d252e; min-width: 0; height: 42px; padding: 9px 4px; display: flex; align-items: center; justify-content: center; }
+.tab svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.tab:focus { outline: 2px solid #a7c9ee; outline-offset: -3px; }
+.tabs { position: sticky; top: 0; z-index: 10; }
 .tab.active { background: #2b5d93; color: #fff; }
 .view { display: none; }
 .view.active { display: block; }

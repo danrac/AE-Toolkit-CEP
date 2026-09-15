@@ -319,7 +319,7 @@ function aetoolkitCepNumber(value, label, minimum, maximum, integerOnly) {
     return parsed;
 }
 function aetoolkitCepSafeName(value) {
-    return String(value || "").replace(/^\s+|\s+$/g, "").replace(/[\\/:*?\"<>|\r\n]+/g, "").replace(/\s+/g, " ");
+    return String(value || "").replace(/^\s+|\s+$/g, "").replace(/[\\\/:*?"<>|\r\n]+/g, "").replace(/\s+/g, " ");
 }
 function aetoolkitCepBuildCompName(options, index) {
     var parts = [], fields = [options.job, options.format, options.style, options.description, options.initials], i;
@@ -599,7 +599,7 @@ function aetoolkitCepLocalizeSelectedAssets(assetsPath) {
     var localized = 0, errors = [], destination, selection, i, item, source, target;
     try {
         if (!assetsPath) throw new Error("The active project has no Assets folder configured.");
-        destination = aetoolkitCepEnsureFolder(String(assetsPath).replace(/[\\/]+$/, "") + "/Localized");
+        destination = aetoolkitCepEnsureFolder(String(assetsPath).replace(/[\\\/]+$/, "") + "/Localized");
         selection = app.project.selection;
         if (!selection.length) throw new Error("Select one or more file-based footage items before localizing assets.");
         app.beginUndoGroup("AE Toolkit CEP: Localize selected assets");
