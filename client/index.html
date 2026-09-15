@@ -21,6 +21,7 @@
       <button class="tab" data-view="sourcing">Sourcing</button>
       <button class="tab" data-view="create-modify">Create / Modify</button>
       <button class="tab" data-view="covers-checkers">Covers / Checkers</button>
+      <button class="tab" data-view="cleanup-collect">Cleanup / Collect</button>
       <button class="tab" data-view="templates">Templates</button>
     </nav>
 
@@ -183,6 +184,41 @@
         </div>
         <button id="create-checkers" class="primary">Create checkers</button>
         <p class="help">To render them, select the new checker comps and use <strong>Projects → Render to outputs → Checker</strong>. Existing render-queue items are preserved.</p>
+      </article>
+    </section>
+
+    <section id="cleanup-collect" class="view">
+      <article class="card">
+        <h2>Project maintenance</h2>
+        <p class="help">Each action uses After Effects’ native project operations and is one undo step. Select project items before reducing; reduce removes unselected dependencies.</p>
+        <div class="action-grid maintenance-grid">
+          <button id="consolidate-footage">Consolidate footage</button>
+          <button id="remove-unused">Remove unused</button>
+          <button id="reduce-project" class="danger">Reduce to selection</button>
+        </div>
+      </article>
+      <article class="card">
+        <h2>Organize project</h2>
+        <p class="help">Selected Project-panel items remain at the root after organizing. Selected folders keep their contents unchanged. The operation never deletes existing folders.</p>
+        <label>Organizer preset<select id="organizer-preset">
+          <option value="basic">Basic project folders</option>
+          <option value="dms-16x9">DMS · 16 × 9</option>
+          <option value="dms-9x16">DMS · 9 × 16</option>
+          <option value="dms-4x5">DMS · 4 × 5</option>
+          <option value="dms-1x1">DMS · 1 × 1</option>
+          <option value="xav-2025">XAV Organizer 2025</option>
+        </select></label>
+        <button id="organize-project" class="primary">Organize project</button>
+      </article>
+      <article class="card">
+        <h2>Localize selected assets</h2>
+        <p class="help">Copies selected file-based footage into the active project’s mapped Assets/Localized folder, then relinks those footage items. Existing files are never overwritten; image sequences are skipped.</p>
+        <button id="localize-assets">Localize selected assets</button>
+      </article>
+      <article class="card">
+        <h2>Collect project</h2>
+        <p class="help">Opens After Effects’ native Collect Files dialog. There you can choose the scope and destination, including sequences and proxies.</p>
+        <button id="collect-project" class="primary">Open Collect Files</button>
       </article>
     </section>
 

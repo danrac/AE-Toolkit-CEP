@@ -482,3 +482,223 @@ function aetoolkitCepCreateCheckers(jsonText) {
         return JSON.stringify({ created: comps.length });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepConsolidateFootage() {
+    try {
+        app.beginUndoGroup("AE Toolkit CEP: Consolidate footage");
+        try { app.project.consolidateFootage(); }
+        finally { app.endUndoGroup(); }
+        return JSON.stringify({ consolidated: true });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepRemoveUnusedFootage() {
+    try {
+        app.beginUndoGroup("AE Toolkit CEP: Remove unused footage");
+        try { app.project.removeUnusedFootage(); }
+        finally { app.endUndoGroup(); }
+        return JSON.stringify({ removed: true });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepReductionItems() {
+    var items = [], selection = app.project.selection;
+    function add(item) {
+        var i;
+        if (item instanceof FolderItem) { for (i = 1; i <= item.numItems; i++) add(item.item(i)); return; }
+        if (!(item instanceof CompItem) && !(item instanceof FootageItem)) return;
+        for (i = 0; i < items.length; i++) if (items[i].id === item.id) return;
+        items.push(item);
+    }
+    for (var i = 0; i < selection.length; i++) add(selection[i]);
+    return items;
+}
+function aetoolkitCepReduceProject() {
+    try {
+        var items = aetoolkitCepReductionItems();
+        if (!items.length) throw new Error("Select one or more compositions or footage items to keep before reducing the project.");
+        app.beginUndoGroup("AE Toolkit CEP: Reduce project");
+        try { app.project.reduceProject(items); }
+        finally { app.endUndoGroup(); }
+        return JSON.stringify({ kept: items.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepOpenCollectFiles() {
+    try {
+        var command = app.findMenuCommandId("Collect Files...");
+        if (!command) command = app.findMenuCommandId("Collect Files\u2026");
+        if (!command) throw new Error("The Collect Files command is not available in this After Effects language.");
+        app.executeCommand(command);
+        return "OK";
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepLikelyImageSequence(item) {
+    var name = item.file && item.file.name || "", imageExtension = /\.(ai|bmp|dpx|exr|gif|iff|jpeg|jpg|png|psd|tga|tif|tiff)$/i.test(name);
+    return imageExtension && item.mainSource && item.mainSource.isStill === false;
+}
+function aetoolkitCepUniqueCopyFile(folder, sourceFile) {
+    var name = sourceFile.name, dot = name.lastIndexOf("."), base = dot > 0 ? name.substring(0, dot) : name, extension = dot > 0 ? name.substring(dot) : "", attempt = 0, target;
+    do {
+        target = new File(folder.fsName + "/" + base + (attempt ? "_" + aetoolkitCepPadNumber(attempt, 2) : "") + extension);
+        attempt++;
+    } while (target.exists && attempt < 10000);
+    if (target.exists) throw new Error("Could not find an unused name for " + sourceFile.name);
+    return target;
+}
+function aetoolkitCepLocalizeSelectedAssets(assetsPath) {
+    var localized = 0, errors = [], destination, selection, i, item, source, target;
+    try {
+        if (!assetsPath) throw new Error("The active project has no Assets folder configured.");
+        destination = aetoolkitCepEnsureFolder(String(assetsPath).replace(/[\\/]+$/, "") + "/Localized");
+        selection = app.project.selection;
+        if (!selection.length) throw new Error("Select one or more file-based footage items before localizing assets.");
+        app.beginUndoGroup("AE Toolkit CEP: Localize selected assets");
+        try {
+            for (i = 0; i < selection.length; i++) {
+                item = selection[i];
+                if (!(item instanceof FootageItem) || !item.file) { errors.push(item.name + ": not file-based footage."); continue; }
+                if (!item.file.exists) { errors.push(item.name + ": source file is offline."); continue; }
+                if (aetoolkitCepLikelyImageSequence(item)) { errors.push(item.name + ": image sequences are skipped; use Collect Files for sequences."); continue; }
+                source = item.file;
+                try {
+                    target = aetoolkitCepUniqueCopyFile(destination, source);
+                    if (!source.copy(target.fsName)) throw new Error("copy failed");
+                    item.replace(target);
+                    localized++;
+                } catch (copyError) { errors.push(item.name + ": " + copyError.toString()); }
+            }
+        } finally { app.endUndoGroup(); }
+    } catch (error) { errors.push(error.toString()); }
+    return JSON.stringify({ localized: localized, errors: errors });
+}
+function aetoolkitCepOrganizerSnapshot() {
+    var project = app.project, root = project.rootFolder, snapshot = { items: [], folders: [], protectedIds: {}, selected: [] }, i, item, ancestor;
+    for (i = 1; i <= project.numItems; i++) {
+        item = project.item(i);
+        if (item instanceof FolderItem) snapshot.folders.push(item); else snapshot.items.push(item);
+        if (item.selected) snapshot.selected.push(item);
+    }
+    for (i = 0; i < snapshot.items.length; i++) {
+        item = snapshot.items[i];
+        if (item.selected) snapshot.protectedIds[item.id] = true;
+        ancestor = item.parentFolder;
+        while (ancestor && ancestor !== root) { if (ancestor.selected) { snapshot.protectedIds[item.id] = true; break; } ancestor = ancestor.parentFolder; }
+    }
+    for (i = 0; i < snapshot.folders.length; i++) {
+        item = snapshot.folders[i];
+        if (item.selected) snapshot.protectedIds[item.id] = true;
+        ancestor = item.parentFolder;
+        while (ancestor && ancestor !== root) { if (ancestor.selected) { snapshot.protectedIds[item.id] = true; break; } ancestor = ancestor.parentFolder; }
+    }
+    return snapshot;
+}
+function aetoolkitCepOrganizerFolder(snapshot, name, parent) {
+    var i, item;
+    parent = parent || app.project.rootFolder;
+    for (i = 1; i <= parent.numItems; i++) {
+        item = parent.item(i);
+        if (item instanceof FolderItem && item.name === name && !snapshot.protectedIds[item.id]) return item;
+    }
+    item = app.project.items.addFolder(name);
+    item.parentFolder = parent;
+    snapshot.folders.push(item);
+    return item;
+}
+function aetoolkitCepOrganizerExtension(item) {
+    var name = "", dot;
+    try { name = item.file ? item.file.name : item.name; } catch (error) {}
+    dot = name.lastIndexOf(".");
+    return dot < 0 ? "" : name.substring(dot + 1).toLowerCase();
+}
+function aetoolkitCepIsSolid(item) {
+    try { return item.mainSource instanceof SolidSource; } catch (error) { return false; }
+}
+function aetoolkitCepIsStill(item) {
+    try { return !!item.mainSource.isStill; } catch (error) { return false; }
+}
+function aetoolkitCepLiftSelectedItems(snapshot) {
+    var root = app.project.rootFolder;
+    for (var i = 0; i < snapshot.selected.length; i++) snapshot.selected[i].parentFolder = root;
+}
+function aetoolkitCepOrganizeBasic(snapshot) {
+    var comps = aetoolkitCepOrganizerFolder(snapshot, "Comps"), precomps = aetoolkitCepOrganizerFolder(snapshot, "PreComps"), footage = aetoolkitCepOrganizerFolder(snapshot, "Footage"), images = aetoolkitCepOrganizerFolder(snapshot, "Images"), solids = aetoolkitCepOrganizerFolder(snapshot, "Solids"), moved = 0, item;
+    for (var i = 0; i < snapshot.items.length; i++) {
+        item = snapshot.items[i];
+        if (snapshot.protectedIds[item.id]) continue;
+        if (item instanceof CompItem) item.parentFolder = item.usedIn && item.usedIn.length ? precomps : comps;
+        else if (item instanceof FootageItem) item.parentFolder = aetoolkitCepIsSolid(item) ? solids : aetoolkitCepIsStill(item) ? images : footage;
+        else continue;
+        moved++;
+    }
+    return moved;
+}
+function aetoolkitCepOrganizeDms(snapshot, ratio) {
+    var comps = aetoolkitCepOrganizerFolder(snapshot, "1_COMPS"), precomps = aetoolkitCepOrganizerFolder(snapshot, "2_PRE_COMPS"), gfx = aetoolkitCepOrganizerFolder(snapshot, "3_GFX"), footage = aetoolkitCepOrganizerFolder(snapshot, "4_FOOTAGE"), compRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, comps), precompRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, precomps), footageRatio = aetoolkitCepOrganizerFolder(snapshot, ratio, footage), solids = aetoolkitCepOrganizerFolder(snapshot, "SOLIDS", gfx), moved = 0, item, ext, sourceName, normalizedPath, destination;
+    for (var i = 0; i < snapshot.items.length; i++) {
+        item = snapshot.items[i];
+        if (snapshot.protectedIds[item.id]) continue;
+        if (item instanceof CompItem) destination = item.usedIn && item.usedIn.length ? precompRatio : compRatio;
+        else if (item instanceof FootageItem) {
+            if (aetoolkitCepIsSolid(item)) destination = solids;
+            else {
+                ext = aetoolkitCepOrganizerExtension(item);
+                sourceName = item.file ? item.file.name : item.name;
+                normalizedPath = item.file ? ("/" + item.file.fsName.split("\\").join("/").toLowerCase()) : "";
+                if (!aetoolkitCepIsStill(item) && (/^(wav|aif|aiff|mp3|m4a|aac)$/.test(ext) || item.hasAudio && !item.hasVideo)) destination = footageRatio;
+                else if (!aetoolkitCepIsStill(item) && /^(mov|mp4|mxf|avi)$/.test(ext) && normalizedPath.indexOf("/06_togfx/") !== -1) destination = footageRatio;
+                else destination = aetoolkitCepOrganizerFolder(snapshot, (ext === "jpg" ? "JPEG" : ext === "tiff" ? "TIF" : ext ? ext.toUpperCase() : "OTHER"), gfx);
+            }
+        } else continue;
+        item.parentFolder = destination;
+        moved++;
+    }
+    return moved;
+}
+function aetoolkitCepOrganizeXav(snapshot) {
+    var root = app.project.rootFolder, comps = aetoolkitCepOrganizerFolder(snapshot, "01_compositions", root), cuts = aetoolkitCepOrganizerFolder(snapshot, "02_cuts", root), assets = aetoolkitCepOrganizerFolder(snapshot, "03_assets", root), c4d = aetoolkitCepOrganizerFolder(snapshot, "04_c4d", root), aeImport = aetoolkitCepOrganizerFolder(snapshot, "05_AE-import", root), solids = aetoolkitCepOrganizerFolder(snapshot, "Solids", root), unsorted = aetoolkitCepOrganizerFolder(snapshot, "unsorted", root), pre = aetoolkitCepOrganizerFolder(snapshot, "_PRE", comps), indivs = aetoolkitCepOrganizerFolder(snapshot, "_INDIVS", comps), subs = aetoolkitCepOrganizerFolder(snapshot, "_SUBS", comps), audio = aetoolkitCepOrganizerFolder(snapshot, "Audio", assets), images = aetoolkitCepOrganizerFolder(snapshot, "Images", assets), footage = aetoolkitCepOrganizerFolder(snapshot, "Footage", assets), imageFolders = {}, footageFolders = {}, imageTypes = ["psd", "png", "tiff", "ai", "svg", "jpg", "exr"], footageTypes = ["mxf", "mov", "mp4", "avi"], usedCompIds = {}, i, j, item, layer, name, fileName, ext, destination, moved = 0;
+    for (i = 0; i < imageTypes.length; i++) imageFolders[imageTypes[i]] = aetoolkitCepOrganizerFolder(snapshot, imageTypes[i], images);
+    imageFolders.tif = imageFolders.tiff; imageFolders.jpeg = imageFolders.jpg;
+    for (i = 0; i < footageTypes.length; i++) footageFolders[footageTypes[i]] = aetoolkitCepOrganizerFolder(snapshot, footageTypes[i], footage);
+    for (i = 0; i < snapshot.items.length; i++) {
+        item = snapshot.items[i];
+        if (!(item instanceof CompItem)) continue;
+        for (j = 1; j <= item.numLayers; j++) { try { layer = item.layer(j); if (layer && layer.source instanceof CompItem) usedCompIds[layer.source.id] = true; } catch (layerError) {} }
+    }
+    function has(text, values) { for (var index = 0; index < values.length; index++) if (text.indexOf(values[index]) !== -1) return true; return false; }
+    for (i = 0; i < snapshot.items.length; i++) {
+        item = snapshot.items[i];
+        if (snapshot.protectedIds[item.id]) continue;
+        name = String(item.name || "").toLowerCase();
+        if (item instanceof CompItem) {
+            if (has(name, ["_indiv", "indiv_"])) destination = indivs;
+            else if (has(name, ["_sub", "sub_", "subtitle", "captions"])) destination = subs;
+            else if ((has(name, ["_pre_", "precomp", "_pc", "pc_"]) || usedCompIds[item.id]) && !has(name, ["_ref", "_ckr", "_chkr", "_key", "_alpha", "_txls", "_txtls", "_comp"])) destination = pre;
+            else destination = comps;
+        } else if (item instanceof FootageItem) {
+            fileName = item.file ? item.file.name.toLowerCase() : name; ext = aetoolkitCepOrganizerExtension(item);
+            if (aetoolkitCepIsSolid(item)) destination = solids;
+            else if (name.indexOf("_ref") !== -1 || fileName.indexOf("_ref") !== -1) destination = cuts;
+            else if (has(name, ["adobe after effects", "aegraphic", "ae import", "essential graphics"])) destination = aeImport;
+            else if (ext === "c4d") destination = c4d;
+            else if (imageFolders[ext]) destination = imageFolders[ext];
+            else if (footageFolders[ext]) destination = footageFolders[ext];
+            else if (/^(aif|aiff|mp3|wav)$/.test(ext)) destination = audio;
+            else destination = unsorted;
+        } else destination = unsorted;
+        item.parentFolder = destination;
+        moved++;
+    }
+    return moved;
+}
+function aetoolkitCepOrganizeProject(preset) {
+    try {
+        var allowed = { basic: true, "dms-16x9": true, "dms-9x16": true, "dms-4x5": true, "dms-1x1": true, "xav-2025": true }, snapshot, moved;
+        if (!allowed[preset]) throw new Error("Choose an organizer preset.");
+        app.beginUndoGroup("AE Toolkit CEP: Organize project");
+        try {
+            snapshot = aetoolkitCepOrganizerSnapshot();
+            aetoolkitCepLiftSelectedItems(snapshot);
+            if (preset === "basic") moved = aetoolkitCepOrganizeBasic(snapshot);
+            else if (preset === "xav-2025") moved = aetoolkitCepOrganizeXav(snapshot);
+            else moved = aetoolkitCepOrganizeDms(snapshot, preset.substring(4));
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ moved: moved, selectedAtRoot: snapshot.selected.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}

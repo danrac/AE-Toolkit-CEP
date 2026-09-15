@@ -44,6 +44,7 @@ textarea { min-height: 120px; resize: vertical; }
 .project-actions, .action-grid, .render-grid { display: grid; gap: 7px; margin-top: 10px; }
 .project-actions { grid-template-columns: 1fr 1fr; }
 .action-grid, .render-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.maintenance-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .action-grid button, .render-grid button { min-width: 0; font-size: 11px; padding: 8px 4px; }
 .project-operation { border-top: 1px solid #2c3945; margin-top: 13px; padding-top: 12px; }
 button:disabled { cursor: default; opacity: .45; }

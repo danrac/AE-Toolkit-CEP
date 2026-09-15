@@ -147,3 +147,62 @@ assert.equal(canvasComps[1].name, 'CKR_01_Promo');
 assert.equal(canvasComps[1].layers.entries[0].timeRemapEnabled, true);
 assert.deepEqual(canvasComps[1].layers.entries[0].property().values, [[0, 10 / 24], [10, 10 / 24]]);
 console.log('PASS host creates native editable covers and held-frame checkers');
+
+function FolderItem(name, items) { this.name = name; this._items = items || []; this.numItems = this._items.length; }
+FolderItem.prototype.item = function (index) { return this._items[index - 1]; };
+function FootageItem(name, id) { this.name = name; this.id = id; }
+const keptComp = new CanvasComp('Keep'); keptComp.id = 100;
+const keptFootage = new FootageItem('Footage', 101);
+let consolidated = 0, unusedRemoved = 0, reducedItems, collectCommand;
+const cleanupContext = {
+    JSON,
+    CompItem: CanvasComp,
+    FootageItem,
+    FolderItem,
+    app: {
+        beginUndoGroup() {}, endUndoGroup() {},
+        findMenuCommandId(name) { return name === 'Collect Files...' ? 1234 : 0; }, executeCommand(command) { collectCommand = command; },
+        project: { selection: [new FolderItem('Selected', [keptComp, keptFootage])], consolidateFootage() { consolidated++; }, removeUnusedFootage() { unusedRemoved++; }, reduceProject(items) { reducedItems = items; } }
+    }
+};
+vm.createContext(cleanupContext);
+vm.runInContext(source, cleanupContext);
+assert.equal(JSON.parse(cleanupContext.aetoolkitCepConsolidateFootage()).consolidated, true);
+assert.equal(consolidated, 1);
+assert.equal(JSON.parse(cleanupContext.aetoolkitCepRemoveUnusedFootage()).removed, true);
+assert.equal(unusedRemoved, 1);
+assert.equal(JSON.parse(cleanupContext.aetoolkitCepReduceProject()).kept, 2);
+assert.deepEqual(reducedItems, [keptComp, keptFootage]);
+assert.equal(cleanupContext.aetoolkitCepOpenCollectFiles(), 'OK');
+assert.equal(collectCommand, 1234);
+console.log('PASS host cleanup and native collect operations use selected dependencies');
+
+function OrganizeFolder(name, id, project) { this.name = name; this.id = id; this.project = project; this.selected = false; this.parentFolder = null; }
+Object.defineProperty(OrganizeFolder.prototype, 'numItems', { get() { return this.project._items.filter(item => item.parentFolder === this).length; } });
+OrganizeFolder.prototype.item = function (index) { return this.project._items.filter(item => item.parentFolder === this)[index - 1]; };
+function OrganizeComp(name, id, parent, selected) { this.name = name; this.id = id; this.parentFolder = parent; this.selected = !!selected; this.usedIn = []; this.numLayers = 0; }
+function OrganizeFootage(name, id, parent, still, solid) { this.name = name; this.id = id; this.parentFolder = parent; this.selected = false; this.usedIn = []; this.mainSource = solid ? new OrganizeSolidSource() : { isStill: still }; }
+function OrganizeSolidSource() {}
+const organizeProject = { _items: [], selection: [], items: {} };
+const organizeRoot = new OrganizeFolder('Root', 1, organizeProject); organizeProject.rootFolder = organizeRoot;
+organizeProject.items.addFolder = function (name) { const folder = new OrganizeFolder(name, organizeProject._items.length + 10, organizeProject); folder.parentFolder = organizeRoot; organizeProject._items.push(folder); return folder; };
+const oldFolder = new OrganizeFolder('Old', 2, organizeProject); oldFolder.parentFolder = organizeRoot;
+const selectedOrganizeComp = new OrganizeComp('Keep at root', 3, oldFolder, true);
+const mainOrganizeComp = new OrganizeComp('Main', 4, oldFolder, false);
+const stillFootage = new OrganizeFootage('Logo.png', 5, oldFolder, true, false);
+const videoFootage = new OrganizeFootage('Edit.mov', 6, oldFolder, false, false);
+const solidFootage = new OrganizeFootage('Blue Solid', 7, oldFolder, false, true);
+organizeProject._items.push(oldFolder, selectedOrganizeComp, mainOrganizeComp, stillFootage, videoFootage, solidFootage);
+Object.defineProperty(organizeProject, 'numItems', { get() { return this._items.length; } });
+organizeProject.item = function (index) { return this._items[index - 1]; };
+const organizeContext = { JSON, FolderItem: OrganizeFolder, CompItem: OrganizeComp, FootageItem: OrganizeFootage, SolidSource: OrganizeSolidSource, app: { beginUndoGroup() {}, endUndoGroup() {}, project: organizeProject } };
+vm.createContext(organizeContext);
+vm.runInContext(source, organizeContext);
+const organized = JSON.parse(organizeContext.aetoolkitCepOrganizeProject('basic'));
+assert.equal(organized.moved, 4);
+assert.equal(selectedOrganizeComp.parentFolder, organizeRoot);
+assert.equal(mainOrganizeComp.parentFolder.name, 'Comps');
+assert.equal(stillFootage.parentFolder.name, 'Images');
+assert.equal(videoFootage.parentFolder.name, 'Footage');
+assert.equal(solidFootage.parentFolder.name, 'Solids');
+console.log('PASS host organizer snapshots first and keeps selected items at the root');

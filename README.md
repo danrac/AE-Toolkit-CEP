@@ -16,6 +16,7 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 - Sourcing workflows for path-based asset imports and discovery of explicit source-AE-project links in rendered footage
 - Create / Modify workflows for validated composition creation, direct selected-composition size and FPS edits, project-item renaming, and solid-to-comp conforming
 - Native editable Covers and held-frame Checkers, with checker rendering routed through the safe Project output workflow
+- Cleanup, collecting, asset localization, and Basic/DMS/XAV 2025 project organization workflows
 
 ## Create / Modify
 
@@ -26,6 +27,12 @@ Project-item rename actions treat the search text literally, so names containing
 ## Covers / Checkers
 
 Covers are built as editable After Effects comps with a background and named text layers, avoiding the old import-and-convert flow that relied on fixed Photoshop layer positions. Checkers are created from selected comps at a chosen held frame. Render selected checker comps through **Projects → Render to outputs → Checker**; that workflow keeps existing render-queue entries intact.
+
+## Cleanup / Collect
+
+Cleanup actions call After Effects’ native consolidate, remove-unused, reduce, and Collect Files operations. Localize copies only selected, file-based footage into the active project’s semantic Assets folder and does not overwrite an existing file. Use Collect Files for sequences and proxies.
+
+The organizer snapshots project items before it creates folders, runs as one undo step, and never removes folders. Basic, DMS aspect-ratio, and XAV 2025 presets are available. Every selected Project-panel item is lifted to the root and excluded from routing; a selected folder’s unselected contents stay together.
 
 ## Development
 
