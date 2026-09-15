@@ -118,3 +118,32 @@ assert.equal(conformed.conformed, 1);
 assert.equal(solidLayer.source.width, 3840);
 assert.equal(solidLayer.source.height, 2160);
 console.log('PASS host conform solids only changes selected solid sources');
+
+function CanvasLayers() { this.entries = []; }
+CanvasLayers.prototype.addSolid = function (color, name, width, height) { const layer = { name, width, height, moveToEnd() { this.movedToEnd = true; } }; this.entries.push(layer); return layer; };
+CanvasLayers.prototype.addText = function (text) { const document = {}, property = { value: document, setValue(value) { this.value = value; } }; const layer = { name: '', text, transform: { position: { setValue(value) { layer.position = value; } } }, opacity: { setValue(value) { layer.opacityValue = value; } }, property() { return { property() { return property; } }; } }; this.entries.push(layer); return layer; };
+CanvasLayers.prototype.add = function (source) { const remap = { setValueAtTime(time, value) { this.values = this.values || []; this.values.push([time, value]); } }; const layer = { source, canSetTimeRemapEnabled: true, transform: { position: { setValue(value) { layer.position = value; } } }, property() { return remap; } }; this.entries.push(layer); return layer; };
+function CanvasComp(name) { this.id = CanvasComp.nextId++; this.name = name; this.width = 1920; this.height = 1080; this.frameRate = 24; this.frameDuration = 1 / 24; this.duration = 10; this.pixelAspect = 1; this.layers = new CanvasLayers(); }
+CanvasComp.nextId = 1;
+const canvasComps = [], sourceCanvas = new CanvasComp('Promo');
+const coverContext = {
+    JSON,
+    Math,
+    CompItem: CanvasComp,
+    ParagraphJustification: { LEFT_JUSTIFY: 'left' },
+    app: {
+        beginUndoGroup() {}, endUndoGroup() {},
+        project: { selection: [sourceCanvas], items: { addComp(name, width, height, pixelAspect, duration, fps) { const comp = new CanvasComp(name); comp.width = width; comp.height = height; comp.pixelAspect = pixelAspect; comp.duration = duration; comp.frameRate = fps; canvasComps.push(comp); return comp; } } }
+    }
+};
+vm.createContext(coverContext);
+vm.runInContext(source, coverContext);
+const cover = JSON.parse(coverContext.aetoolkitCepCreateCover(JSON.stringify({ width: 1920, height: 1080, fps: 24, duration: 10, format: '1920x1080', topLine: 'TOP', bottomLine: 'BOTTOM', date: 'Today', spot: 'V1' })));
+assert.equal(cover.name, 'COVER_1920x1080_01');
+assert.equal(canvasComps[0].layers.entries.filter(entry => entry.text).length, 4);
+const checkers = JSON.parse(coverContext.aetoolkitCepCreateCheckers(JSON.stringify({ width: 1920, height: 1080, frame: 10 })));
+assert.equal(checkers.created, 1);
+assert.equal(canvasComps[1].name, 'CKR_01_Promo');
+assert.equal(canvasComps[1].layers.entries[0].timeRemapEnabled, true);
+assert.deepEqual(canvasComps[1].layers.entries[0].property().values, [[0, 10 / 24], [10, 10 / 24]]);
+console.log('PASS host creates native editable covers and held-frame checkers');

@@ -418,3 +418,67 @@ function aetoolkitCepConformSelectedSolids() {
         return JSON.stringify({ conformed: conformed });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepAddTextLayer(comp, name, text, position, fontSize, opacity) {
+    var layer = comp.layers.addText(text), textProperty, document;
+    layer.name = name;
+    try {
+        textProperty = layer.property("ADBE Text Properties").property("ADBE Text Document");
+        document = textProperty.value;
+        document.fontSize = fontSize;
+        document.fillColor = [1, 1, 1];
+        document.justification = ParagraphJustification.LEFT_JUSTIFY;
+        textProperty.setValue(document);
+    } catch (textError) {}
+    try { layer.transform.position.setValue(position); } catch (positionError) {}
+    try { layer.opacity.setValue(opacity); } catch (opacityError) {}
+    return layer;
+}
+function aetoolkitCepCreateCover(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), settings = aetoolkitCepCompDimensions(options), format = aetoolkitCepSafeName(options.format) || settings.width + "x" + settings.height, name = "COVER_" + format.replace(/\s+/g, "_") + "_01", comp, topLine, bottomLine, dateLine, spotLine;
+        app.beginUndoGroup("AE Toolkit CEP: Create cover");
+        try {
+            comp = app.project.items.addComp(name, settings.width, settings.height, 1, settings.duration, settings.fps);
+            comp.label = 14;
+            try { comp.layers.addSolid([0.055, 0.075, 0.1], "Cover background", settings.width, settings.height, 1, settings.duration).moveToEnd(); } catch (backgroundError) {}
+            topLine = aetoolkitCepSafeName(options.topLine);
+            bottomLine = aetoolkitCepSafeName(options.bottomLine);
+            dateLine = aetoolkitCepSafeName(options.date);
+            spotLine = aetoolkitCepSafeName(options.spot);
+            if (topLine) aetoolkitCepAddTextLayer(comp, "Cover top line", topLine, [settings.width * 0.1, settings.height * 0.35], Math.max(32, settings.width * 0.045), 100);
+            if (bottomLine) aetoolkitCepAddTextLayer(comp, "Cover bottom line", bottomLine, [settings.width * 0.1, settings.height * 0.48], Math.max(22, settings.width * 0.028), 100);
+            if (dateLine) aetoolkitCepAddTextLayer(comp, "Cover date", dateLine, [settings.width * 0.1, settings.height * 0.78], Math.max(18, settings.width * 0.018), 75);
+            if (spotLine) aetoolkitCepAddTextLayer(comp, "Cover spot", spotLine, [settings.width * 0.1, settings.height * 0.86], Math.max(18, settings.width * 0.018), 75);
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ id: comp.id, name: comp.name });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepSetCheckerHold(layer, sourceComp, targetComp, frame) {
+    var frameTime = frame / sourceComp.frameRate, maximum = Math.max(0, sourceComp.duration - sourceComp.frameDuration), remap;
+    if (frameTime > maximum) frameTime = maximum;
+    try {
+        if (layer.canSetTimeRemapEnabled === false) return;
+        layer.timeRemapEnabled = true;
+        remap = layer.property("ADBE Time Remapping");
+        remap.setValueAtTime(0, frameTime);
+        remap.setValueAtTime(targetComp.duration, frameTime);
+    } catch (remapError) {}
+}
+function aetoolkitCepCreateCheckers(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), width = aetoolkitCepNumber(options.width, "Width", 1, 30000, true), height = aetoolkitCepNumber(options.height, "Height", 1, 30000, true), frame = aetoolkitCepNumber(options.frame, "Frame", 0, 999999, true), comps = aetoolkitCepSelectedComps(), i, source, checker, sourceLayer;
+        app.beginUndoGroup("AE Toolkit CEP: Create checkers");
+        try {
+            for (i = 0; i < comps.length; i++) {
+                source = comps[i];
+                checker = app.project.items.addComp("CKR_" + aetoolkitCepPadNumber(i + 1, 2) + "_" + aetoolkitCepSafeName(source.name), width, height, source.pixelAspect || 1, source.duration, source.frameRate);
+                checker.label = 14;
+                sourceLayer = checker.layers.add(source);
+                try { sourceLayer.transform.position.setValue([width / 2, height / 2]); } catch (positionError) {}
+                aetoolkitCepSetCheckerHold(sourceLayer, source, checker, frame);
+                aetoolkitCepAddTextLayer(checker, "Checker info", source.name + "  |  frame " + frame + "  |  " + source.frameRate + " fps", [10, height - 14], 13, 45);
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ created: comps.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}

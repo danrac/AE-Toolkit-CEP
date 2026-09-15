@@ -13,13 +13,14 @@
         <p class="eyebrow">AE TOOLKIT CEP</p>
         <h1>Project Navigator</h1>
       </div>
-      <span class="badge">0.1.0 Alpha</span>
+      <span class="badge">0.1.1 Alpha</span>
     </header>
 
     <nav class="tabs" aria-label="Project navigator views">
       <button class="tab active" data-view="projects">Projects</button>
       <button class="tab" data-view="sourcing">Sourcing</button>
       <button class="tab" data-view="create-modify">Create / Modify</button>
+      <button class="tab" data-view="covers-checkers">Covers / Checkers</button>
       <button class="tab" data-view="templates">Templates</button>
     </nav>
 
@@ -139,6 +140,49 @@
         <h2>Conform selected solids</h2>
         <p class="help">With a composition active, resizes selected solid layers to its width and height. Nulls and non-solid footage are left untouched.</p>
         <button id="conform-solids">Conform selected solids to active comp</button>
+      </article>
+    </section>
+
+    <section id="covers-checkers" class="view">
+      <article class="card">
+        <h2>Create cover</h2>
+        <p class="help">Creates an editable native cover comp, so it is not dependent on a fragile Photoshop layer order.</p>
+        <div class="field-grid">
+          <label>Format<select id="cover-preset">
+            <option value="1920x1080">HD · 1920 × 1080</option>
+            <option value="3840x2160">UHD · 3840 × 2160</option>
+            <option value="1080x1080">Square · 1080 × 1080</option>
+            <option value="1080x1920">Vertical · 1080 × 1920</option>
+            <option value="custom">Custom</option>
+          </select></label>
+          <label>Width<input id="cover-width" type="number" min="1" max="30000" value="1920"></label>
+          <label>Height<input id="cover-height" type="number" min="1" max="30000" value="1080"></label>
+          <label>Duration (seconds)<input id="cover-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
+          <label>FPS<input id="cover-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
+          <label>Top line<input id="cover-top-line" placeholder="Top line"></label>
+          <label>Bottom line<input id="cover-bottom-line" placeholder="Bottom line"></label>
+          <label>Date<input id="cover-date" placeholder="September 15, 2026"></label>
+          <label>Spot / version<input id="cover-spot" placeholder="Name and version"></label>
+        </div>
+        <button id="create-cover" class="primary">Create cover</button>
+      </article>
+      <article class="card">
+        <h2>Create checkers from selected comps</h2>
+        <p class="help">Select comps in the Project panel. Each checker holds on the chosen source frame and adds editable frame information.</p>
+        <div class="field-grid">
+          <label>Format<select id="checker-preset">
+            <option value="1920x1080">HD · 1920 × 1080</option>
+            <option value="3840x2160">UHD · 3840 × 2160</option>
+            <option value="1080x1080">Square · 1080 × 1080</option>
+            <option value="1080x1920">Vertical · 1080 × 1920</option>
+            <option value="custom">Custom</option>
+          </select></label>
+          <label>Width<input id="checker-width" type="number" min="1" max="30000" value="1920"></label>
+          <label>Height<input id="checker-height" type="number" min="1" max="30000" value="1080"></label>
+          <label>Frame to hold<input id="checker-frame" type="number" min="0" max="999999" value="10"></label>
+        </div>
+        <button id="create-checkers" class="primary">Create checkers</button>
+        <p class="help">To render them, select the new checker comps and use <strong>Projects → Render to outputs → Checker</strong>. Existing render-queue items are preserved.</p>
       </article>
     </section>
 

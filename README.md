@@ -15,12 +15,17 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 - Active-project controls for opening project files, importing from mapped folders, and rendering selected compositions to dated project outputs
 - Sourcing workflows for path-based asset imports and discovery of explicit source-AE-project links in rendered footage
 - Create / Modify workflows for validated composition creation, direct selected-composition size and FPS edits, project-item renaming, and solid-to-comp conforming
+- Native editable Covers and held-frame Checkers, with checker rendering routed through the safe Project output workflow
 
 ## Create / Modify
 
 The Create / Modify panel rebuilds the core composition tools without the legacy temporary-null resize workflow. Creating a comp validates its dimensions, frame rate, and duration before creating it. Editing selected comps writes only their width, height, frame rate, or requested name, preserving existing layers, parent relationships, and transforms.
 
 Project-item rename actions treat the search text literally, so names containing characters such as `[` and `.` are handled predictably. The solid conform action only changes selected `SolidSource` layers in the active composition.
+
+## Covers / Checkers
+
+Covers are built as editable After Effects comps with a background and named text layers, avoiding the old import-and-convert flow that relied on fixed Photoshop layer positions. Checkers are created from selected comps at a chosen held frame. Render selected checker comps through **Projects → Render to outputs → Checker**; that workflow keeps existing render-queue entries intact.
 
 ## Development
 
