@@ -13,6 +13,7 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 - macOS and Windows project-root resolution, including a native folder chooser
 - Resolved project paths with one-click reveal controls
 - Active-project controls for opening project files, importing from mapped folders, and rendering selected compositions to dated project outputs
+- Sourcing workflows for path-based asset imports and discovery of explicit source-AE-project links in rendered footage
 
 ## Development
 

@@ -145,3 +145,171 @@ function aetoolkitCepRenderSelected(jsonText) {
         for (var queueIndex = 0; queueIndex < oldQueueStates.length; queueIndex++) oldQueueStates[queueIndex].item.render = oldQueueStates[queueIndex].render;
     }
 }
+function aetoolkitCepCleanImportPath(value) {
+    var path = String(value || "").replace(/^\s+|\s+$/g, "");
+    if ((path.charAt(0) === "\"" && path.charAt(path.length - 1) === "\"") || (path.charAt(0) === "'" && path.charAt(path.length - 1) === "'")) path = path.substring(1, path.length - 1);
+    if (/^file:/i.test(path)) {
+        if (/^file:\/\/localhost\//i.test(path)) path = path.replace(/^file:\/\/localhost/i, "");
+        else if (/^file:\/\/\//i.test(path)) path = path.replace(/^file:\/\//i, "");
+        else if (/^file:\/\//i.test(path)) path = path.replace(/^file:\/\//i, "//");
+        try { path = decodeURI(path); } catch (decodeError) {}
+        if (/^\/[A-Za-z]:\//.test(path)) path = path.substring(1);
+    }
+    return path;
+}
+function aetoolkitCepIsAbsolutePath(path) {
+    return path.charAt(0) === "/" || path.substr(0, 2) === "\\\\" || path.length > 2 && path.charAt(1) === ":" && (path.charAt(2) === "/" || path.charAt(2) === "\\");
+}
+function aetoolkitCepJoinImportPath(folder, name) {
+    while (folder.length && (folder.charAt(folder.length - 1) === "/" || folder.charAt(folder.length - 1) === "\\")) folder = folder.substring(0, folder.length - 1);
+    while (name.length && (name.charAt(0) === "/" || name.charAt(0) === "\\")) name = name.substring(1);
+    return folder + "/" + name;
+}
+function aetoolkitCepImportAssetPaths(text) {
+    var imported = 0, errors = [], seen = {}, folderPath = "", lines = String(text || "").replace(/\r/g, "").split("\n");
+    if (!String(text || "").replace(/\s/g, "")) return JSON.stringify({ imported: imported, errors: ["Paste one or more asset paths before importing."] });
+    app.beginUndoGroup("AE Toolkit CEP: Import assets");
+    try {
+        for (var i = 0; i < lines.length; i++) {
+            var path = aetoolkitCepCleanImportPath(lines[i]);
+            if (!path) continue;
+            var candidate = aetoolkitCepIsAbsolutePath(path) ? path : folderPath ? aetoolkitCepJoinImportPath(folderPath, path) : "";
+            if (!candidate) { errors.push("Line " + (i + 1) + " needs an absolute path or a preceding folder path."); continue; }
+            var file = new File(candidate);
+            if (!file.exists && new Folder(candidate).exists) { folderPath = candidate; continue; }
+            var key = candidate.split("\\").join("/");
+            if ($.os.indexOf("Win") !== -1) key = key.toLowerCase();
+            if (seen[key]) continue;
+            seen[key] = true;
+            if (!file.exists) { errors.push("Not found: " + file.fsName); continue; }
+            try { app.project.importFile(new ImportOptions(file)); imported++; }
+            catch (importError) { errors.push("Could not import " + file.fsName + ": " + importError.toString()); }
+        }
+    } finally { app.endUndoGroup(); }
+    if (!imported && !errors.length) errors.push("No file paths were found.");
+    return JSON.stringify({ imported: imported, errors: errors });
+}
+function aetoolkitCepEnsureXmp() {
+    if (ExternalObject.AdobeXMPScript === undefined) ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
+}
+function aetoolkitCepUniqueSourcePath(paths, value) {
+    if (!value || !/\.aepx?$/i.test(value)) return;
+    for (var i = 0; i < paths.length; i++) if (paths[i] === value) return;
+    paths.push(value);
+}
+function aetoolkitCepReadSourceLinks(xmp) {
+    var paths = [], creator = XMPConst.NS_CREATOR_ATOM || "http://ns.adobe.com/creatorAtom/1.0/", dynamicMedia = XMPConst.NS_DM || "http://ns.adobe.com/xmp/1.0/DynamicMedia/";
+    function read(call) {
+        try {
+            var property = call();
+            aetoolkitCepUniqueSourcePath(paths, property && String(property.value !== undefined ? property.value : property));
+        } catch (readError) {}
+    }
+    read(function () { return xmp.getStructField(creator, "aeProjectLink", creator, "fullPath"); });
+    read(function () { return xmp.getStructField(dynamicMedia, "projectRef", dynamicMedia, "path"); });
+    read(function () { return xmp.getProperty(creator, "fullPath"); });
+    return paths;
+}
+function aetoolkitCepReadFootageSourceLinks(file) {
+    var paths = [], notices = [], handle;
+    function merge(xmp) {
+        var found = aetoolkitCepReadSourceLinks(xmp);
+        for (var i = 0; i < found.length; i++) aetoolkitCepUniqueSourcePath(paths, found[i]);
+    }
+    try {
+        handle = new XMPFile(file.fsName, XMPConst.FILE_UNKNOWN, XMPConst.OPEN_FOR_READ);
+        merge(handle.getXMP());
+    } catch (embeddedError) { notices.push("Embedded metadata could not be read."); }
+    finally { if (handle) try { handle.closeFile(); } catch (closeError) {} }
+    var sidecarPaths = [file.fsName + ".xmp", file.fsName.replace(/\.[^\/.]+$/, "") + ".xmp"];
+    for (var i = 0; i < sidecarPaths.length; i++) {
+        if (i > 0 && sidecarPaths[i] === sidecarPaths[0]) continue;
+        var sidecar = new File(sidecarPaths[i]), opened = false;
+        if (!sidecar.exists) continue;
+        try {
+            if (sidecar.length > 10 * 1024 * 1024) throw new Error("sidecar exceeds 10 MB");
+            sidecar.encoding = "UTF-8";
+            opened = sidecar.open("r");
+            if (!opened) throw new Error("cannot open sidecar");
+            merge(new XMPMeta(sidecar.read()));
+        } catch (sidecarError) { notices.push(sidecar.name + " could not be read."); }
+        finally { if (opened) sidecar.close(); }
+    }
+    return { paths: paths, notices: notices };
+}
+function aetoolkitCepSourceProjectFile(pathText) {
+    var path = aetoolkitCepCleanImportPath(pathText).split("\\").join("/");
+    if (!/\.aepx?$/i.test(path) || !aetoolkitCepIsAbsolutePath(path)) return null;
+    return new File(path);
+}
+function aetoolkitCepDiscoverSourceProjects() {
+    try {
+        aetoolkitCepEnsureXmp();
+        var selection = app.project.selection, records = [], notices = [], sourceNames = [], seen = {};
+        if (!selection.length) throw new Error("Select rendered footage in the Project panel first.");
+        for (var i = 0; i < selection.length; i++) {
+            var item = selection[i];
+            if (!(item instanceof FootageItem) || !item.file) { notices.push(item.name + ": select file-based footage."); continue; }
+            if (!item.file.exists) { notices.push(item.name + ": source media is offline."); continue; }
+            sourceNames.push(item.name);
+            var result = aetoolkitCepReadFootageSourceLinks(item.file);
+            if (!result.paths.length) notices.push(item.name + ": no explicit After Effects project link was found.");
+            for (var j = 0; j < result.paths.length; j++) {
+                var file = aetoolkitCepSourceProjectFile(result.paths[j]);
+                if (!file) { notices.push(item.name + ": project link is not an absolute .aep or .aepx path."); continue; }
+                var key = file.fsName;
+                if ($.os.indexOf("Win") !== -1) key = key.toLowerCase();
+                if (!seen[key]) { seen[key] = true; records.push({ path: file.fsName, exists: file.exists }); }
+            }
+            for (j = 0; j < result.notices.length; j++) notices.push(item.name + ": " + result.notices[j]);
+        }
+        return JSON.stringify({ records: records, notices: notices, sourceNames: sourceNames });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepProjectFolder(name) {
+    var root = app.project.rootFolder;
+    for (var i = 1; i <= root.numItems; i++) {
+        var item = root.item(i);
+        if (item instanceof FolderItem && item.name === name) return item;
+    }
+    return app.project.items.addFolder(name);
+}
+function aetoolkitCepSourceName(name) {
+    return String(name).replace(/\.[^.]+$/, "").replace(/_[0-9.]+fps_[0-9]+x[0-9]+$/, "");
+}
+function aetoolkitCepImportSourceProjects(jsonText) {
+    var imported = 0, errors = [];
+    try {
+        var options = JSON.parse(jsonText), paths = options.paths || [], sourceNames = options.sourceNames || [];
+        if (!paths.length) throw new Error("Select at least one source project.");
+        var projectsFolder = aetoolkitCepProjectFolder("ImportedProjects"), compsFolder = null;
+        function matches(comp) {
+            for (var n = 0; n < sourceNames.length; n++) if (comp.name === aetoolkitCepSourceName(sourceNames[n])) return true;
+            return false;
+        }
+        function gather(folder) {
+            if (!(folder instanceof FolderItem)) return;
+            for (var i = 1; i <= folder.numItems; i++) {
+                var item = folder.item(i);
+                if (item instanceof CompItem && matches(item)) {
+                    if (!compsFolder) compsFolder = aetoolkitCepProjectFolder("ImportedComps");
+                    item.parentFolder = compsFolder;
+                } else if (item instanceof FolderItem) gather(item);
+            }
+        }
+        app.beginUndoGroup("AE Toolkit CEP: Import source projects");
+        try {
+            for (var i = 0; i < paths.length; i++) {
+                var file = aetoolkitCepSourceProjectFile(paths[i]);
+                if (!file || !file.exists) { errors.push("Not found: " + paths[i]); continue; }
+                try {
+                    var project = app.project.importFile(new ImportOptions(file));
+                    project.parentFolder = projectsFolder;
+                    gather(project);
+                    imported++;
+                } catch (importError) { errors.push("Could not import " + file.fsName + ": " + importError.toString()); }
+            }
+        } finally { app.endUndoGroup(); }
+    } catch (error) { errors.push(error.toString()); }
+    return JSON.stringify({ imported: imported, errors: errors });
+}

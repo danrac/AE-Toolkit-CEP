@@ -18,6 +18,7 @@
 
     <nav class="tabs" aria-label="Project navigator views">
       <button class="tab active" data-view="projects">Projects</button>
+      <button class="tab" data-view="sourcing">Sourcing</button>
       <button class="tab" data-view="templates">Templates</button>
     </nav>
 
@@ -61,6 +62,23 @@
       <article class="card">
         <div class="card-heading"><h2>Connected projects</h2><button id="refresh-projects" class="quiet">Refresh</button></div>
         <div id="project-list" class="item-list"></div>
+      </article>
+    </section>
+
+    <section id="sourcing" class="view">
+      <article class="card">
+        <h2>Import asset paths</h2>
+        <p class="help">Paste absolute files, file URLs, or a folder followed by file names. Use one item per line.</p>
+        <textarea id="source-asset-paths" rows="8" placeholder="/Volumes/Jobs/Campaign/Assets/logo.png&#10;/Volumes/Jobs/Campaign/Assets/&#10;lower-third.mov"></textarea>
+        <button id="source-import-assets" class="primary">Import assets</button>
+        <p id="source-import-result" class="help" aria-live="polite"></p>
+      </article>
+      <article class="card">
+        <h2>Import source AE projects</h2>
+        <p class="help">Reads explicit After Effects project links from selected rendered footage. Review found projects before importing.</p>
+        <button id="source-discover-projects">Discover selected sources</button>
+        <div id="source-project-records" class="item-list"></div>
+        <button id="source-import-projects" class="primary" disabled>Import selected source projects</button>
       </article>
     </section>
 

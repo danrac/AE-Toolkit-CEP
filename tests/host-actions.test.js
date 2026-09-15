@@ -12,6 +12,7 @@ vm.runInContext(source, context);
 assert.equal(context.aetoolkitCepNormalizeSubfolder('Delivery\\v01'), 'Delivery/v01');
 assert.equal(context.aetoolkitCepNormalizeSubfolder('/Delivery/v01/'), 'Delivery/v01');
 assert.equal(context.aetoolkitCepRenderDate(), '260915');
+assert.equal(context.aetoolkitCepCleanImportPath('file:///Volumes/Jobs/a%20b.mov'), '/Volumes/Jobs/a b.mov');
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('../outside'));
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('C:/outside'));
 console.log('PASS host project-action path safeguards');
@@ -42,11 +43,29 @@ assert.equal(existingQueueItem.render, true);
 assert.equal(folders['/Job/Output/260915/Delivery/v01'], true);
 console.log('PASS host render preserves existing queue state and creates dated output paths');
 
-let defaultFolder, importDialogCalls = 0;
-const importContext = { Folder: FakeFolder, app: { project: { setDefaultImportFolder(folder) { defaultFolder = folder.fsName; }, importFileWithDialog() { importDialogCalls++; return [{}]; } } } };
+const importFiles = { '/assets/a.mov': true, '/assets/b.mov': true }, importFolders = { '/assets': true }, importedAssets = [];
+function ImportFile(value) { this.fsName = normalize(value); this.name = this.fsName.split('/').pop(); }
+Object.defineProperty(ImportFile.prototype, 'exists', { get() { return !!importFiles[this.fsName]; } });
+function ImportFolder(value) { this.fsName = normalize(value); }
+Object.defineProperty(ImportFolder.prototype, 'exists', { get() { return !!importFolders[this.fsName]; } });
+function ImportOptions(file) { this.file = file; }
+const importContext = { JSON, File: ImportFile, Folder: ImportFolder, ImportOptions, $: { os: 'Macintosh' }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { importFile(options) { importedAssets.push(options.file.fsName); } } } };
 vm.createContext(importContext);
 vm.runInContext(source, importContext);
-assert.equal(importContext.aetoolkitCepImportFromFolder('/Job/Output'), 'Imported selected assets.');
-assert.equal(defaultFolder, '/Job/Output');
-assert.equal(importDialogCalls, 1);
-console.log('PASS host import uses one After Effects import dialog without duplicate import');
+const importSummary = JSON.parse(importContext.aetoolkitCepImportAssetPaths('/assets/\na.mov\na.mov\nfile:///assets/b.mov'));
+assert.equal(importSummary.imported, 2);
+assert.deepEqual(importedAssets, ['/assets/a.mov', '/assets/b.mov']);
+console.log('PASS host pasted-path import deduplicates files and accepts folder headers and file URLs');
+
+const sourceContext = { JSON, XMPConst: { NS_CREATOR_ATOM: 'creator', NS_DM: 'dynamic' } };
+vm.createContext(sourceContext);
+vm.runInContext(source, sourceContext);
+const sourceLinks = sourceContext.aetoolkitCepReadSourceLinks({
+    getStructField(namespace, struct, fieldNamespace, field) {
+        if (namespace === 'creator' && struct === 'aeProjectLink' && field === 'fullPath') return { value: '/Jobs/Graphics.aep' };
+        if (namespace === 'dynamic' && struct === 'projectRef' && field === 'path') return { value: '/Jobs/Graphics.aep' };
+    },
+    getProperty() { return { value: '/Jobs/Other.aepx' }; }
+});
+assert.deepEqual(Array.from(sourceLinks), ['/Jobs/Graphics.aep', '/Jobs/Other.aepx']);
+console.log('PASS host source discovery reads and deduplicates explicit AE project links');
