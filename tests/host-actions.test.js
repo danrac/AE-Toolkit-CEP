@@ -260,3 +260,15 @@ assert.deepEqual(selectComp._layers[0]._position.value, selectComp._layers[1]._p
 assert.equal(JSON.parse(selectContext.aetoolkitCepTransferTransform(JSON.stringify({ position: true, scale: true, rotation: true }))).changed, 1);
 assert.deepEqual(selectComp._layers[0]._scale.value, selectComp._layers[1]._scale.value);
 console.log('PASS host layer selection, stacking, snapping, and transform transfer');
+
+function NoSlateFootage(name) { this.name = name; this.id = 77; this.frameRate = 24; this.duration = 10; this.width = 1920; this.height = 1080; this.pixelAspect = 1; }
+let noSlateComp, noSlateLayer;
+const noSlateFootage = new NoSlateFootage('Edit.mov');
+const noSlateContext = { JSON, FootageItem: NoSlateFootage, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [noSlateFootage], items: { addComp(name, width, height, pixelAspect, duration, frameRate) { noSlateComp = { id: 88, name, width, height, pixelAspect, duration, frameRate, layers: { add(source) { noSlateLayer = { source, startTime: 0 }; return noSlateLayer; } } }; return noSlateComp; } } } } };
+vm.createContext(noSlateContext);
+vm.runInContext(source, noSlateContext);
+const noSlate = JSON.parse(noSlateContext.aetoolkitCepCreateNoSlateComp('144'));
+assert.equal(noSlate.name, 'Edit.mov_NoSlate');
+assert.equal(noSlateComp.duration, 4);
+assert.equal(noSlateLayer.startTime, -6);
+console.log('PASS host creates no-slate comps with a validated frame trim');

@@ -943,3 +943,22 @@ function aetoolkitCepTransferTransform(jsonText) {
         return JSON.stringify({ changed: context.layers.length - 1 });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepCreateNoSlateComp(value) {
+    try {
+        var frames = aetoolkitCepNumber(value, "Slate frames", 1, 9999, true), selected = app.project.selection, footage, trimTime, duration, comp, layer;
+        if (selected.length !== 1 || !(selected[0] instanceof FootageItem)) throw new Error("Select exactly one footage item in the Project panel.");
+        footage = selected[0];
+        if (!(footage.frameRate > 0) || !(footage.duration > 0)) throw new Error("The selected footage needs a valid frame rate and duration.");
+        trimTime = frames / footage.frameRate;
+        duration = footage.duration - trimTime;
+        if (duration < 1 / footage.frameRate) throw new Error("The selected footage is shorter than the slate trim.");
+        app.beginUndoGroup("AE Toolkit CEP: Create no-slate comp");
+        try {
+            comp = app.project.items.addComp(aetoolkitCepSafeName(footage.name) + "_NoSlate", footage.width, footage.height, footage.pixelAspect, duration, footage.frameRate);
+            comp.label = 14;
+            layer = comp.layers.add(footage);
+            layer.startTime = -trimTime;
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ id: comp.id, name: comp.name });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
