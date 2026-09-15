@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "node tests/template-store.test.js"
+    "test": "node tests/template-store.test.js",
+    "package:stage": "node scripts/stage-extension.mjs",
+    "package:zxp": "node scripts/package-zxp.mjs",
+    "release:check": "node scripts/release-check.mjs"
   }
 }
