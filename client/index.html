@@ -22,6 +22,7 @@
       <button class="tab" data-view="create-modify">Create / Modify</button>
       <button class="tab" data-view="covers-checkers">Covers / Checkers</button>
       <button class="tab" data-view="cleanup-collect">Cleanup / Collect</button>
+      <button class="tab" data-view="tools">Tools</button>
       <button class="tab" data-view="templates">Templates</button>
     </nav>
 
@@ -219,6 +220,40 @@
         <h2>Collect project</h2>
         <p class="help">Opens After Effects’ native Collect Files dialog. There you can choose the scope and destination, including sequences and proxies.</p>
         <button id="collect-project" class="primary">Open Collect Files</button>
+      </article>
+    </section>
+
+    <section id="tools" class="view">
+      <article class="card">
+        <h2>Composition timing</h2>
+        <p class="help">Select compositions in the Project panel. Frame changes preserve a minimum one-frame duration.</p>
+        <div class="action-grid maintenance-grid">
+          <button data-comp-frame-change="-10">−10 frames</button>
+          <button data-comp-frame-change="-1">−1 frame</button>
+          <button data-comp-frame-change="1">+1 frame</button>
+          <button data-comp-frame-change="10">+10 frames</button>
+        </div>
+        <label>Set duration (seconds)<input id="tool-comp-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
+        <button id="set-comp-duration">Set selected-comp duration</button>
+      </article>
+      <article class="card">
+        <h2>Animation and layers</h2>
+        <p class="help">Use an active composition and selected layers. Fades add opacity keyframes over the requested number of frames.</p>
+        <label>Fade frames<input id="tool-fade-frames" type="number" min="1" max="9999" value="10"></label>
+        <div class="action-grid maintenance-grid">
+          <button id="fade-in">Fade in</button>
+          <button id="fade-out">Fade out</button>
+          <button id="sequence-layers">Sequence layers</button>
+          <button id="parent-layers">Parent to last selected</button>
+          <button id="unparent-layers">Unparent selected</button>
+          <button id="mark-guides">Mark as guides</button>
+        </div>
+      </article>
+      <article class="card">
+        <h2>Replace selected text</h2>
+        <p class="help">Updates selected text layers at the current comp time. Existing animated text receives a keyframe at that time.</p>
+        <textarea id="tool-replace-text" rows="3" placeholder="Replacement text"></textarea>
+        <button id="replace-text" class="primary">Replace selected text</button>
       </article>
     </section>
 

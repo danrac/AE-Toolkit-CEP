@@ -702,3 +702,115 @@ function aetoolkitCepOrganizeProject(preset) {
         return JSON.stringify({ moved: moved, selectedAtRoot: snapshot.selected.length });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepActiveCompLayers(minimum) {
+    var comp = app.project.activeItem;
+    if (!(comp instanceof CompItem)) throw new Error("Open a composition and select layer" + (minimum === 1 ? "." : "s."));
+    if (!comp.selectedLayers || comp.selectedLayers.length < minimum) throw new Error("Select " + (minimum === 1 ? "at least one layer." : "at least " + minimum + " layers."));
+    return { comp: comp, layers: comp.selectedLayers };
+}
+function aetoolkitCepAdjustSelectedCompFrames(value) {
+    try {
+        var frames = aetoolkitCepNumber(value, "Frame change", -9999, 9999, true), comps = aetoolkitCepSelectedComps(), changed = 0, duration, minimum;
+        if (frames === 0) throw new Error("Enter a non-zero frame change.");
+        app.beginUndoGroup("AE Toolkit CEP: Adjust composition duration");
+        try {
+            for (var i = 0; i < comps.length; i++) {
+                minimum = comps[i].frameDuration || 1 / comps[i].frameRate;
+                duration = comps[i].duration + frames / comps[i].frameRate;
+                comps[i].duration = Math.max(minimum, duration);
+                changed++;
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: changed });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepSetSelectedCompDuration(value) {
+    try {
+        var requested = aetoolkitCepNumber(value, "Duration", 0.001, 86400, false), comps = aetoolkitCepSelectedComps(), changed = 0, minimum;
+        app.beginUndoGroup("AE Toolkit CEP: Set composition duration");
+        try {
+            for (var i = 0; i < comps.length; i++) {
+                minimum = comps[i].frameDuration || 1 / comps[i].frameRate;
+                comps[i].duration = Math.max(minimum, requested);
+                changed++;
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: changed });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepFadeSelectedLayers(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), direction = options.direction, frames = aetoolkitCepNumber(options.frames, "Fade frames", 1, 9999, true), context = aetoolkitCepActiveCompLayers(1), duration = frames / context.comp.frameRate, i, layer, start, end;
+        if (direction !== "in" && direction !== "out") throw new Error("Choose a fade direction.");
+        app.beginUndoGroup("AE Toolkit CEP: Fade selected layers");
+        try {
+            for (i = 0; i < context.layers.length; i++) {
+                layer = context.layers[i];
+                if (direction === "in") { start = layer.inPoint; end = Math.min(layer.outPoint, start + duration); layer.opacity.setValueAtTime(start, 0); layer.opacity.setValueAtTime(end, 100); }
+                else { end = layer.outPoint; start = Math.max(layer.inPoint, end - duration); layer.opacity.setValueAtTime(start, 100); layer.opacity.setValueAtTime(end, 0); }
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: context.layers.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepSequenceSelectedLayers() {
+    try {
+        var context = aetoolkitCepActiveCompLayers(1), layers = [], i, current = context.comp.time, duration, offset;
+        for (i = 0; i < context.layers.length; i++) layers.push(context.layers[i]);
+        layers.sort(function (first, second) { return first.inPoint - second.inPoint || first.index - second.index; });
+        app.beginUndoGroup("AE Toolkit CEP: Sequence layers");
+        try {
+            for (i = 0; i < layers.length; i++) {
+                duration = layers[i].outPoint - layers[i].inPoint;
+                offset = layers[i].inPoint - layers[i].startTime;
+                layers[i].startTime = current - offset;
+                current += duration;
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: layers.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepParentSelectedLayers() {
+    try {
+        var context = aetoolkitCepActiveCompLayers(2), parent = context.layers[context.layers.length - 1], i;
+        app.beginUndoGroup("AE Toolkit CEP: Parent selected layers");
+        try { for (i = 0; i < context.layers.length - 1; i++) context.layers[i].parent = parent; }
+        finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: context.layers.length - 1 });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepUnparentSelectedLayers() {
+    try {
+        var context = aetoolkitCepActiveCompLayers(1), i;
+        app.beginUndoGroup("AE Toolkit CEP: Unparent selected layers");
+        try { for (i = 0; i < context.layers.length; i++) context.layers[i].parent = null; }
+        finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: context.layers.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepMarkSelectedGuideLayers() {
+    try {
+        var context = aetoolkitCepActiveCompLayers(1), i;
+        app.beginUndoGroup("AE Toolkit CEP: Mark guide layers");
+        try { for (i = 0; i < context.layers.length; i++) context.layers[i].guideLayer = true; }
+        finally { app.endUndoGroup(); }
+        return JSON.stringify({ changed: context.layers.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepReplaceSelectedText(text) {
+    try {
+        var context = aetoolkitCepActiveCompLayers(1), replacement = new TextDocument(String(text || " ")), changed = 0, i, property;
+        app.beginUndoGroup("AE Toolkit CEP: Replace text");
+        try {
+            for (i = 0; i < context.layers.length; i++) {
+                try {
+                    property = context.layers[i].property("ADBE Text Properties").property("ADBE Text Document");
+                    if (property.numKeys > 0) property.setValueAtTime(context.comp.time, replacement); else property.setValue(replacement);
+                    changed++;
+                } catch (notTextError) {}
+            }
+        } finally { app.endUndoGroup(); }
+        if (!changed) throw new Error("Select one or more text layers.");
+        return JSON.stringify({ changed: changed });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}

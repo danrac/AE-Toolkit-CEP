@@ -17,6 +17,7 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 - Create / Modify workflows for validated composition creation, direct selected-composition size and FPS edits, project-item renaming, and solid-to-comp conforming
 - Native editable Covers and held-frame Checkers, with checker rendering routed through the safe Project output workflow
 - Cleanup, collecting, asset localization, and Basic/DMS/XAV 2025 project organization workflows
+- Core Tools for composition timing, fades, sequencing, layer parenting, guide marking, and selected-text replacement
 
 ## Create / Modify
 
@@ -33,6 +34,10 @@ Covers are built as editable After Effects comps with a background and named tex
 Cleanup actions call After Effects’ native consolidate, remove-unused, reduce, and Collect Files operations. Localize copies only selected, file-based footage into the active project’s semantic Assets folder and does not overwrite an existing file. Use Collect Files for sequences and proxies.
 
 The organizer snapshots project items before it creates folders, runs as one undo step, and never removes folders. Basic, DMS aspect-ratio, and XAV 2025 presets are available. Every selected Project-panel item is lifted to the root and excluded from routing; a selected folder’s unselected contents stay together.
+
+## Tools
+
+The CEP Tools panel carries over the reliable, focused layer and composition utilities. Duration controls preserve a one-frame minimum; fades set explicit opacity keys over the requested frames; text replacement writes at the current time when the source text is animated. AutoSplice is intentionally excluded.
 
 ## Development
 

@@ -206,3 +206,31 @@ assert.equal(stillFootage.parentFolder.name, 'Images');
 assert.equal(videoFootage.parentFolder.name, 'Footage');
 assert.equal(solidFootage.parentFolder.name, 'Solids');
 console.log('PASS host organizer snapshots first and keeps selected items at the root');
+
+function ToolComp(name) { this.name = name; this.frameRate = 24; this.frameDuration = 1 / 24; this.duration = 10; this.time = 2; this.selectedLayers = []; }
+function ToolLayer(name, index, inPoint, outPoint) { this.name = name; this.index = index; this.inPoint = inPoint; this.outPoint = outPoint; this.startTime = inPoint; this.opacity = { setValueAtTime(time, value) { this.values = this.values || []; this.values.push([time, value]); } }; }
+function ToolTextLayer(name, index, inPoint, outPoint) { ToolLayer.call(this, name, index, inPoint, outPoint); const property = { numKeys: 0, setValue(value) { this.value = value; }, setValueAtTime(time, value) { this.valueAtTime = [time, value]; } }; this.property = function () { return { property() { return property; } }; }; this.textProperty = property; }
+ToolTextLayer.prototype = Object.create(ToolLayer.prototype);
+const toolsComp = new ToolComp('Tool comp'), normalLayer = new ToolLayer('Normal', 2, 1, 4), textLayer = new ToolTextLayer('Text', 1, 0, 3);
+toolsComp.selectedLayers = [normalLayer, textLayer];
+const toolsContext = { JSON, Math, CompItem: ToolComp, TextDocument: function (text) { this.text = text; }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [toolsComp], activeItem: toolsComp } } };
+vm.createContext(toolsContext);
+vm.runInContext(source, toolsContext);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepAdjustSelectedCompFrames('10')).changed, 1);
+assert.equal(toolsComp.duration, 10 + 10 / 24);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepSetSelectedCompDuration('0.001')).changed, 1);
+assert.equal(toolsComp.duration, 1 / 24);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepFadeSelectedLayers(JSON.stringify({ direction: 'in', frames: 10 }))).changed, 2);
+assert.deepEqual(normalLayer.opacity.values, [[1, 0], [1 + 10 / 24, 100]]);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepSequenceSelectedLayers()).changed, 2);
+assert.equal(textLayer.startTime, 2);
+assert.equal(normalLayer.startTime, 5);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepParentSelectedLayers()).changed, 1);
+assert.equal(normalLayer.parent, textLayer);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepUnparentSelectedLayers()).changed, 2);
+assert.equal(normalLayer.parent, null);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepMarkSelectedGuideLayers()).changed, 2);
+assert.equal(normalLayer.guideLayer, true);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepReplaceSelectedText('Updated')).changed, 1);
+assert.equal(textLayer.textProperty.value.text, 'Updated');
+console.log('PASS host tools preserve frame limits and update only selected layers');
