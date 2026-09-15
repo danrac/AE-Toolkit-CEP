@@ -272,3 +272,11 @@ assert.equal(noSlate.name, 'Edit.mov_NoSlate');
 assert.equal(noSlateComp.duration, 4);
 assert.equal(noSlateLayer.startTime, -6);
 console.log('PASS host creates no-slate comps with a validated frame trim');
+
+function AssetFolder(path) { this.fsName = path; }
+function AssetFile(path) { this.fsName = path; this.name = path.split('/').pop(); this.parent = new AssetFolder(path.slice(0, path.lastIndexOf('/'))); this.exists = true; }
+const assetContext = { JSON, File: AssetFile, Folder: AssetFolder };
+vm.createContext(assetContext);
+vm.runInContext(source, assetContext);
+assert.equal(assetContext.aetoolkitCepCopyPresetAsset(new AssetFolder('/UserData/AE-Toolkit-CEP/guide-assets/scope'), '/UserData/AE-Toolkit-CEP/guide-assets/scope/matte.png', 'matte'), '/UserData/AE-Toolkit-CEP/guide-assets/scope/matte.png');
+console.log('PASS host reuses guide assets already stored for a format');

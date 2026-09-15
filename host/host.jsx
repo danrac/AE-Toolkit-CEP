@@ -365,6 +365,7 @@ function aetoolkitCepPresetAssetFolder(id) {
 function aetoolkitCepCopyPresetAsset(folder, sourcePath, label) {
     var source = new File(sourcePath), safeLabel = String(label).replace(/[^a-z0-9_-]/ig, ""), target, attempt = 0, dot, base, extension;
     if (!source.exists) throw new Error(label + " guide file is unavailable: " + source.fsName);
+    if (source.parent && source.parent.fsName === folder.fsName) return source.fsName;
     dot = source.name.lastIndexOf("."); base = dot > 0 ? source.name.substring(0, dot) : source.name; extension = dot > 0 ? source.name.substring(dot) : "";
     do { target = new File(folder.fsName + "/" + safeLabel + "_" + base + (attempt ? "_" + aetoolkitCepPadNumber(attempt, 2) : "") + extension); attempt++; } while (target.exists && target.fsName !== source.fsName && attempt < 10000);
     if (target.fsName === source.fsName || target.exists) return target.fsName;
