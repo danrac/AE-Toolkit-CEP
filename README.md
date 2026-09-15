@@ -38,7 +38,7 @@ The organizer snapshots project items before it creates folders, runs as one und
 
 ## Tools
 
-The CEP Tools panel carries over the reliable, focused layer and composition utilities. Duration controls preserve a one-frame minimum; fades set explicit opacity keys over the requested frames; text replacement writes at the current time when the source text is animated. AutoSplice is intentionally excluded.
+The CEP Tools panel carries over the reliable, focused layer and composition utilities. Duration controls preserve a one-frame minimum; fades set explicit opacity keys over the requested frames; text replacement writes at the current time when the source text is animated. It also includes typed layer selection, stacking reversal, snapping, transform transfer, and validated no-slate comp creation. AutoSplice is intentionally excluded.
 
 ## Custom composition formats
 
