@@ -13,13 +13,25 @@
         return path;
     }
     function defaultState() {
-        return { version: 1, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "05_GFX/02_AfterEffects", assets: "05_GFX/03_Assets", toGfx: "05_GFX/06_ToGFX", outputs: "05_GFX/07_Output", styleFrames: "05_GFX/07_Output/_StyleFrames" } }], projects: [] };
+        return { version: 1, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "05_GFX/02_AfterEffects", assets: "05_GFX/03_Assets", toGfx: "05_GFX/06_ToGFX", outputs: "05_GFX/07_Output", styleFrames: "05_GFX/07_Output/_StyleFrames" }, customFolders: [] }], projects: [] };
     }
     function validateTemplate(template) {
         if (!template || !String(template.name || "").replace(/^\s+|\s+$/g, "")) throw new Error("Template name is required.");
         var folders = {}, key;
         for (var i = 0; i < FOLDER_KEYS.length; i++) { key = FOLDER_KEYS[i]; folders[key] = normalizeRelativePath(template.folders && template.folders[key]); }
-        return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders };
+        var customFolders = [], usedIds = {}, reservedIds = { "after-effects": true, "to-gfx": true, "style-frames": true };
+        for (var reservedIndex = 0; reservedIndex < FOLDER_KEYS.length; reservedIndex++) reservedIds[FOLDER_KEYS[reservedIndex]] = true;
+        var supplied = template.customFolders || [];
+        for (var customIndex = 0; customIndex < supplied.length; customIndex++) {
+            var entry = supplied[customIndex];
+            var label = String(entry.label || "").replace(/^\s+|\s+$/g, "");
+            if (!label) throw new Error("Each custom location needs a name.");
+            var id = idFromName(label);
+            if (usedIds[id] || reservedIds[id]) throw new Error("Custom location names must be unique and cannot replace a standard location.");
+            usedIds[id] = true;
+            customFolders.push({ id: id, label: label, path: normalizeRelativePath(entry.path) });
+        }
+        return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders, customFolders: customFolders };
     }
     function upsertTemplate(state, template) {
         var next = clone(state), normalized = validateTemplate(template), found = false;
@@ -45,6 +57,7 @@
         if (!template) throw new Error("Assigned template not found.");
         var result = {};
         FOLDER_KEYS.forEach(function (key) { result[key] = template.folders[key] ? project.root + "/" + template.folders[key] : ""; });
+        (template.customFolders || []).forEach(function (entry) { result[entry.id] = entry.path ? project.root + "/" + entry.path : ""; });
         return result;
     }
     return { FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, resolveProjectPaths: resolveProjectPaths };

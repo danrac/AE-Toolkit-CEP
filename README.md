@@ -7,9 +7,11 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 - CEP manifest and dockable After Effects panel shell
 - Native ExtendScript storage under the user's Adobe data directory
 - Template library with a reusable default template and custom templates
+- Custom template locations alongside the standard project folders
 - Per-project template assignment
 - Relative, semantic folder mappings for After Effects, Assets, To GFX, Outputs, and Style Frames
-- macOS and Windows project-root resolution
+- macOS and Windows project-root resolution, including a native folder chooser
+- Resolved project paths with one-click reveal controls
 
 ## Development
 

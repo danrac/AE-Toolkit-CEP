@@ -13,16 +13,22 @@ test('Default template resolves semantic locations from a Mac root', () => {
 
 test('Custom templates support Windows project roots and assignment', () => {
     let state = store.defaultState();
-    state = store.upsertTemplate(state, { name: 'Editorial', folders: { afterEffects: 'After Effects', assets: 'Media', toGfx: 'Incoming', outputs: 'Renders', styleFrames: '' } });
+    state = store.upsertTemplate(state, { name: 'Editorial', folders: { afterEffects: 'After Effects', assets: 'Media', toGfx: 'Incoming', outputs: 'Renders', styleFrames: '' }, customFolders: [{ label: 'Delivery', path: 'Renders/Delivery' }] });
     state = store.assignProject(state, { name: 'Edit', root: 'D:\\Shows\\Edit', templateId: 'editorial' });
     const paths = store.resolveProjectPaths(state, 'edit');
     assert.equal(paths.afterEffects, 'D:/Shows/Edit/After Effects');
     assert.equal(paths.styleFrames, '');
+    assert.equal(paths.delivery, 'D:/Shows/Edit/Renders/Delivery');
 });
 
 test('Template folders reject absolute and parent-traversal paths', () => {
     assert.throws(() => store.validateTemplate({ name: 'Unsafe', folders: { assets: '../assets' } }));
     assert.throws(() => store.validateTemplate({ name: 'Unsafe', folders: { assets: 'C:/assets' } }));
+});
+
+test('Custom locations require unique labels and safe relative paths', () => {
+    assert.throws(() => store.validateTemplate({ name: 'Unsafe', folders: {}, customFolders: [{ label: 'Assets', path: 'One' }] }));
+    assert.throws(() => store.validateTemplate({ name: 'Unsafe', folders: {}, customFolders: [{ label: 'Delivery', path: '../delivery' }] }));
 });
 
 console.log(`${passed} tests passed.`);
