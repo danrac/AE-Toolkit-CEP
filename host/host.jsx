@@ -313,3 +313,108 @@ function aetoolkitCepImportSourceProjects(jsonText) {
     } catch (error) { errors.push(error.toString()); }
     return JSON.stringify({ imported: imported, errors: errors });
 }
+function aetoolkitCepNumber(value, label, minimum, maximum, integerOnly) {
+    var parsed = Number(value);
+    if (isNaN(parsed) || parsed < minimum || parsed > maximum || integerOnly && Math.floor(parsed) !== parsed) throw new Error(label + " must be between " + minimum + " and " + maximum + ".");
+    return parsed;
+}
+function aetoolkitCepSafeName(value) {
+    return String(value || "").replace(/^\s+|\s+$/g, "").replace(/[\\/:*?\"<>|\r\n]+/g, "").replace(/\s+/g, " ");
+}
+function aetoolkitCepBuildCompName(options, index) {
+    var parts = [], fields = [options.job, options.format, options.style, options.description, options.initials], i;
+    for (i = 0; i < fields.length; i++) {
+        var part = aetoolkitCepSafeName(fields[i]);
+        if (part) parts.push(part.replace(/\s+/g, "_"));
+    }
+    if (!parts.length) parts.push("Comp");
+    parts.push(aetoolkitCepPadNumber(index || 1, 2));
+    return parts.join("_");
+}
+function aetoolkitCepCompDimensions(options) {
+    return {
+        width: aetoolkitCepNumber(options.width, "Width", 1, 30000, true),
+        height: aetoolkitCepNumber(options.height, "Height", 1, 30000, true),
+        fps: aetoolkitCepNumber(options.fps, "FPS", 1, 240, false),
+        duration: aetoolkitCepNumber(options.duration, "Duration", 0.001, 86400, false)
+    };
+}
+function aetoolkitCepCreateComp(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), settings = aetoolkitCepCompDimensions(options), name = aetoolkitCepBuildCompName(options, 1), comp;
+        app.beginUndoGroup("AE Toolkit CEP: Create composition");
+        try {
+            comp = app.project.items.addComp(name, settings.width, settings.height, 1, settings.duration, settings.fps);
+            comp.label = 14;
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ id: comp.id, name: comp.name, width: comp.width, height: comp.height, fps: comp.frameRate });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepModifySelectedComps(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), updateSize = !!options.updateSize, updateFps = !!options.updateFps, renameBase = aetoolkitCepSafeName(options.renameBase), settings, comps, i;
+        if (!updateSize && !updateFps && !renameBase) throw new Error("Choose size, FPS, or rename before modifying comps.");
+        if (updateSize || updateFps) settings = aetoolkitCepCompDimensions(options);
+        comps = aetoolkitCepSelectedComps();
+        app.beginUndoGroup("AE Toolkit CEP: Modify compositions");
+        try {
+            for (i = 0; i < comps.length; i++) {
+                if (updateSize) { comps[i].width = settings.width; comps[i].height = settings.height; }
+                if (updateFps) comps[i].frameRate = settings.fps;
+                if (renameBase) comps[i].name = renameBase + "_" + aetoolkitCepPadNumber(i + 1, 2);
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ modified: comps.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepPadNumber(value, width) {
+    var text = String(value);
+    while (text.length < width) text = "0" + text;
+    return text;
+}
+function aetoolkitCepReplaceLiteral(value, find, replacement) {
+    var pieces = String(value).split(find);
+    return pieces.join(replacement);
+}
+function aetoolkitCepRenameSelectedItems(jsonText) {
+    try {
+        var options = JSON.parse(jsonText), operation = options.operation, find = String(options.find || ""), replacement = String(options.replace || ""), selected = app.project.selection, start, i, item;
+        if (!selected.length) throw new Error("Select one or more project items before renaming.");
+        if (operation !== "replace" && operation !== "prefix" && operation !== "suffix" && operation !== "number" && operation !== "remove") throw new Error("Choose a rename operation.");
+        if ((operation === "replace" || operation === "remove") && !find) throw new Error("Enter text to find.");
+        if ((operation === "prefix" || operation === "suffix") && !find) throw new Error("Enter a prefix or suffix.");
+        start = aetoolkitCepNumber(options.start || 1, "Start number", 0, 999999, true);
+        app.beginUndoGroup("AE Toolkit CEP: Rename project items");
+        try {
+            for (i = 0; i < selected.length; i++) {
+                item = selected[i];
+                if (operation === "replace") item.name = aetoolkitCepReplaceLiteral(item.name, find, replacement);
+                else if (operation === "remove") item.name = aetoolkitCepReplaceLiteral(item.name, find, "");
+                else if (operation === "prefix") item.name = find + item.name;
+                else if (operation === "suffix") item.name = item.name + find;
+                else item.name = item.name + "_" + aetoolkitCepPadNumber(start + i, 2);
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ renamed: selected.length });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepConformSelectedSolids() {
+    try {
+        var comp = app.project.activeItem, conformed = 0, layers, i, layer;
+        if (!(comp instanceof CompItem)) throw new Error("Open a composition and select one or more solid layers.");
+        layers = comp.selectedLayers;
+        if (!layers || !layers.length) throw new Error("Select one or more solid layers in the active composition.");
+        app.beginUndoGroup("AE Toolkit CEP: Conform solid layers");
+        try {
+            for (i = 0; i < layers.length; i++) {
+                layer = layers[i];
+                if (!layer.nullLayer && layer instanceof AVLayer && layer.source && layer.source.mainSource instanceof SolidSource) {
+                    layer.source.width = comp.width;
+                    layer.source.height = comp.height;
+                    conformed++;
+                }
+            }
+        } finally { app.endUndoGroup(); }
+        return JSON.stringify({ conformed: conformed });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}

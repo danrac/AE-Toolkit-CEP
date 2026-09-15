@@ -19,6 +19,7 @@
     <nav class="tabs" aria-label="Project navigator views">
       <button class="tab active" data-view="projects">Projects</button>
       <button class="tab" data-view="sourcing">Sourcing</button>
+      <button class="tab" data-view="create-modify">Create / Modify</button>
       <button class="tab" data-view="templates">Templates</button>
     </nav>
 
@@ -79,6 +80,65 @@
         <button id="source-discover-projects">Discover selected sources</button>
         <div id="source-project-records" class="item-list"></div>
         <button id="source-import-projects" class="primary" disabled>Import selected source projects</button>
+      </article>
+    </section>
+
+    <section id="create-modify" class="view">
+      <article class="card">
+        <h2>Create composition</h2>
+        <div class="field-grid">
+          <label>Format<select id="comp-preset">
+            <option value="1920x1080">HD · 1920 × 1080</option>
+            <option value="3840x2160">UHD · 3840 × 2160</option>
+            <option value="1080x1080">Square · 1080 × 1080</option>
+            <option value="1080x1920">Vertical · 1080 × 1920</option>
+            <option value="custom">Custom</option>
+          </select></label>
+          <label>Width<input id="comp-width" type="number" min="1" max="30000" value="1920"></label>
+          <label>Height<input id="comp-height" type="number" min="1" max="30000" value="1080"></label>
+          <label>FPS<input id="comp-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
+          <label>Duration (seconds)<input id="comp-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
+        </div>
+        <p class="help">The format label and name parts form a predictable composition name. Invalid filename characters are removed.</p>
+        <div class="field-grid">
+          <label>Job<input id="comp-job" placeholder="Job"></label>
+          <label>Style<input id="comp-style" placeholder="Style"></label>
+          <label>Description<input id="comp-description" placeholder="Description"></label>
+          <label>Initials<input id="comp-initials" maxlength="12" placeholder="AB"></label>
+        </div>
+        <button id="create-comp" class="primary">Create composition</button>
+      </article>
+      <article class="card">
+        <h2>Modify selected compositions</h2>
+        <p class="help">Directly changes the selected comps. It does not add temporary layers, re-parent layers, or alter existing transforms.</p>
+        <div class="toggle-grid">
+          <label><input id="modify-size" type="checkbox"> Update size</label>
+          <label><input id="modify-fps" type="checkbox"> Update FPS</label>
+          <label><input id="modify-name" type="checkbox"> Rename selected comps</label>
+        </div>
+        <label>New base name<input id="modify-name-base" placeholder="Campaign_Main"></label>
+        <button id="modify-comps" class="primary">Modify selected comps</button>
+      </article>
+      <article class="card">
+        <h2>Rename selected project items</h2>
+        <div class="field-grid rename-fields">
+          <label>Operation<select id="rename-operation">
+            <option value="replace">Find and replace</option>
+            <option value="prefix">Add prefix</option>
+            <option value="suffix">Add suffix</option>
+            <option value="number">Append sequence</option>
+            <option value="remove">Remove text</option>
+          </select></label>
+          <label>Find / value<input id="rename-find" placeholder="Old text or prefix"></label>
+          <label>Replace with<input id="rename-replace" placeholder="New text"></label>
+          <label>Start number<input id="rename-start" type="number" value="1" min="0" max="999999"></label>
+        </div>
+        <button id="rename-selected" class="primary">Rename selected items</button>
+      </article>
+      <article class="card">
+        <h2>Conform selected solids</h2>
+        <p class="help">With a composition active, resizes selected solid layers to its width and height. Nulls and non-solid footage are left untouched.</p>
+        <button id="conform-solids">Conform selected solids to active comp</button>
       </article>
     </section>
 

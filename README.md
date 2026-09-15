@@ -14,6 +14,13 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 - Resolved project paths with one-click reveal controls
 - Active-project controls for opening project files, importing from mapped folders, and rendering selected compositions to dated project outputs
 - Sourcing workflows for path-based asset imports and discovery of explicit source-AE-project links in rendered footage
+- Create / Modify workflows for validated composition creation, direct selected-composition size and FPS edits, project-item renaming, and solid-to-comp conforming
+
+## Create / Modify
+
+The Create / Modify panel rebuilds the core composition tools without the legacy temporary-null resize workflow. Creating a comp validates its dimensions, frame rate, and duration before creating it. Editing selected comps writes only their width, height, frame rate, or requested name, preserving existing layers, parent relationships, and transforms.
+
+Project-item rename actions treat the search text literally, so names containing characters such as `[` and `.` are handled predictably. The solid conform action only changes selected `SolidSource` layers in the active composition.
 
 ## Development
 
