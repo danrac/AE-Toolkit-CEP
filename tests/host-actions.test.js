@@ -5,9 +5,15 @@ const vm = require('vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../host/host.jsx'), 'utf8');
 function FixedDate() { this.getFullYear = () => 2026; this.getMonth = () => 8; this.getDate = () => 15; }
-const context = { JSON, Date: FixedDate };
+const context = { JSON: undefined, Date: FixedDate };
 vm.createContext(context);
 vm.runInContext(source, context);
+assert.equal(context.JSON, undefined, 'Host must not depend on or replace global JSON');
+const jsonSample = { path: 'C:\\Jobs\\A B\\clip.mov', mac: '/Volumes/Jobs/é.mov', quote: '"line\nnext', values: [null, true, false, 12.5] };
+assert.deepEqual(JSON.parse(context.AEToolkitJSON.stringify(context.AEToolkitJSON.parse(JSON.stringify(jsonSample)))), jsonSample);
+assert.throws(() => context.AEToolkitJSON.parse('{broken'));
+console.log('PASS bundled JSON works with no native JSON and preserves path characters');
+
 
 assert.equal(context.aetoolkitCepNormalizeSubfolder('Delivery\\v01'), 'Delivery/v01');
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('/Delivery/v01/'));
@@ -34,7 +40,7 @@ const renderQueue = {
     items: { add(comp) { const item = { render: true, comp, outputModule() { return { applyTemplate(name) { this.template = name; }, file: null }; } }; renderQueue._items.push(item); renderQueue.numItems++; return item; } },
     render() { this.didRender = true; }
 };
-const renderContext = { JSON, Date: FixedDate, Folder: FakeFolder, File: FakeFile, CompItem: FakeCompItem, app: { project: { file: { fsName: '/Job/test.aep' }, selection: [new FakeCompItem('Title')], renderQueue } } };
+const renderContext = { JSON: undefined, Date: FixedDate, Folder: FakeFolder, File: FakeFile, CompItem: FakeCompItem, app: { project: { file: { fsName: '/Job/test.aep' }, selection: [new FakeCompItem('Title')], renderQueue } } };
 vm.createContext(renderContext);
 vm.runInContext(source, renderContext);
 const result = renderContext.aetoolkitCepRenderSelected(JSON.stringify({ mode: 'offline', basePath: '/Job/Output', subfolder: 'Delivery\\v01' }));
@@ -50,7 +56,7 @@ Object.defineProperty(ImportFile.prototype, 'exists', { get() { return !!importF
 function ImportFolder(value) { this.fsName = normalize(value); }
 Object.defineProperty(ImportFolder.prototype, 'exists', { get() { return !!importFolders[this.fsName]; } });
 function ImportOptions(file) { this.file = file; }
-const importContext = { JSON, File: ImportFile, Folder: ImportFolder, ImportOptions, $: { os: 'Macintosh' }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { importFile(options) { importedAssets.push(options.file.fsName); } } } };
+const importContext = { JSON: undefined, File: ImportFile, Folder: ImportFolder, ImportOptions, $: { os: 'Macintosh' }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { importFile(options) { importedAssets.push(options.file.fsName); } } } };
 vm.createContext(importContext);
 vm.runInContext(source, importContext);
 const importSummary = JSON.parse(importContext.aetoolkitCepImportAssetPaths('/assets/\na.mov\na.mov\nfile:///assets/b.mov'));
@@ -58,7 +64,7 @@ assert.equal(importSummary.imported, 2);
 assert.deepEqual(importedAssets, ['/assets/a.mov', '/assets/b.mov']);
 console.log('PASS host pasted-path import deduplicates files and accepts folder headers and file URLs');
 
-const sourceContext = { JSON, XMPConst: { NS_CREATOR_ATOM: 'creator', NS_DM: 'dynamic' } };
+const sourceContext = { JSON: undefined, XMPConst: { NS_CREATOR_ATOM: 'creator', NS_DM: 'dynamic' } };
 vm.createContext(sourceContext);
 vm.runInContext(source, sourceContext);
 const sourceLinks = sourceContext.aetoolkitCepReadSourceLinks({
@@ -111,7 +117,7 @@ function SolidSource() {}
 function AVLayer() { this.nullLayer = false; this.source = { width: 100, height: 100, mainSource: new SolidSource() }; }
 const solidLayer = new AVLayer(), conformComp = new EditComp('Active');
 conformComp.width = 3840; conformComp.height = 2160; conformComp.selectedLayers = [solidLayer];
-const conformContext = { JSON, CompItem: EditComp, AVLayer, SolidSource, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { activeItem: conformComp } } };
+const conformContext = { JSON: undefined, CompItem: EditComp, AVLayer, SolidSource, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { activeItem: conformComp } } };
 vm.createContext(conformContext);
 vm.runInContext(source, conformContext);
 const conformed = JSON.parse(conformContext.aetoolkitCepConformSelectedSolids());
@@ -196,7 +202,7 @@ const solidFootage = new OrganizeFootage('Blue Solid', 7, oldFolder, false, true
 organizeProject._items.push(oldFolder, selectedOrganizeComp, mainOrganizeComp, stillFootage, videoFootage, solidFootage);
 Object.defineProperty(organizeProject, 'numItems', { get() { return this._items.length; } });
 organizeProject.item = function (index) { return this._items[index - 1]; };
-const organizeContext = { JSON, FolderItem: OrganizeFolder, CompItem: OrganizeComp, FootageItem: OrganizeFootage, SolidSource: OrganizeSolidSource, app: { beginUndoGroup() {}, endUndoGroup() {}, project: organizeProject } };
+const organizeContext = { JSON: undefined, FolderItem: OrganizeFolder, CompItem: OrganizeComp, FootageItem: OrganizeFootage, SolidSource: OrganizeSolidSource, app: { beginUndoGroup() {}, endUndoGroup() {}, project: organizeProject } };
 vm.createContext(organizeContext);
 vm.runInContext(source, organizeContext);
 const organized = JSON.parse(organizeContext.aetoolkitCepOrganizeProject('basic'));
@@ -218,7 +224,7 @@ function ToolTextLayer(name, index, inPoint, outPoint) { ToolLayer.call(this, na
 ToolTextLayer.prototype = Object.create(ToolLayer.prototype);
 const toolsComp = new ToolComp('Tool comp'), normalLayer = new ToolLayer('Normal', 2, 1, 4), textLayer = new ToolTextLayer('Text', 1, 0, 3);
 toolsComp.selectedLayers = [normalLayer, textLayer];
-const toolsContext = { JSON, Math, CompItem: ToolComp, TextDocument: function (text) { this.text = text; }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [toolsComp], activeItem: toolsComp } } };
+const toolsContext = { JSON: undefined, Math, CompItem: ToolComp, TextDocument: function (text) { this.text = text; }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [toolsComp], activeItem: toolsComp } } };
 vm.createContext(toolsContext);
 vm.runInContext(source, toolsContext);
 assert.equal(JSON.parse(toolsContext.aetoolkitCepAdjustSelectedCompFrames('10')).changed, 1);
@@ -252,7 +258,7 @@ SelectComp.prototype = Object.create(ToolComp.prototype);
 SelectComp.prototype.layer = function (index) { return this._layers[index - 1]; };
 Object.defineProperty(SelectComp.prototype, 'selectedLayers', { get() { return this._layers.filter(layer => layer.selected); }, set() {} });
 const selectComp = new SelectComp();
-const selectContext = { JSON, CompItem: ToolComp, FootageItem: SelectFootage, SolidSource: function () {}, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { activeItem: selectComp } } };
+const selectContext = { JSON: undefined, CompItem: ToolComp, FootageItem: SelectFootage, SolidSource: function () {}, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { activeItem: selectComp } } };
 vm.createContext(selectContext);
 vm.runInContext(source, selectContext);
 assert.equal(JSON.parse(selectContext.aetoolkitCepSelectLayersByType(JSON.stringify({ type: 'text', mode: 'only' }))).changed, 1);
@@ -269,7 +275,7 @@ console.log('PASS host layer selection, stacking, snapping, and transform transf
 function NoSlateFootage(name) { this.name = name; this.id = 77; this.frameRate = 24; this.duration = 10; this.width = 1920; this.height = 1080; this.pixelAspect = 1; }
 let noSlateComp, noSlateLayer;
 const noSlateFootage = new NoSlateFootage('Edit.mov');
-const noSlateContext = { JSON, FootageItem: NoSlateFootage, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [noSlateFootage], items: { addComp(name, width, height, pixelAspect, duration, frameRate) { noSlateComp = { id: 88, name, width, height, pixelAspect, duration, frameRate, layers: { add(source) { noSlateLayer = { source, startTime: 0 }; return noSlateLayer; } } }; return noSlateComp; } } } } };
+const noSlateContext = { JSON: undefined, FootageItem: NoSlateFootage, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [noSlateFootage], items: { addComp(name, width, height, pixelAspect, duration, frameRate) { noSlateComp = { id: 88, name, width, height, pixelAspect, duration, frameRate, layers: { add(source) { noSlateLayer = { source, startTime: 0 }; return noSlateLayer; } } }; return noSlateComp; } } } } };
 vm.createContext(noSlateContext);
 vm.runInContext(source, noSlateContext);
 const noSlate = JSON.parse(noSlateContext.aetoolkitCepCreateNoSlateComp('144'));
@@ -280,7 +286,7 @@ console.log('PASS host creates no-slate comps with a validated frame trim');
 
 function AssetFolder(path) { this.fsName = path; }
 function AssetFile(path) { this.fsName = path; this.name = path.split('/').pop(); this.parent = new AssetFolder(path.slice(0, path.lastIndexOf('/'))); this.exists = true; }
-const assetContext = { JSON, File: AssetFile, Folder: AssetFolder };
+const assetContext = { JSON: undefined, File: AssetFile, Folder: AssetFolder };
 vm.createContext(assetContext);
 vm.runInContext(source, assetContext);
 assert.equal(assetContext.aetoolkitCepCopyPresetAsset(new AssetFolder('/UserData/AE-Toolkit-CEP/guide-assets/scope'), '/UserData/AE-Toolkit-CEP/guide-assets/scope/matte.png', 'matte'), '/UserData/AE-Toolkit-CEP/guide-assets/scope/matte.png');

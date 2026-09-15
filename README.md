@@ -78,3 +78,7 @@ Runtime project locations come from the selected project root and its editable t
 DMS organization routes supported video files by media type without requiring a `06_ToGFX` disk folder. Organizer names describe folders inside the AE project, not directories that must exist on disk. App settings and copied guides live beneath Adobe’s OS-resolved `Folder.userData`; localized media is created beneath the configured Assets location. Packaging paths are relative to the repository, and signing-tool/certificate locations come from environment variables. Absolute paths in tests are fixtures only.
 
 Known non-path dependency: the render modes still require the named `X_...` output-module templates. These should become selectable installed templates in a subsequent render-workflow update.
+
+## ExtendScript JSON compatibility
+
+The host bundles public-domain JSON-js (json2.js, 2023-05-10) in a private `AEToolkitJSON` namespace. It requires no native JSON object, other installed panels, or runtime download. Host action tests explicitly disable global JSON. Before release, stage the package and run `tests/after-effects-load-check.jsx` in After Effects; inspect `dist/ae-toolkit-cep-host-check.txt` for the result. The check loads the host and exercises path serialization, default-state parsing, and a host response without changing the open project.
