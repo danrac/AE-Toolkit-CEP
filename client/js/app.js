@@ -203,6 +203,9 @@
     }
     function renderActiveProject() {
         renderCompNamingFields();
+        var assignedProject = activeProject(), assignedTemplate = assignedProject && templateById(assignedProject.templateId);
+        byId("change-project-template").textContent = assignedTemplate ? assignedTemplate.name : "No project selected";
+        byId("change-project-template").disabled = !assignedProject;
         var select = byId("active-project"), project = activeProject(), ids = ["open-project-file", "reveal-project-root", "remove-project", "choose-render-subfolder"];
         var query = byId("project-search").value.toLowerCase().trim();
         clearChildren(select); var matches = state.projects.filter(function (entry) { return !query || (entry.name + " " + entry.root).toLowerCase().indexOf(query) !== -1; });
@@ -296,6 +299,35 @@
     byId("snap-to-last").onclick = function () { callHost("aetoolkitCepSnapSelectedLayers", "", function (result) { try { var summary = JSON.parse(result); status("Snapped " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("transfer-transform").onclick = function () { callHost("aetoolkitCepTransferTransform", JSON.stringify({ position: byId("transfer-position").checked, scale: byId("transfer-scale").checked, rotation: byId("transfer-rotation").checked }), function (result) { try { var summary = JSON.parse(result); status("Updated " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("replace-text").onclick = function () { callHost("aetoolkitCepReplaceSelectedText", byId("tool-replace-text").value, function (result) { try { var summary = JSON.parse(result); status("Updated " + summary.changed + " text layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
+    var templateAssignmentProjectId = "", templateAssignmentSaving = false;
+    byId("change-project-template").onclick = function () {
+        var project = activeProject(); if (!project) return;
+        templateAssignmentProjectId = project.id;
+        var select = byId("assigned-project-template"); clearChildren(select);
+        state.templates.forEach(function (template) { var option = document.createElement("option"); option.value = template.id; option.textContent = template.name; select.appendChild(option); });
+        select.value = project.templateId;
+        byId("project-template-error").textContent = "";
+        byId("project-template-dialog").showModal();
+    };
+    byId("cancel-project-template").onclick = function () { if (!templateAssignmentSaving) byId("project-template-dialog").close(); };
+    byId("project-template-dialog").addEventListener("cancel", function (event) { if (templateAssignmentSaving) event.preventDefault(); });
+    byId("save-project-template").onclick = function () {
+        if (templateAssignmentSaving) return;
+        var previous = state, project = projectById(templateAssignmentProjectId);
+        try {
+            if (!project) throw new Error("This project is no longer available.");
+            var updated = copy(project); updated.templateId = byId("assigned-project-template").value;
+            state = store.assignProject(state, updated);
+        } catch (error) { byId("project-template-error").textContent = error.message; return; }
+        templateAssignmentSaving = true;
+        byId("save-project-template").disabled = byId("cancel-project-template").disabled = true;
+        callHost("aetoolkitCepSaveState", JSON.stringify(state), function (result) {
+            templateAssignmentSaving = false;
+            byId("save-project-template").disabled = byId("cancel-project-template").disabled = false;
+            if (result !== "OK") { state = previous; byId("project-template-error").textContent = result || "Could not save project template."; return; }
+            renderProjects(); renderActiveProject(); byId("project-template-dialog").close(); status("Project template updated.");
+        });
+    };
     byId("connect-project").onclick = function () { try { var name = byId("project-name").value, root = byId("project-root").value; state = store.assignProject(state, { name: name, root: root, templateId: byId("project-template").value }); var matched = state.projects.filter(function (project) { return project.name === name && project.root === String(root).replace(/\\/g, "/").replace(/\/+$/g, ""); })[0]; state = store.setActiveProject(state, matched.id); save(function () { renderProjects(); renderActiveProject(); status("Project added."); }); } catch (error) { status(error.message, true); } };
     byId("project-search").oninput = function () { renderActiveProject(); };
     byId("active-project").onchange = function () { if (!this.value) return; try { state = store.setActiveProject(state, byId("active-project").value); byId("project-search").value = ""; save(function () { renderProjects(); renderActiveProject(); status("Project selected."); }); } catch (error) { status(error.message, true); } };

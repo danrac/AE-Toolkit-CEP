@@ -16,6 +16,8 @@ The orange toolbar selection identifies the active section. Drag the dotted grip
 
 Search by project name or root path, then select a result in the dropdown. **Refresh** reloads project data. **Remove** removes the connection; it is not a disk-file deletion tool. Add connections in **Templates → Add new project**.
 
+The button beneath the project selector shows its assigned template. Click it to choose another template, then **Save** to store the assignment for that project or **Cancel** to leave it unchanged. Saving refreshes folder mappings and composition naming; existing files and comps are not moved or renamed.
+
 **Open project file** opens the connected project's AE file; **Reveal project root** opens its root folder. The folder list below resolves the template's AE Projects, Assets, Graphic In, Graphic Out, Style Frames, and custom locations against that root. Each folder provides adjacent **Reveal** and **Import** actions. Saving a project preset refreshes the mappings used by connected projects.
 
 ### Render to outputs

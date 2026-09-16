@@ -132,3 +132,20 @@ test('CEP Node context also exports the template API to the browser window', () 
     assert.equal(typeof context.window.AEToolkitTemplates.defaultState,'function');
     assert.equal(context.module.exports,context.window.AEToolkitTemplates);
 });
+
+ test('Reassigning a saved project changes only its template and persists resolved paths', () => {
+    let original = store.defaultState();
+    original = store.upsertTemplate(original, {id:'alternate',name:'Alternate',folders:{outputs:'Deliverables',assets:'Media'}});
+    original = store.assignProject(original,{id:'one',name:'One',root:'/Jobs/One',templateId:'default-motion'});
+    original = store.assignProject(original,{id:'two',name:'Two',root:'/Jobs/Two',templateId:'default-motion'});
+    const updated = store.assignProject(original,{...original.projects[0],templateId:'alternate'});
+    const restored = JSON.parse(JSON.stringify(updated));
+    assert.equal(restored.projects.length,2);
+    assert.equal(restored.activeProjectId,original.activeProjectId);
+    assert.equal(restored.projects[0].root,'/Jobs/One');
+    assert.equal(restored.projects[0].name,'One');
+    assert.equal(store.resolveProjectPaths(restored,'one').outputs,'/Jobs/One/Deliverables');
+    assert.deepEqual(restored.projects[1],original.projects[1]);
+    assert.equal(original.projects[0].templateId,'default-motion');
+    assert.throws(()=>store.assignProject(original,{...original.projects[0],templateId:'missing'}));
+});

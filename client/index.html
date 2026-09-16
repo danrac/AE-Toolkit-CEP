@@ -37,6 +37,7 @@
           <button id="refresh-projects" class="quiet">Refresh</button>
           <button id="remove-project" class="quiet danger">Remove</button>
         </div>
+        <button id="change-project-template" disabled title="Change this project’s template">No project selected</button>
         <div id="active-project-actions" class="project-actions">
           <button id="open-project-file">Open project file</button>
           <button id="reveal-project-root">Reveal project root</button>
@@ -340,6 +341,13 @@
     <button id="capture-custom-checkers" class="primary">Use selected comps</button>
     <button id="cancel-custom-dialog">Cancel</button>
     <p id="custom-format-status" class="help" aria-live="polite"></p>
+  </dialog>
+  <dialog id="project-template-dialog" aria-labelledby="project-template-dialog-title">
+    <h2 id="project-template-dialog-title">Project template</h2>
+    <label>Template<select id="assigned-project-template"></select></label>
+    <p class="help">Updates this project's folder mappings and naming settings. Existing files and compositions are not moved or renamed.</p>
+    <p id="project-template-error" role="alert"></p>
+    <div class="naming-dialog-actions"><button id="cancel-project-template">Cancel</button><button id="save-project-template" class="primary">Save</button></div>
   </dialog>
   <dialog id="naming-dialog" aria-labelledby="naming-dialog-title">
     <form id="naming-dialog-form">
