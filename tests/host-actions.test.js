@@ -37,18 +37,31 @@ const renderQueue = {
     numItems: 1,
     item(index) { return this._items[index - 1]; },
     _items: [existingQueueItem],
-    items: { add(comp) { const item = { render: true, comp, outputModule() { return { applyTemplate(name) { this.template = name; }, file: null }; } }; renderQueue._items.push(item); renderQueue.numItems++; return item; } },
+    items: { add(comp) { const module = { applyTemplate(name) { if (name === "Missing") throw new Error("Unavailable"); this.template = name; }, file: {name:"Title_[#####].exr"} }; const item = { render: true, comp, outputModule() { return module; }, remove() { renderQueue._items.splice(renderQueue._items.indexOf(this), 1); renderQueue.numItems--; } }; renderQueue._items.push(item); renderQueue.numItems++; return item; } },
     render() { this.didRender = true; }
 };
 const renderContext = { JSON: undefined, Date: FixedDate, Folder: FakeFolder, File: FakeFile, CompItem: FakeCompItem, app: { project: { file: { fsName: '/Job/test.aep' }, selection: [new FakeCompItem('Title')], renderQueue } } };
 vm.createContext(renderContext);
 vm.runInContext(source, renderContext);
-const result = renderContext.aetoolkitCepRenderSelected(JSON.stringify({ mode: 'offline', basePath: '/Job/Output', subfolder: 'Delivery\\v01' }));
+const result = renderContext.aetoolkitCepRenderSelected(JSON.stringify({ mode: 'offline', outputTemplate: 'Studio EXR', basePath: '/Job/Output', subfolder: 'Delivery\\v01' }));
 assert.ok(/^Rendered 1 composition/.test(result));
 assert.equal(renderQueue.didRender, true);
 assert.equal(existingQueueItem.render, true);
 assert.equal(folders['/Job/Output/260915/Delivery/v01'], true);
-console.log('PASS host render preserves existing queue state and creates dated output paths');
+assert.equal(renderQueue._items[1].outputModule(1).template, 'Studio EXR');
+assert.ok(renderQueue._items[1].outputModule(1).file.fsName.endsWith('_[#####].exr'));
+const beforeFailure = renderQueue.numItems;
+assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'online', outputTemplate:'Missing', basePath:'/Job/Output'})), /^ERROR:/);
+assert.equal(renderQueue.numItems, beforeFailure, 'Failed preset leaves no added queue item');
+assert.equal(existingQueueItem.render, true);
+assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'online', basePath:'/Job/Output'})), /Choose an output preset/);
+console.log('PASS chosen output preset, sequence suffix, failed-template rollback, and existing queue preservation');
+let removedComp = false, removedItem = false;
+const lookupContext = {JSON:undefined,app:{project:{items:{addComp(){return {remove(){removedComp=true}}}},renderQueue:{numItems:0,items:{add(){return {outputModule(){return {templates:['Studio EXR','Client ProRes','_HIDDEN internal']}},remove(){removedItem=true}}}}}}}};
+vm.createContext(lookupContext); vm.runInContext(source, lookupContext);
+assert.deepEqual(JSON.parse(lookupContext.aetoolkitCepOutputTemplates()), ['Studio EXR','Client ProRes']);
+assert.ok(removedComp && removedItem);
+console.log('PASS installed preset enumeration and temporary-item cleanup');
 
 const importFiles = { '/assets/a.mov': true, '/assets/b.mov': true }, importFolders = { '/assets': true }, importedAssets = [];
 function ImportFile(value) { this.fsName = normalize(value); this.name = this.fsName.split('/').pop(); }
@@ -120,11 +133,16 @@ conformComp.width = 3840; conformComp.height = 2160; conformComp.selectedLayers 
 const conformContext = { JSON: undefined, CompItem: EditComp, AVLayer, SolidSource, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { activeItem: conformComp } } };
 vm.createContext(conformContext);
 vm.runInContext(source, conformContext);
+const untouchedSolid = solidLayer.source;
+solidLayer.replaceSource = function(source) { this.source = source; };
+solidLayer.property = () => ({property:()=>({numKeys:0,value:[50,50],setValue(){}})});
+conformComp.layers = {addSolid(color,name,width,height) { return {source:{width,height},remove(){}}; }};
 const conformed = JSON.parse(conformContext.aetoolkitCepConformSelectedSolids());
 assert.equal(conformed.conformed, 1);
 assert.equal(solidLayer.source.width, 3840);
 assert.equal(solidLayer.source.height, 2160);
-console.log('PASS host conform solids only changes selected solid sources');
+assert.equal(untouchedSolid.width, 100);
+console.log('PASS selected-solid tool replaces sources without changing shared originals');
 
 function CanvasLayers() { this.entries = []; }
 CanvasLayers.prototype.addSolid = function (color, name, width, height) { const layer = { name, width, height, moveToEnd() { this.movedToEnd = true; } }; this.entries.push(layer); return layer; };
@@ -319,3 +337,17 @@ assert.equal(JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify(typedN
 typedName.namingFields.pop();
 assert.equal(JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify(typedName))).name, 'v03');
 console.log('PASS custom fields, version format, removal and order reach comp creation');
+
+{
+    const shared = {name:'Background',width:1920,height:1080,pixelAspect:1,mainSource:new SolidSource()}; shared.mainSource.color=[1,0,0];
+    const anchor = {value:[960,540],numKeys:0,setValue(value){this.value=value}};
+    const layer = new AVLayer(); layer.source=shared; layer.locked=true;
+    layer.replaceSource=function(source){this.source=source}; layer.property=()=>({property:()=>anchor});
+    let removed = false;
+    const comp = {width:1080,height:1920,pixelAspect:1,duration:10,numLayers:1,layer:()=>layer,layers:{addSolid(color,name,width,height,pixelAspect){return {source:{name,width,height,pixelAspect},remove(){removed=true}}}}};
+    conformContext.aetoolkitCepConformCompSolids(comp);
+    assert.equal(layer.source.width,1080); assert.equal(layer.source.height,1920);
+    assert.equal(shared.width,1920); assert.equal(shared.height,1080);
+    assert.deepEqual(anchor.value,[540,960]); assert.equal(layer.locked,true); assert(removed);
+    console.log('PASS comp solid conform creates independent sources, preserves locks, and shifts anchor center');
+}

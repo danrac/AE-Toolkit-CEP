@@ -656,25 +656,28 @@ function aetoolkitCepSelectedComps() {
     return comps;
 }
 function aetoolkitCepRenderSelected(jsonText) {
-    var oldQueueStates = [], workAreas = [];
+    var oldQueueStates = [], workAreas = [], newQueueItems = [], renderStarted = false;
     try {
         if (!app.project.file) throw new Error("Save the After Effects project before rendering.");
         var options = AEToolkitJSON.parse(jsonText), mode = options.mode, basePath = String(options.basePath || "");
         if (mode !== "offline" && mode !== "online" && mode !== "styleFrames" && mode !== "checker") throw new Error("Unknown render mode.");
         if (!basePath) throw new Error("The selected project has no output folder for this render mode.");
+        if (!options.outputTemplate) throw new Error("Choose an output preset before rendering.");
         var destination = basePath + "/" + aetoolkitCepRenderDate();
         var subfolder = aetoolkitCepNormalizeSubfolder(options.subfolder);
         if (subfolder) destination += "/" + subfolder;
         aetoolkitCepEnsureFolder(destination);
         var comps = aetoolkitCepSelectedComps(), queue = app.project.renderQueue, i, queueItem, outputModule, frameRate, extension, templateName;
         for (i = 1; i <= queue.numItems; i++) { oldQueueStates.push({ item: queue.item(i), render: queue.item(i).render }); queue.item(i).render = false; }
-        templateName = mode === "offline" ? "X_ProRes 4444 Trillions Alpha" : mode === "online" ? "X_FIN_ProRes 4444 Trill Alpha" : "X_pngRGBA";
-        extension = mode === "offline" || mode === "online" ? ".mov" : ".png";
+        templateName = String(options.outputTemplate);
         for (i = 0; i < comps.length; i++) {
             queueItem = queue.items.add(comps[i]);
+            newQueueItems.push(queueItem);
             outputModule = queueItem.outputModule(1);
             try { outputModule.applyTemplate(templateName); }
             catch (templateError) { throw new Error("The render template '" + templateName + "' is not installed. " + templateError.toString()); }
+            outputModule = queueItem.outputModule(1);
+            extension = aetoolkitCepOutputSuffix(outputModule);
             frameRate = Math.round(comps[i].frameRate * 1000) / 1000;
             outputModule.file = new File(destination + "/" + comps[i].name + "_" + frameRate + "fps_" + comps[i].width + "x" + comps[i].height + extension);
             if (mode === "checker") {
@@ -683,10 +686,12 @@ function aetoolkitCepRenderSelected(jsonText) {
                 comps[i].workAreaDuration = 1 / comps[i].frameRate;
             }
         }
+        renderStarted = true;
         queue.render();
         return "Rendered " + comps.length + " composition" + (comps.length === 1 ? "" : "s") + " to " + destination;
     } catch (error) { return "ERROR: " + error.toString(); }
     finally {
+        if (!renderStarted) for (var addedIndex = newQueueItems.length - 1; addedIndex >= 0; addedIndex--) newQueueItems[addedIndex].remove();
         for (var workIndex = 0; workIndex < workAreas.length; workIndex++) { workAreas[workIndex].comp.workAreaStart = workAreas[workIndex].start; workAreas[workIndex].comp.workAreaDuration = workAreas[workIndex].duration; }
         for (var queueIndex = 0; queueIndex < oldQueueStates.length; queueIndex++) oldQueueStates[queueIndex].item.render = oldQueueStates[queueIndex].render;
     }
@@ -1023,7 +1028,7 @@ function aetoolkitCepReplacePresetGuides(comp, assets, knownAssets) {
 function aetoolkitCepModifySelectedComps(jsonText) {
     try {
         var options = AEToolkitJSON.parse(jsonText), updateSize = !!options.updateSize, updateFps = !!options.updateFps, renameBase = aetoolkitCepSafeName(options.renameBase), settings, comps, i;
-        if (!updateSize && !updateFps && !renameBase) throw new Error("Choose size, FPS, or rename before modifying comps.");
+        if (!updateSize && !updateFps && !renameBase && !options.conformSolids) throw new Error("Choose size, FPS, rename, or conform solids before modifying comps.");
         if (updateSize || updateFps) settings = aetoolkitCepCompDimensions(options);
         comps = aetoolkitCepSelectedComps();
         app.beginUndoGroup("AE Toolkit CEP: Modify compositions");
@@ -1033,6 +1038,7 @@ function aetoolkitCepModifySelectedComps(jsonText) {
                 if (updateSize) { comps[i].width = settings.width; comps[i].height = settings.height; }
                 if (updateSize && options.replaceGuides) aetoolkitCepReplacePresetGuides(comps[i], options.guideAssets || {}, options.knownGuideAssets || []);
                 if (updateFps) comps[i].frameRate = settings.fps;
+                if (options.conformSolids) aetoolkitCepConformCompSolids(comps[i]);
                 if (renameBase) comps[i].name = renameBase + "_" + aetoolkitCepPadNumber(i + 1, 2);
             }
         } finally { app.endUndoGroup(); }
@@ -1078,14 +1084,7 @@ function aetoolkitCepConformSelectedSolids() {
         if (!layers || !layers.length) throw new Error("Select one or more solid layers in the active composition.");
         app.beginUndoGroup("AE Toolkit CEP: Conform solid layers");
         try {
-            for (i = 0; i < layers.length; i++) {
-                layer = layers[i];
-                if (!layer.nullLayer && layer instanceof AVLayer && layer.source && layer.source.mainSource instanceof SolidSource) {
-                    layer.source.width = comp.width;
-                    layer.source.height = comp.height;
-                    conformed++;
-                }
-            }
+            conformed = aetoolkitCepConformCompSolids(comp, layers);
         } finally { app.endUndoGroup(); }
         return AEToolkitJSON.stringify({ conformed: conformed });
     } catch (error) { return "ERROR: " + error.toString(); }
@@ -1761,4 +1760,114 @@ function aetoolkitCepCreateCustomCheckers(jsonText) {
         if (started) for (var n = app.project.numItems; n >= 1; n--) { try { var added = app.project.item(n); if (!before[added.id]) added.remove(); } catch (cleanupError) {} }
         return "ERROR: " + error.toString();
     } finally { if (started) app.endUndoGroup(); if (preparedTemporary && preparedProject) preparedProject.remove(); }
+}
+
+// AOM loading is provided by AE's native Output Module Templates dialog.
+// Only AE's installed template list is authoritative; do not parse binary AOM data.
+function aetoolkitCepChooseAom() {
+    try {
+        var file = File.openDialog("Choose an AOM file to load in Edit > Templates > Output Module", "*.aom", false);
+        if (!file) return "";
+        if (!/\.aom$/i.test(file.name) || !file.exists) throw new Error("Choose an existing .aom file.");
+        return file.fsName;
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepOutputTemplates() {
+    var temporaryComp = null, temporaryItem = null;
+    try {
+        if (!app.project) throw new Error("Open a project first.");
+        var queue = app.project.renderQueue, module, names = [], i;
+        if (queue.rendering) throw new Error("Wait for the current render to finish.");
+        if (queue.numItems) module = queue.item(1).outputModule(1);
+        else {
+            temporaryComp = app.project.items.addComp("Toolbox preset lookup", 4, 4, 1, 1, 24);
+            temporaryItem = queue.items.add(temporaryComp);
+            module = temporaryItem.outputModule(1);
+        }
+        var templates = module.templates;
+        for (i = 0; i < templates.length; i++) if (String(templates[i]).indexOf("_HIDDEN") !== 0) names.push(String(templates[i]));
+        return AEToolkitJSON.stringify(names);
+    } catch (error) { return "ERROR: " + error.toString(); }
+    finally {
+        if (temporaryItem) temporaryItem.remove();
+        if (temporaryComp) temporaryComp.remove();
+    }
+}
+function aetoolkitCepOutputSuffix(module) {
+    // AE chooses the extension and frame-number token when the template is applied.
+    var name = module.file && module.file.name, match = name && /((?:_?\[[#0]+\])?\.[^.]+)$/.exec(name);
+    if (!match) throw new Error("After Effects did not provide an output filename for this preset.");
+    return match[1];
+}
+
+function aetoolkitCepAomNames(data) {
+    function number(offset) {
+        if (offset + 4 > data.length) throw new Error("Truncated AOM file.");
+        return data.charCodeAt(offset) * 16777216 + data.charCodeAt(offset + 1) * 65536 + data.charCodeAt(offset + 2) * 256 + data.charCodeAt(offset + 3);
+    }
+    function decode(value) {
+        var encoded = "", i, hex;
+        for (i = 0; i < value.length; i++) { hex = value.charCodeAt(i).toString(16); encoded += "%" + (hex.length < 2 ? "0" : "") + hex; }
+        return decodeURIComponent(encoded).replace(/\x00+$/, "");
+    }
+    if (data.substr(0, 4) !== "RIFX" || data.substr(8, 4) !== "LPom" || number(4) + 8 !== data.length) throw new Error("Unsupported or damaged AOM file.");
+    var names = [], found = false;
+    function chunks(start, end, records) {
+        var p = start, size, next, tag, utfCount = -1, recordCount = 0;
+        while (p < end) {
+            if (p + 8 > end) throw new Error("Truncated AOM chunk.");
+            tag = data.substr(p, 4); size = number(p + 4); next = p + 8 + size;
+            if (next + size % 2 > end) throw new Error("Invalid AOM chunk size.");
+            if (!records && tag === "LIST" && size >= 4 && data.substr(p + 8, 4) === "LOm ") { found = true; chunks(p + 12, next, true); }
+            if (records && tag === "Roou") { if (recordCount && utfCount !== 3) throw new Error("Unsupported AOM preset layout."); utfCount = 0; recordCount++; }
+            if (records && tag === "Utf8" && utfCount >= 0) {
+                utfCount++;
+                if (utfCount === 2) { var name = decode(data.substr(p + 8, size)); if (name && name.indexOf("_HIDDEN") !== 0) names.push(name); }
+            }
+            p = next + size % 2;
+        }
+        if (records && (!recordCount || utfCount !== 3)) throw new Error("Unsupported AOM preset layout.");
+    }
+    chunks(12, data.length, false);
+    if (!found || !names.length) throw new Error("No readable output presets in this AOM file.");
+    return names;
+}
+function aetoolkitCepReadAom(path) {
+    var file = new File(path), opened = false;
+    try {
+        if (!file.exists || !/\.aom$/i.test(file.name)) throw new Error("Choose an existing .aom file.");
+        if (file.length > 32 * 1024 * 1024) throw new Error("AOM file is too large to inspect.");
+        file.encoding = "BINARY"; opened = file.open("r");
+        if (!opened) throw new Error("Unable to read AOM file.");
+        return AEToolkitJSON.stringify(aetoolkitCepAomNames(file.read()));
+    } catch (error) { return "ERROR: " + error.toString(); }
+    finally { if (opened) file.close(); }
+}
+
+function aetoolkitCepConformCompSolids(comp, selected) {
+    var layers = [], count = 0, i, layer, source, temporary, replacement, locked, anchor, delta, value, k;
+    if (selected) { for (i = 0; i < selected.length; i++) layers.push(selected[i]); }
+    else for (i = 1; i <= comp.numLayers; i++) layers.push(comp.layer(i));
+    for (i = 0; i < layers.length; i++) {
+        layer = layers[i];
+        if (!(layer instanceof AVLayer) || layer.nullLayer || !layer.source || !(layer.source.mainSource instanceof SolidSource)) continue;
+        source = layer.source;
+        if (source.width === comp.width && source.height === comp.height && source.pixelAspect === comp.pixelAspect) continue;
+        // Create a dedicated source: shared solids in other comps must not change.
+        temporary = comp.layers.addSolid(source.mainSource.color, source.name, comp.width, comp.height, comp.pixelAspect, comp.duration);
+        replacement = temporary.source; temporary.remove();
+        locked = layer.locked;
+        try {
+            layer.locked = false;
+            delta = [(comp.width - source.width) / 2, (comp.height - source.height) / 2];
+            layer.replaceSource(replacement, false);
+            count++;
+            anchor = layer.property("ADBE Transform Group").property("ADBE Anchor Point");
+            if (!anchor.expressionEnabled) {
+                if (anchor.numKeys) for (k = 1; k <= anchor.numKeys; k++) { value = anchor.keyValue(k); value[0] += delta[0]; value[1] += delta[1]; anchor.setValueAtKey(k, value); }
+                else { value = anchor.value; value[0] += delta[0]; value[1] += delta[1]; anchor.setValue(value); }
+            }
+        } finally { layer.locked = locked; }
+    }
+    return count;
 }

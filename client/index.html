@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.15">
+  <link rel="stylesheet" href="css/main.css?v=0.1.16">
 </head>
 <body>
   <main class="app-shell">
     <header>
       <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-      <span class="badge">0.1.15 Alpha</span>
+      <span class="badge">0.1.16 Alpha</span>
     </header>
 
     <div class="toolkit-workspace" data-dock="top">
@@ -30,7 +30,7 @@
     <div class="module-scroll">
     <section id="projects" class="view active">
       <details class="card module-panel" data-panel="connect-project" open>
-        <summary>Connect project</summary>
+        <summary>Add new project</summary>
 
         <label>Project name<input id="project-name" placeholder="Campaign 2026"></label>
         <div class="input-action folder-action">
@@ -38,43 +38,36 @@
         <button id="choose-project-root" class="quiet choose-folder">Choose folder</button>
         </div>
         <label>Template<select id="project-template"></select></label>
-        <button id="connect-project" class="primary">Connect project</button>
+        <button id="connect-project" class="primary">Add new project</button>
       </details>
       <details class="card module-panel" data-panel="active-project" open>
-        <summary>Active project</summary>
+        <summary>Select project</summary>
         <div class="module-actions"><button id="remove-project" class="quiet danger">Remove</button></div>
         <select id="active-project"></select>
         <div id="active-project-actions" class="project-actions">
           <button id="open-project-file">Open project file</button>
           <button id="reveal-project-root">Reveal project root</button>
         </div>
-        <div class="project-operation">
-          <h3>Reveal folder</h3>
-          <div id="reveal-actions" class="action-grid"></div>
-        </div>
-        <div class="project-operation">
-          <h3>Import assets</h3>
-          <div id="import-actions" class="action-grid"></div>
-        </div>
+      </details>
+      <details class="card connected-projects module-panel" data-panel="connected-projects">
+        <summary>Current project</summary>
+        <div class="connected-projects-actions"><button id="refresh-projects" class="quiet">Refresh</button></div>
+        <div id="project-list" class="item-list"></div>
       </details>
       <details class="card module-panel" data-panel="render-to-outputs" open>
         <summary>Render to outputs</summary>
 
-        <div class="input-action folder-action">
-        <label>Optional subfolder<input id="render-subfolder" placeholder="Version or delivery folder"></label>
-        <button id="choose-render-subfolder" class="quiet choose-folder">Choose subfolder</button>
-        </div>
+        <label>Output Presets<select id="render-output-preset"><option value="">Refresh presets in Templates</option></select></label>
         <div class="render-grid">
           <button data-render-mode="offline">Offline</button>
           <button data-render-mode="online">Online</button>
           <button data-render-mode="styleFrames">Style frames</button>
           <button data-render-mode="checker">Checker</button>
         </div>
-      </details>
-      <details class="card connected-projects module-panel" data-panel="connected-projects">
-        <summary>Connected projects</summary>
-        <div class="connected-projects-actions"><button id="refresh-projects" class="quiet">Refresh</button></div>
-        <div id="project-list" class="item-list"></div>
+        <div class="input-action folder-action">
+        <label>Optional subfolder<input id="render-subfolder" placeholder="Version or delivery folder"></label>
+        <button id="choose-render-subfolder" class="quiet choose-folder">Choose subfolder</button>
+        </div>
       </details>
     </section>
 
@@ -120,16 +113,17 @@
           <label>FPS<input id="modify-target-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
         </div>
 
-        <div class="toggle-grid compact-toggles">
+        <div class="toggle-grid compact-toggles modify-toggles">
           <label title="Update selected composition sizes"><input id="modify-size" type="checkbox" checked> Size</label>
           <label title="Update selected composition frame rates"><input id="modify-fps" type="checkbox"> FPS</label>
           <label title="Rename selected compositions"><input id="modify-name" type="checkbox"> Rename</label>
+          <label title="Conform solid layers to each modified composition"><input id="modify-solids" type="checkbox"> Conform solids</label>
         </div>
         <label>Name<input id="modify-name-base" placeholder="Campaign_Main"></label>
         <button id="modify-comps" class="primary">Modify composition</button>
       </details>
       <details class="card module-panel" data-panel="rename-selected-project-items" open>
-        <summary>Rename selected project items</summary>
+        <summary>Renamer</summary>
 
         <div class="field-grid rename-fields">
           <label class="rename-operation">Operation<select id="rename-operation">
@@ -143,11 +137,6 @@
           <label id="rename-replace-field">Replace<input id="rename-replace" placeholder="Replace"></label>
         </div>
         <button id="rename-selected" class="primary">Rename selected items</button>
-      </details>
-      <details class="card module-panel" data-panel="conform-selected-solids" open>
-        <summary>Conform selected solids</summary>
-
-        <button id="conform-solids">Conform selected solids to active comp</button>
       </details>
     </section>
 
@@ -171,13 +160,13 @@
         <button id="create-cover" class="primary">Create cover</button>
       </details>
       <details class="card module-panel" data-panel="create-checkers-from-selected-comps" open>
-        <summary>Create checkers from selected comps</summary>
+        <summary>Create Checkers</summary>
 
-        <div class="field-grid">
-          <label>Format<select id="checker-preset"></select></label>
+        <div class="field-grid checker-settings">
+          <label class="checker-format">Format<select id="checker-preset"></select></label>
           <label>Width<input id="checker-width" type="number" min="1" max="30000" value="1920"></label>
           <label>Height<input id="checker-height" type="number" min="1" max="30000" value="1080"></label>
-          <label id="checker-frame-field">Frame to hold<input id="checker-frame" type="number" min="0" max="999999" value="10"></label>
+          <label id="checker-frame-field">Checker frame<input id="checker-frame" type="number" min="0" max="999999" value="10"></label>
         </div>
         <label id="checker-job-field" hidden>Job code<input id="checker-job-code" placeholder="Job code"></label>
         <button id="create-checkers" class="primary">Create checkers</button>
@@ -247,6 +236,7 @@
           <button id="sequence-layers" class="tool-icon" title="Sequence layers" aria-label="Sequence layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h6v4H3zM9 10h6v4H9zM15 15h6v4h-6z"/></svg></button>
           <button id="parent-layers" class="tool-icon" title="Parent to last selected" aria-label="Parent to last selected"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v5H9zM12 8v5M5 13h14M5 13v3m14-3v3M2 16h6v5H2zM16 16h6v5h-6z"/></svg></button>
           <button id="unparent-layers" class="tool-icon" title="Unparent selected" aria-label="Unparent selected"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v5H9zM2 16h6v5H2zM16 16h6v5h-6zM9 11l6 4m0-4-6 4"/></svg></button>
+          <button id="conform-solids" class="tool-icon" title="Conform selected solids to comp" aria-label="Conform selected solids to comp"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 9 5 5m0 4V5h4m6 10 4 4m-4 0h4v-4"/></svg></button>
           <button id="mark-guides" class="tool-icon" title="Mark as guides" aria-label="Mark as guides"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 2v20M2 8h20"/></svg></button>
         </div>
       </details>
@@ -283,31 +273,42 @@
 
     <section id="templates" class="view">
       <details class="card module-panel" data-panel="composition-formats" open>
-        <summary>Composition formats</summary>
+        <summary>Create aspect ratio presets</summary>
         <div class="naming-presets"><select id="saved-comp-preset" aria-label="Composition format"></select><button id="edit-comp-preset">Edit</button><button id="remove-comp-preset">Remove</button></div>
         <div class="project-actions"><button id="new-comp-preset">Create General</button><button id="new-custom-preset">Create Custom</button></div>
         <div class="input-action folder-action"><label>Template library<input id="checker-library-root" readonly placeholder="Local library"></label><button id="choose-checker-library">Choose</button></div>
         <button id="refresh-checker-library">Refresh library</button>
       </details>
-      <details class="card module-panel" data-panel="template-library" open>
-        <summary>Template library</summary>
-        <div class="module-actions"><button id="new-template" class="quiet">New</button></div>
-        <div id="template-list" class="item-list"></div>
-      </details>
       <details class="card module-panel" data-panel="edit-template" open>
-        <summary id="template-form-title">Edit template</summary>
+        <summary id="template-form-title">Create project presets</summary>
+        <button id="new-template" class="primary">New</button>
+        <div id="project-preset-editor" hidden>
+        <label>Saved preset<select id="edit-project-preset"><option value="">New preset</option></select></label>
 
+        <section class="preset-section project-folder-settings" aria-label="Project folders">
         <label>Template name<input id="template-name" placeholder="Default Motion Project"></label>
         <div id="template-folders" class="folder-grid"></div>
         <button id="add-custom-folder" class="quiet add-folder">Add custom location</button>
-        <section class="project-operation">
-          <h3>Comp naming</h3>
+        <h3 class="render-folder-heading">Render subfolders · Graphic Out</h3>
+        <div id="template-render-folders" class="folder-grid"></div>
+        </section>
+        <section class="preset-section" aria-labelledby="comp-naming-title">
+          <h3 id="comp-naming-title">Comp naming</h3>
           <div class="naming-presets"><select id="naming-preset" aria-label="Naming preset"></select><button id="add-naming-preset">Add</button><button id="remove-naming-preset">Remove</button></div>
           <div id="naming-order" class="naming-order" aria-label="Composition name field order"></div>
           <button id="add-naming-field" class="naming-add" type="button">Add to template</button>
           <output id="naming-preview" class="naming-preview" aria-live="polite"></output>
-        </section>
-        <button id="save-template" class="primary">Save template</button>
+    </section>
+        <div class="preset-save"><button id="save-template" class="primary">Save project preset</button><button id="close-project-preset" class="quiet">Close</button></div>
+        </div>
+      </details>
+      <details class="card module-panel" data-panel="aom-presets" open>
+        <summary>Load AOM presets</summary>
+        <div class="input-action folder-action"><label>AOM file<input id="aom-path" readonly placeholder="Choose an AOM file"></label><button id="choose-aom">Choose</button></div>
+        <p class="help">In After Effects, use Edit → Templates → Output Module → Load to load this file. Then refresh the installed presets here.</p>
+        <p id="aom-preset-names" class="help"></p>
+        <button id="refresh-output-presets">Refresh presets</button>
+        <p id="output-presets-status" class="help" aria-live="polite">Presets are read from this installation of After Effects.</p>
       </details>
     </section>
     <p id="status" class="status" aria-live="polite"></p>
@@ -348,9 +349,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.15"></script>
-  <script src="js/template-store.js?v=0.1.15"></script>
-  <script src="js/app.js?v=0.1.15"></script>
-  <script src="js/panel-state.js?v=0.1.15"></script>
+  <script src="js/CSInterface.js?v=0.1.16"></script>
+  <script src="js/template-store.js?v=0.1.16"></script>
+  <script src="js/app.js?v=0.1.16"></script>
+  <script src="js/panel-state.js?v=0.1.16"></script>
 </body>
 </html>

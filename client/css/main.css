@@ -46,6 +46,8 @@ textarea { min-height: 64px; resize: vertical; }
 .add-folder { margin-top: 7px; }
 .resolved-paths { display: grid; gap: 5px; margin-top: 9px; }
 .resolved-path { display: grid; grid-template-columns: 78px 1fr auto; gap: 6px; align-items: center; font-size: 11px; }
+.folder-row-actions { display: flex; gap: 4px; }
+.folder-row-actions button { padding: 5px 8px; }
 .resolved-path span { color: #aabccc; overflow-wrap: anywhere; }
 .project-actions, .action-grid, .render-grid { display: grid; gap: 5px; margin-top: 7px; }
 .project-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -71,7 +73,7 @@ button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tool-icon { display: flex; align-items: center; justify-content: center; height: 30px; }
 .tool-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 #tools .action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-#tools .action-grid.animation-actions { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+#tools .action-grid.animation-actions { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 #tools .action-grid.timing-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 #tools .card > .tool-icon { width: 100%; margin-top: 6px; }
 :root { font-size: calc(9px + .48vw); }
@@ -105,7 +107,6 @@ input[type="checkbox"] { padding: 0; flex-shrink: 0; }
 .rename-fields [hidden] { display: none; }
 
 /* Folder actions retain one row regardless of the template folder count. */
-#reveal-actions, #import-actions { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 
 .naming-preview { display: block; margin-top: 6px; padding: 6px; background: #11171d; color: var(--accent-light); overflow-wrap: anywhere; }
 
@@ -195,3 +196,27 @@ input, select, textarea { font-weight: 400; }
 .toolkit-dialog::backdrop { background: rgba(0,0,0,.65); }
 .toolkit-dialog > button { width: 100%; margin-top: 6px; }
 [hidden] { display: none !important; }
+
+/* Project presets keep labels beside their fields at every panel width. */
+.preset-section { border: 1px solid #647d94; border-radius: 4px; padding: 7px; margin-top: 7px; }
+.project-folder-settings { --folder-label-width: 100px; }
+.project-folder-settings label { display: grid; grid-template-columns: var(--folder-label-width) minmax(0, 1fr); align-items: center; gap: 6px; margin: 0; }
+.project-folder-settings input { margin-top: 0; }
+.project-folder-settings .folder-grid { grid-template-columns: minmax(0, 1fr); gap: 5px; margin-top: 5px; }
+.project-folder-settings .custom-location { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-top: 1px solid #46596c; padding-top: 5px; }
+.project-folder-settings .custom-location label { grid-column: 1; }
+.project-folder-settings .custom-location button { grid-column: 2; grid-row: 1 / 3; }
+.project-folder-settings .add-folder { width: 100%; }
+.preset-save { border-top: 1px solid #647d94; margin-top: 7px; padding-top: 7px; }
+.preset-save .primary { margin-top: 0; }
+@media (max-width: 360px) { .project-folder-settings { --folder-label-width: 100px; } }
+
+.render-folder-heading { margin-top: 9px; padding-top: 7px; border-top: 1px solid #46596c; font-size: 10px; }
+
+.modify-toggles { grid-template-columns: .7fr .7fr 1fr 1.5fr; }
+
+.checker-settings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.checker-settings .checker-format { grid-column: 1 / -1; }
+
+#project-preset-editor[hidden] { display: none; }
+#close-project-preset { width: 100%; margin-top: 5px; }

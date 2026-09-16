@@ -111,3 +111,17 @@ console.log('PASS naming codes stay independent of preset display names');
    state = store.upsertCompPreset(state, store.defaultCompPresets()[0]);
    assert.equal(store.compPresets(state).length, 1);
  });
+
+test('Render destinations migrate defaults and follow template edits on Mac and Windows', () => {
+    for (const root of ['/Volumes/Jobs/Spot', 'D:/Jobs/Spot']) {
+        let state = store.assignProject(store.defaultState(), {name:'Spot',root,templateId:'default-motion'});
+        assert.deepEqual(store.resolveRenderPaths(state,'spot'), {offline:root+'/Outputs/Offline',online:root+'/Outputs/Online',checker:root+'/Outputs/Checkers',styleFrames:root+'/Outputs/Style Frames'});
+        const template = state.templates[0];
+        template.folders.outputs = 'Delivery'; template.renderFolders={offline:'Review/v1',online:'Final',checker:''};
+        state=store.upsertTemplate(state,template);
+        assert.equal(store.resolveRenderPaths(state,'spot').offline,root+'/Delivery/Review/v1');
+        assert.equal(store.resolveRenderPaths(state,'spot').online,root+'/Delivery/Final');
+        assert.equal(store.resolveRenderPaths(state,'spot').checker,root+'/Delivery');
+        template.renderFolders.offline='../outside'; assert.throws(()=>store.upsertTemplate(state,template));
+    }
+});

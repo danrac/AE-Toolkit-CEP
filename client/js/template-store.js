@@ -67,6 +67,17 @@
     function defaultState() {
         return { version: 2, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "After Effects", assets: "Assets", toGfx: "Incoming", outputs: "Outputs", styleFrames: "Outputs/Style Frames" }, customFolders: [] }], compPresets: defaultCompPresets(), projects: [], activeProjectId: "" };
     }
+    function renderFolders(template) {
+        var defaults = { offline: "Offline", online: "Online", checker: "Checkers" }, supplied = template && template.renderFolders || {}, result = {};
+        Object.keys(defaults).forEach(function (key) { result[key] = normalizeRelativePath(Object.prototype.hasOwnProperty.call(supplied, key) ? supplied[key] : defaults[key]); });
+        return result;
+    }
+    function resolveRenderPaths(state, projectId) {
+        var paths = resolveProjectPaths(state, projectId), project = state.projects.filter(function (entry) { return entry.id === projectId; })[0];
+        var template = state.templates.filter(function (entry) { return entry.id === project.templateId; })[0], folders = renderFolders(template), result = { styleFrames: paths.styleFrames };
+        Object.keys(folders).forEach(function (key) { result[key] = paths.outputs ? paths.outputs + (folders[key] ? "/" + folders[key] : "") : ""; });
+        return result;
+    }
     function validateTemplate(template) {
         if (!template || !String(template.name || "").replace(/^\s+|\s+$/g, "")) throw new Error("Template name is required.");
         var folders = {}, key;
@@ -83,7 +94,7 @@
             usedIds[id] = true;
             customFolders.push({ id: id, label: label, path: normalizeRelativePath(entry.path) });
         }
-        return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders, customFolders: customFolders, namingFields: namingFields(template) };
+        return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders, renderFolders: renderFolders(template), customFolders: customFolders, namingFields: namingFields(template) };
     }
     function upsertTemplate(state, template) {
         var next = clone(state), normalized = validateTemplate(template), found = false;
@@ -168,5 +179,5 @@
         next.removedCompPresets = (next.removedCompPresets || []).concat([id]);
         return next;
     }
-    return { removeCompPreset: removeCompPreset, compFormatCode: compFormatCode, previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
+    return { renderFolders: renderFolders, resolveRenderPaths: resolveRenderPaths, removeCompPreset: removeCompPreset, compFormatCode: compFormatCode, previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));
