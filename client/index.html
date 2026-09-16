@@ -66,10 +66,11 @@
           <button data-render-mode="checker">Checker</button>
         </div>
       </article>
-      <article class="card">
-        <div class="card-heading"><h2>Connected projects</h2><button id="refresh-projects" class="quiet">Refresh</button></div>
+      <details class="card connected-projects">
+        <summary>Connected projects</summary>
+        <div class="connected-projects-actions"><button id="refresh-projects" class="quiet">Refresh</button></div>
         <div id="project-list" class="item-list"></div>
-      </article>
+      </details>
     </section>
 
     <section id="sourcing" class="view">

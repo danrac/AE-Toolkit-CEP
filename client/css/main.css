@@ -89,3 +89,7 @@ button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 input[type="checkbox"] { padding: 0; flex-shrink: 0; }
 
 .input-action.folder-action { grid-template-columns: minmax(0, 1fr) auto; }
+
+.connected-projects > summary { cursor: pointer; padding: 6px 3px; font-size: 12px; font-weight: 650; }
+.connected-projects > summary:focus-visible { outline: 2px solid #a7c9ee; outline-offset: 1px; }
+.connected-projects-actions { display: flex; justify-content: flex-end; margin-top: 4px; }
