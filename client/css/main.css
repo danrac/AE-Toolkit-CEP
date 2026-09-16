@@ -28,7 +28,7 @@ textarea { min-height: 64px; resize: vertical; }
 .quiet { padding: 4px 7px; font-size: 11px; }
 .danger { border-color: #754653; color: #ffb5bd; }
 .danger:hover { background: #4b2932; }
-.choose-folder { margin-top: 6px; }
+.folder-action .choose-folder { margin: 0; height: 28px; }
 .help, .status { color: #9fb1c3; font-size: 11px; margin-top: 7px; }
 .folder-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
@@ -87,3 +87,5 @@ button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .input-action { display: grid; grid-template-columns: minmax(0, 1fr) 32px; gap: 5px; align-items: end; }
 .input-action .tool-icon { height: 28px; }
 input[type="checkbox"] { padding: 0; flex-shrink: 0; }
+
+.input-action.folder-action { grid-template-columns: minmax(0, 1fr) auto; }

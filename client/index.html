@@ -30,8 +30,10 @@
       <article class="card">
         <h2>Connect project</h2>
         <label>Project name<input id="project-name" placeholder="Campaign 2026"></label>
+        <div class="input-action folder-action">
         <label>Project root<input id="project-root" placeholder="Choose or paste an absolute project folder path"></label>
         <button id="choose-project-root" class="quiet choose-folder">Choose folder</button>
+        </div>
         <label>Template<select id="project-template"></select></label>
         <button id="connect-project" class="primary">Connect project</button>
       </article>
@@ -53,8 +55,10 @@
       </article>
       <article class="card">
         <h2>Render to outputs</h2>
+        <div class="input-action folder-action">
         <label>Optional subfolder<input id="render-subfolder" placeholder="Version or delivery folder"></label>
         <button id="choose-render-subfolder" class="quiet choose-folder">Choose subfolder</button>
+        </div>
         <div class="render-grid">
           <button data-render-mode="offline">Offline</button>
           <button data-render-mode="online">Online</button>
@@ -259,15 +263,11 @@
           <label>Name<input id="saved-comp-preset-name" placeholder="16 × 9"></label>
           <label>Width<input id="saved-comp-preset-width" type="number" min="1" max="30000"></label>
           <label>Height<input id="saved-comp-preset-height" type="number" min="1" max="30000"></label>
-          <label>Matte guide<input id="saved-comp-preset-matte" readonly placeholder="Optional"></label>
-          <label>Chart guide 1<input id="saved-comp-preset-chart-one" readonly placeholder="Optional"></label>
-          <label>Chart guide 2<input id="saved-comp-preset-chart-two" readonly placeholder="Optional"></label>
+          <div class="input-action"><label>Matte guide<input id="saved-comp-preset-matte" readonly placeholder="Optional"></label><button class="tool-icon" data-guide-asset="matte" title="Choose matte guide" aria-label="Choose matte guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2-2h9v16H3z"/></svg></button></div>
+          <div class="input-action"><label>Chart guide 1<input id="saved-comp-preset-chart-one" readonly placeholder="Optional"></label><button class="tool-icon" data-guide-asset="chartOne" title="Choose chart guide 1" aria-label="Choose chart guide 1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2-2h9v16H3z"/></svg></button></div>
+          <div class="input-action"><label>Chart guide 2<input id="saved-comp-preset-chart-two" readonly placeholder="Optional"></label><button class="tool-icon" data-guide-asset="chartTwo" title="Choose chart guide 2" aria-label="Choose chart guide 2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2-2h9v16H3z"/></svg></button></div>
         </div>
-        <div class="action-grid maintenance-grid">
-          <button data-guide-asset="matte">Choose matte</button>
-          <button data-guide-asset="chartOne">Choose chart 1</button>
-          <button data-guide-asset="chartTwo">Choose chart 2</button>
-        </div>
+
         <button id="save-comp-preset" class="primary">Save format</button>
       </article>
       <article class="card">
