@@ -43,11 +43,11 @@ const renderQueue = {
 const renderContext = { JSON: undefined, Date: FixedDate, Folder: FakeFolder, File: FakeFile, CompItem: FakeCompItem, app: { project: { file: { fsName: '/Job/test.aep' }, selection: [new FakeCompItem('Title')], renderQueue } } };
 vm.createContext(renderContext);
 vm.runInContext(source, renderContext);
-const result = renderContext.aetoolkitCepRenderSelected(JSON.stringify({ mode: 'offline', outputTemplate: 'Studio EXR', basePath: '/Job/Output', subfolder: 'Delivery\\v01' }));
+const result = renderContext.aetoolkitCepRenderSelected(JSON.stringify({ outputTemplate: 'Studio EXR', basePath: '/Job/Output', subfolder: 'Delivery\\v01' }));
 assert.ok(/^Rendered 1 composition/.test(result));
 assert.equal(renderQueue.didRender, true);
 assert.equal(existingQueueItem.render, true);
-assert.equal(folders['/Job/Output/26_0915/Delivery/v01'], true);
+assert.equal(folders['/Job/Output/Delivery/v01/26_0915'], true);
 assert.equal(renderQueue._items[1].outputModule(1).template, 'Studio EXR');
 assert.ok(renderQueue._items[1].outputModule(1).file.fsName.endsWith('_[#####].exr'));
 assert.equal(renderQueue._items[1].outputModule(1).outputSettings['Output File Info']['Subfolder Path'], '');
@@ -82,10 +82,10 @@ for (const [template, extension, token] of [
     const output = renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'offline',outputTemplate:'User-defined preset',basePath:'/Job/Output',subfolder:'26_0916\\'}));
     assert.match(output,/^Rendered 1/);
     assert.equal(applied,'User-defined preset');
-    assert.equal(outputSettings['Output File Info']['Base Path'],'/Job/Output/26_0915/26_0916');
+    assert.equal(outputSettings['Output File Info']['Base Path'],'/Job/Output/26_0916/26_0915');
     assert.equal(outputSettings['Output File Info']['Subfolder Path'],'');
     assert.equal(outputSettings['Output File Info']['File Template'],'Title_24fps_1920x1080'+token+'.[fileextension]');
-    assert.equal(resolved.file.fsName,'/Job/Output/26_0915/26_0916/Title_24fps_1920x1080'+token+'.'+extension);
+    assert.equal(resolved.file.fsName,'/Job/Output/26_0916/26_0915/Title_24fps_1920x1080'+token+'.'+extension);
     assert.ok(calls>=3,'Reacquires invalidated output module');
     assert.equal(existingQueueItem.render,true);
 }
@@ -106,7 +106,7 @@ console.log('PASS empty output-file resolution, sequence tokens, refreshed modul
 const namingComp = renderContext.app.project.selection[0];
 const savedNaming = {name:namingComp.name, frameRate:namingComp.frameRate};
 namingComp.name = 'ABA_9x16_A_new_v01_dr';
-for (const mode of ['offline','online','styleFrames','checker']) {
+for (const mode of [undefined]) {
     for (const fps of [23.976,24,29.97,59.94]) {
         namingComp.frameRate = fps;
         renderQueue.items.add = function(comp) {
@@ -122,7 +122,7 @@ for (const mode of ['offline','online','styleFrames','checker']) {
 }
 Object.assign(namingComp,savedNaming);
 renderQueue.items.add = originalAdd;
-console.log('PASS studio naming format in all four render modes, including underscore-separated fractional FPS');
+console.log('PASS studio naming format for selected comps, including underscore-separated fractional FPS');
 
 
 let removedComp = false, removedItem = false;

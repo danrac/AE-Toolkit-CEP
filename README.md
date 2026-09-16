@@ -39,7 +39,7 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Add new project lives in Templates. Create project presets starts with **New**; the editor opens only when needed.
 - Shared resources covers projects, project presets, naming presets, aspect ratio presets, and custom checker packages.
 - Output presets are read from AE and optionally filtered by an AOM file. No fixed ProRes/PNG preset names are required.
-- Offline, Online, and Checkers have editable subfolders under Graphic Out; Style frames has its own mapping.
+- On main: one Render selected comps button writes to Outputs / optional subfolder / YY_MMDD; the former render-mode buttons and preset render-subfolder fields are removed (not yet packaged).
 - Modify composition has its own format selector, guide replacement, and Conform solids option.
 - Custom checkers capture native templates with their media; the graphic placeholder and Job text are replaced when generating checkers.
 - Version 0.1.20 fixes the Node-enabled CEP startup regression and reads supported working spaces from unopened AEP/AEPX files.

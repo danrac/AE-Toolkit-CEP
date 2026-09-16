@@ -126,14 +126,6 @@
         renderNamingOrder();
         var grid = byId("template-folders"); grid.innerHTML = "";
         store.FOLDER_KEYS.forEach(function (key) { var label = document.createElement("label"); label.textContent = folderLabels[key]; if (key === "styleFrames") label.className = "full-row"; var input = document.createElement("input"); input.dataset.key = key; input.value = template.folders[key] || ""; input.placeholder = "Relative folder"; input.oninput = function () { templateDraft.folders[key] = input.value; }; label.appendChild(input); grid.appendChild(label); });
-        var renderGrid = byId("template-render-folders"); clearChildren(renderGrid);
-        ["offline", "online", "checker"].forEach(function (key) {
-            var label = document.createElement("label"), input = document.createElement("input");
-            label.textContent = key === "checker" ? "Checkers" : key === "offline" ? "Offline" : "Online";
-            input.value = templateDraft.renderFolders[key]; input.placeholder = "Graphic Out root";
-            input.oninput = function () { templateDraft.renderFolders[key] = input.value; };
-            label.appendChild(input); renderGrid.appendChild(label);
-        });
         template.customFolders.forEach(function (entry, index) { var row = document.createElement("div"), labelField = document.createElement("label"), pathField = document.createElement("label"), labelInput = document.createElement("input"), pathInput = document.createElement("input"), remove = document.createElement("button"); row.className = "custom-location"; labelField.textContent = "Custom name"; labelInput.value = entry.label; labelInput.oninput = function () { templateDraft.customFolders[index].label = labelInput.value; }; labelField.appendChild(labelInput); pathField.textContent = "Relative folder"; pathInput.value = entry.path; pathInput.oninput = function () { templateDraft.customFolders[index].path = pathInput.value; }; pathField.appendChild(pathInput); remove.textContent = "Remove"; remove.onclick = function () { templateDraft.customFolders.splice(index, 1); renderTemplateForm(); }; row.appendChild(labelField); row.appendChild(pathField); row.appendChild(remove); grid.appendChild(row); });
     }
     function renderProjects() {
@@ -215,7 +207,7 @@
         select.disabled = !project;
         for (var i = 0; i < ids.length; i++) byId(ids[i]).disabled = !project;
         byId("render-subfolder").disabled = !project;
-        document.querySelectorAll("[data-render-mode]").forEach(function (button) { button.disabled = !project; });
+        byId("render-selected-comps").disabled = !project;
 
     }
     function load() { libraryReady = false; callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); libraryReady = true; if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets().length ? compPresets()[0].id : ""; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Ready."); refreshCheckerLibrary(); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Library could not be loaded. Saving is disabled: " + error.message, true); } }); }
@@ -335,7 +327,12 @@
     byId("open-project-file").onclick = function () { var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id); if (paths) callHost("aetoolkitCepOpenProjectFromFolder", paths.afterEffects, function (result) { showHostResult(result); }); };
     byId("reveal-project-root").onclick = function () { var project = activeProject(); if (project) callHost("aetoolkitCepRevealFolder", project.root, function (result) { showHostResult(result, "Opened " + project.root); }); };
     byId("choose-render-subfolder").onclick = function () { callHost("aetoolkitCepChooseRenderSubfolder", "", function (result) { if (result && result.indexOf("ERROR:") === 0) status(result, true); else if (result) byId("render-subfolder").value = result; }); };
-    document.querySelectorAll("[data-render-mode]").forEach(function (button) { button.onclick = function () { var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id), mode = button.dataset.renderMode; if (!paths) return; var basePath = store.resolveRenderPaths(state, project.id)[mode]; if (!byId("render-output-preset").value) { status("Choose an output preset. Refresh presets in Templates if needed.", true); return; } callHost("aetoolkitCepRenderSelected", JSON.stringify({ mode: mode, outputTemplate: byId("render-output-preset").value, basePath: basePath, subfolder: byId("render-subfolder").value }), function (result) { showHostResult(result); }); }; });
+    byId("render-selected-comps").onclick = function () {
+        var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id);
+        if (!paths) return;
+        if (!byId("render-output-preset").value) { status("Choose an output preset. Refresh presets in Templates if needed.", true); return; }
+        callHost("aetoolkitCepRenderSelected", JSON.stringify({ outputTemplate: byId("render-output-preset").value, basePath: paths.outputs, subfolder: byId("render-subfolder").value }), function (result) { showHostResult(result); });
+    };
     var aomPresetNames = null;
     function inspectAom(path) {
         callHost("aetoolkitCepReadAom", path, function (result) {

@@ -676,16 +676,16 @@ function aetoolkitCepSelectedComps() {
     return comps;
 }
 function aetoolkitCepRenderSelected(jsonText) {
-    var oldQueueStates = [], workAreas = [], newQueueItems = [], renderStarted = false;
+    var oldQueueStates = [], newQueueItems = [], renderStarted = false;
     try {
         if (!app.project.file) throw new Error("Save the After Effects project before rendering.");
-        var options = AEToolkitJSON.parse(jsonText), mode = options.mode, basePath = String(options.basePath || "");
-        if (mode !== "offline" && mode !== "online" && mode !== "styleFrames" && mode !== "checker") throw new Error("Unknown render mode.");
-        if (!basePath) throw new Error("The selected project has no output folder for this render mode.");
+        var options = AEToolkitJSON.parse(jsonText), basePath = String(options.basePath || "");
+        if (!basePath) throw new Error("The selected project has no output folder.");
         if (!options.outputTemplate) throw new Error("Choose an output preset before rendering.");
-        var destination = basePath + "/" + aetoolkitCepRenderDate();
+        var destination = basePath;
         var subfolder = aetoolkitCepNormalizeSubfolder(options.subfolder);
         if (subfolder) destination += "/" + subfolder;
+        destination += "/" + aetoolkitCepRenderDate();
         aetoolkitCepEnsureFolder(destination);
         var comps = aetoolkitCepSelectedComps(), queue = app.project.renderQueue, i, queueItem, outputModule, frameRate, templateName;
         for (i = 1; i <= queue.numItems; i++) { oldQueueStates.push({ item: queue.item(i), render: queue.item(i).render }); queue.item(i).render = false; }
@@ -700,11 +700,7 @@ function aetoolkitCepRenderSelected(jsonText) {
             // Studio naming: [compName]_[frameRate]fps_[width]x[height].[fileExtension]
             frameRate = String(Math.round(comps[i].frameRate * 1000) / 1000).replace(".", "_");
             aetoolkitCepAssignOutputFile(queueItem, destination, comps[i].name + "_" + frameRate + "fps_" + comps[i].width + "x" + comps[i].height);
-            if (mode === "checker") {
-                workAreas.push({ comp: comps[i], start: comps[i].workAreaStart, duration: comps[i].workAreaDuration });
-                comps[i].workAreaStart = comps[i].time;
-                comps[i].workAreaDuration = 1 / comps[i].frameRate;
-            }
+
         }
         renderStarted = true;
         queue.render();
@@ -712,7 +708,6 @@ function aetoolkitCepRenderSelected(jsonText) {
     } catch (error) { return "ERROR: " + error.toString(); }
     finally {
         if (!renderStarted) for (var addedIndex = newQueueItems.length - 1; addedIndex >= 0; addedIndex--) newQueueItems[addedIndex].remove();
-        for (var workIndex = 0; workIndex < workAreas.length; workIndex++) { workAreas[workIndex].comp.workAreaStart = workAreas[workIndex].start; workAreas[workIndex].comp.workAreaDuration = workAreas[workIndex].duration; }
         for (var queueIndex = 0; queueIndex < oldQueueStates.length; queueIndex++) oldQueueStates[queueIndex].item.render = oldQueueStates[queueIndex].render;
     }
 }

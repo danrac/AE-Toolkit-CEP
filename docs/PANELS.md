@@ -22,18 +22,16 @@ The button beneath the project selector shows its assigned template. Click it to
 
 ### Render to outputs
 
-Choose **Output Presets** first. Select comps in AE and use **Offline**, **Online**, **Style frames**, or **Checker**. The optional subfolder controls are below the render buttons.
+Choose **Output Presets**, enter or choose an Optional subfolder if needed, then click **Render selected comps** below that row. Select the comps in AE before rendering.
 
-| Button | Destination before date/optional subfolder |
-| --- | --- |
-| Offline | Graphic Out + preset's Offline subfolder |
-| Online | Graphic Out + preset's Online subfolder |
-| Style frames | Preset's Style Frames folder |
-| Checker | Graphic Out + preset's Checkers subfolder |
+The destination uses the current project's Graphic Out / Outputs mapping:
 
-Offline, Online, and Checkers default to separate subfolders with those names. Edit them in Create project presets; a blank subfolder means Graphic Out itself. Rendering adds a `YY_MMDD` folder and then the optional subfolder. For example: `Outputs/Offline/26_0916/review`.
+- Without an optional subfolder: `Outputs/26_0916`.
+- With `review/v01`: `Outputs/review/v01/26_0916`.
 
-Output filenames follow this studio format in all four render modes:
+The date folder uses `YY_MMDD` and comes last. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. The earlier screenshots show the released 0.1.21 layout; this simplified workflow is currently on main and is not packaged yet.
+
+Output filenames follow this studio format:
 
 ```text
 [compName]_[frameRate]fps_[width]x[height].[fileExtension]
@@ -103,7 +101,7 @@ Choose a format, dimensions, duration, and FPS. Fill Top line, Bottom line, Date
 
 Select graphic comps in AE and choose a format. General checkers use the Width, Height, and **Checker frame** controls; the chosen frame is held. Custom presets instead import their saved template and preserve its timing. Custom presets require a Job code and do not use the General checker held-frame setting.
 
-Each selected graphic creates its own checker. Render the generated comps using **Projects → Render to outputs → Checker**.
+Each selected graphic creates its own checker. Render the generated comps using **Projects → Render to outputs → Render selected comps**.
 
 ### Custom checker template preparation
 
@@ -208,9 +206,9 @@ Bundled formats: 16:9 HD, UHD 3840, 9:16 Social, 9:16 TikTok safe, 4:5 Social, 4
 
 Initially this module shows **New**. Click it to open the editor; choose a Saved preset to edit an existing one. **Close** hides the editor. There is no separate Project templates panel.
 
-![Expanded project folders and render destination editor](images/project-preset-editor.png)
+![Earlier project folder editor; legacy render-subfolder fields are now removed](images/project-preset-editor.png)
 
-Enter a template name and relative folder paths for AE Projects, Assets, Graphic In, Graphic Out, and Style Frames. Add custom locations when needed. Set Offline, Online, and Checkers render subfolders relative to Graphic Out. The project root is chosen when adding a project, not stored in these relative folder fields.
+Enter a template name and relative folder paths for AE Projects, Assets, Graphic In, Graphic Out, and Style Frames. Add custom locations when needed. The project root is chosen when adding a project, not stored in these relative folder fields.
 
 The bordered **Comp naming** section contains a stacked module list. Drag to reorder, or focus a row and use Alt+Up/Down. Edit opens preferences with Save/Cancel; Remove deletes a module. **Add to template** opens a new module dialog.
 

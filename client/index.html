@@ -48,16 +48,11 @@
         <summary>Render to outputs</summary>
 
         <label>Output Presets<select id="render-output-preset"><option value="">Refresh presets in Templates</option></select></label>
-        <div class="render-grid">
-          <button data-render-mode="offline">Offline</button>
-          <button data-render-mode="online">Online</button>
-          <button data-render-mode="styleFrames">Style frames</button>
-          <button data-render-mode="checker">Checker</button>
-        </div>
         <div class="input-action folder-action">
         <label>Optional subfolder<input id="render-subfolder" placeholder="Version or delivery folder"></label>
         <button id="choose-render-subfolder" class="quiet choose-folder">Choose subfolder</button>
         </div>
+        <button id="render-selected-comps" class="primary">Render selected comps</button>
       </details>
     </section>
 
@@ -279,8 +274,6 @@
         <label>Template name<input id="template-name" placeholder="Default Motion Project"></label>
         <div id="template-folders" class="folder-grid"></div>
         <button id="add-custom-folder" class="quiet add-folder">Add custom location</button>
-        <h3 class="render-folder-heading">Render subfolders · Graphic Out</h3>
-        <div id="template-render-folders" class="folder-grid"></div>
         </section>
         <section class="preset-section" aria-labelledby="comp-naming-title">
           <h3 id="comp-naming-title">Comp naming</h3>
