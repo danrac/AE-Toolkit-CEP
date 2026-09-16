@@ -4,7 +4,7 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 
 ## Compact panel
 
-The seven sections use an icon toolbar at the top. Hover an icon for its name; the heading identifies the active section. Tool actions also use labeled icons, with smaller controls and consistent card spacing. Rows keep their column count as the panel narrows, while field widths, spacing, and type shrink to fit. The panel scrolls vertically.
+The seven sections use an icon toolbar that docks to any edge. Drag its dotted handle toward the top, bottom, left, or right and release on the highlighted edge. With the handle focused, arrow keys choose an edge; Escape cancels a drag. Hover an icon for its name; the heading identifies the active section. Tool actions also use labeled icons, with smaller controls and consistent card spacing. Rows keep their column count as the panel narrows, while field widths, spacing, and type shrink to fit. The panel scrolls vertically.
 
 ## Current foundation
 
@@ -52,7 +52,7 @@ Manage formats from **Templates → Composition formats**. A format validates it
 
 ## Development
 
-Run `npm test` to validate the template data model. Run `npm run package:stage` to validate the installable extension layout. Load the extension as an unsigned CEP extension during development, then open **Window → Extensions → AE Toolkit CEP** in After Effects.
+Run `npm test` to validate the template data model. Run `npm run package:stage` to validate the installable extension layout. Load the extension as an unsigned CEP extension during development, then open **Window → Extensions → Toolbox 2** in After Effects.
 
 ## Signed ZXP releases
 
@@ -97,7 +97,7 @@ Under Templates → Edit template → Comp naming, add, remove, rename, and reor
 
 ## Panel layout and naming presets
 
-Click any main module header to collapse or expand it. Each user’s module states and selected tab are saved in the CEP browser’s local storage, separately from project/template data, and restored when the panel reopens.
+Click any main module header to collapse or expand it. Each user’s toolbar position, module states, and selected tab are saved in the CEP browser’s local storage, separately from project/template data, and restored when the panel reopens.
 
 Comp Naming now uses a stacked module list. Edit opens preferences with Save/Cancel; drag modules to reorder them (or focus a row and use Alt+Up/Down). Add to Template opens a new module dialog. The naming-preset row provides Default and saved presets; Add saves the current module list under a new name, and Remove deletes a saved preset without changing existing template fields. Save Template applies the list to the project template. Blank text modules appear as placeholders in the template preview.
 

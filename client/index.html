@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.13">
+  <link rel="stylesheet" href="css/main.css?v=0.1.13-dock">
 </head>
 <body>
   <main class="app-shell">
@@ -16,7 +16,9 @@
       <span class="badge">0.1.12 Alpha</span>
     </header>
 
-    <nav class="tabs" aria-label="Project navigator views">
+    <div class="toolkit-workspace" data-dock="top">
+    <nav class="tabs" aria-label="Toolkit sections">
+      <button id="toolbar-grip" class="toolbar-grip" title="Drag to dock toolbar. Arrow keys choose an edge." aria-label="Move toolbar: drag or use arrow keys">⠿</button>
       <button class="tab active" data-view="projects" title="Projects" aria-label="Projects" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 7h7l2-3h9v16H3z"/></svg></button>
       <button class="tab" data-view="sourcing" title="Sourcing" aria-label="Sourcing" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></button>
       <button class="tab" data-view="create-modify" title="Create / Modify" aria-label="Create / Modify" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 16 12-12 4 4L8 20H4zM13 7l4 4"/></svg></button>
@@ -26,6 +28,7 @@
       <button class="tab" data-view="templates" title="Templates" aria-label="Templates" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></svg></button>
     </nav>
 
+    <div class="module-content">
     <section id="projects" class="view active">
       <details class="card module-panel" data-panel="connect-project" open>
         <summary>Connect project</summary>
@@ -311,6 +314,8 @@
       </details>
     </section>
     <p id="status" class="status" aria-live="polite"></p>
+    </div>
+    </div>
   </main>
   <dialog id="naming-dialog" aria-labelledby="naming-dialog-title">
     <form id="naming-dialog-form">
@@ -320,9 +325,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.13"></script>
-  <script src="js/template-store.js?v=0.1.13"></script>
-  <script src="js/app.js?v=0.1.13"></script>
-  <script src="js/panel-state.js?v=0.1.13"></script>
+  <script src="js/CSInterface.js?v=0.1.13-dock"></script>
+  <script src="js/template-store.js?v=0.1.13-dock"></script>
+  <script src="js/app.js?v=0.1.13-dock"></script>
+  <script src="js/panel-state.js?v=0.1.13-dock"></script>
 </body>
 </html>
