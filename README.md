@@ -88,3 +88,5 @@ The host bundles public-domain JSON-js (json2.js, 2023-05-10) in a private `AETo
 Asset import accepts absolute Mac paths, Windows drive and UNC paths, and Terminal-escaped spaces in Mac paths. Existing literal paths are tried first. The AE smoke check tests absolute-path detection directly, since a compound logical expression behaved differently in AE than in Node.
 
 Project Reveal Folder and Import Assets buttons use the final folder name from the assigned template, including custom location labels. Saving a template refreshes those buttons and the connected-project paths immediately.
+
+Standalone module action buttons fill their row by default. Buttons grouped in toolbars, headers, or beside inputs retain their compact layout.
