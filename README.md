@@ -86,3 +86,5 @@ Known non-path dependency: the render modes still require the named `X_...` outp
 The host bundles public-domain JSON-js (json2.js, 2023-05-10) in a private `AEToolkitJSON` namespace. It requires no native JSON object, other installed panels, or runtime download. Host action tests explicitly disable global JSON. Before release, stage the package and run `tests/after-effects-load-check.jsx` in After Effects; inspect `dist/ae-toolkit-cep-host-check.txt` for the result. The check loads the host and exercises path serialization, default-state parsing, and a host response without changing the open project.
 
 Asset import accepts absolute Mac paths, Windows drive and UNC paths, and Terminal-escaped spaces in Mac paths. Existing literal paths are tried first. The AE smoke check tests absolute-path detection directly, since a compound logical expression behaved differently in AE than in Node.
+
+Project Reveal Folder and Import Assets buttons use the final folder name from the assigned template, including custom location labels. Saving a template refreshes those buttons and the connected-project paths immediately.
