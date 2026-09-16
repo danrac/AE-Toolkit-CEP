@@ -91,12 +91,12 @@
     <section id="create-modify" class="view">
       <article class="card">
         <h2>Create composition</h2>
-        <div class="field-grid">
-          <label>Format<select id="comp-preset"></select></label>
+        <div class="field-grid comp-settings">
+          <label class="comp-format">Format<select id="comp-preset"></select></label>
           <label>Width<input id="comp-width" type="number" min="1" max="30000" value="1920"></label>
           <label>Height<input id="comp-height" type="number" min="1" max="30000" value="1080"></label>
           <label>FPS<input id="comp-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
-          <label>Duration (seconds)<input id="comp-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
+          <label title="Duration in seconds">Dur. (s)<input aria-label="Duration in seconds" id="comp-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
         </div>
         <div class="field-grid">
           <label>Job<input id="comp-job" placeholder="Job"></label>
