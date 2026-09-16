@@ -1,8 +1,8 @@
 # Toolbox 2 panel guide
 
-For **0.1.20 Alpha 1**. [Home and installation](../README.md)
+For **0.1.21 Alpha 1**. [Home and installation](../README.md)
 
-Screenshots show the actual browser preview with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
+Screenshots show the 0.1.20 browser preview (layout unchanged in 0.1.21) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
 ## Navigation and saved layout
 
