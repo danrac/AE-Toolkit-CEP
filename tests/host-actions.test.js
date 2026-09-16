@@ -95,7 +95,7 @@ const editContext = {
 vm.createContext(editContext);
 vm.runInContext(source, editContext);
 const created = JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify({ width: 1920, height: 1080, fps: 23.976, duration: 10, format: 'HD', job: 'Job', style: 'Main', description: 'Title', initials: 'AB' })));
-assert.equal(created.name, 'Job_HD_Main_Title_AB_01');
+assert.equal(created.name, 'Job_HD_Main_Title_01_AB');
 assert.equal(createdComps[0].frameRate, 23.976);
 const modified = JSON.parse(editContext.aetoolkitCepModifySelectedComps(JSON.stringify({ width: 3840, height: 2160, fps: 25, duration: 10, updateSize: true, updateFps: true, renameBase: 'New Main' })));
 assert.equal(modified.modified, 1);

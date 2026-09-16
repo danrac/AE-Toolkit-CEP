@@ -874,13 +874,15 @@ function aetoolkitCepSafeName(value) {
     return String(value || "").replace(/^\s+|\s+$/g, "").replace(/[\\\/:*?"<>|\r\n]+/g, "").replace(/\s+/g, " ");
 }
 function aetoolkitCepBuildCompName(options, index) {
-    var parts = [], fields = [options.job, options.format, options.style, options.description, options.initials], i;
+    var parts = [], fields = [options.job, options.format, options.style, options.description], i;
     for (i = 0; i < fields.length; i++) {
         var part = aetoolkitCepSafeName(fields[i]);
         if (part) parts.push(part.replace(/\s+/g, "_"));
     }
     if (!parts.length) parts.push("Comp");
     parts.push(aetoolkitCepPadNumber(index || 1, 2));
+    var initials = aetoolkitCepSafeName(options.initials);
+    if (initials) parts.push(initials.replace(/\s+/g, "_"));
     return parts.join("_");
 }
 function aetoolkitCepCompDimensions(options) {

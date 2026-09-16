@@ -26,6 +26,8 @@ The seven sections use an icon toolbar at the top. Hover an icon for its name; t
 
 ## Create / Modify
 
+New composition names use `Job_Format_Style_Description_01_Initials`, with initials last. Empty fields are omitted.
+
 The Create / Modify panel rebuilds the core composition tools without the legacy temporary-null resize workflow. Creating a comp validates its dimensions, frame rate, and duration before creating it. Editing selected comps writes only their width, height, frame rate, or requested name, preserving existing layers, parent relationships, and transforms.
 
 Project-item rename actions treat the search text literally, so names containing characters such as `[` and `.` are handled predictably. The solid conform action only changes selected `SolidSource` layers in the active composition.
