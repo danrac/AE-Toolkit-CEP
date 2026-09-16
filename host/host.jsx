@@ -687,7 +687,7 @@ function aetoolkitCepRenderSelected(jsonText) {
         var subfolder = aetoolkitCepNormalizeSubfolder(options.subfolder);
         if (subfolder) destination += "/" + subfolder;
         aetoolkitCepEnsureFolder(destination);
-        var comps = aetoolkitCepSelectedComps(), queue = app.project.renderQueue, i, queueItem, outputModule, frameRate, extension, templateName;
+        var comps = aetoolkitCepSelectedComps(), queue = app.project.renderQueue, i, queueItem, outputModule, frameRate, templateName;
         for (i = 1; i <= queue.numItems; i++) { oldQueueStates.push({ item: queue.item(i), render: queue.item(i).render }); queue.item(i).render = false; }
         templateName = String(options.outputTemplate);
         for (i = 0; i < comps.length; i++) {
@@ -697,9 +697,8 @@ function aetoolkitCepRenderSelected(jsonText) {
             try { outputModule.applyTemplate(templateName); }
             catch (templateError) { throw new Error("The render template '" + templateName + "' is not installed. " + templateError.toString()); }
             outputModule = queueItem.outputModule(1);
-            extension = aetoolkitCepOutputSuffix(outputModule);
             frameRate = Math.round(comps[i].frameRate * 1000) / 1000;
-            outputModule.file = new File(destination + "/" + comps[i].name + "_" + frameRate + "fps_" + comps[i].width + "x" + comps[i].height + extension);
+            aetoolkitCepAssignOutputFile(queueItem, destination, comps[i].name + "_" + frameRate + "fps_" + comps[i].width + "x" + comps[i].height);
             if (mode === "checker") {
                 workAreas.push({ comp: comps[i], start: comps[i].workAreaStart, duration: comps[i].workAreaDuration });
                 comps[i].workAreaStart = comps[i].time;
@@ -1818,10 +1817,40 @@ function aetoolkitCepOutputTemplates() {
     }
 }
 function aetoolkitCepOutputSuffix(module) {
-    // AE chooses the extension and frame-number token when the template is applied.
-    var name = module.file && module.file.name, match = name && /((?:_?\[[#0]+\])?\.[^.]+)$/.exec(name);
+    // A newly queued module can have no File until a destination is assigned.
+    var name = module.file && module.file.name, settings, info, match;
+    if (!name && module.getSettings) {
+        settings = module.getSettings(GetSettingsFormat.STRING);
+        info = settings["Output File Info"] || {};
+        name = info["File Name"];
+    }
+    if (name) { try { name = decodeURI(String(name)); } catch (decodeError) {} }
+    match = name && /((?:_?\[[#0]+\])?\.[A-Za-z0-9]+)$/.exec(name);
     if (!match) throw new Error("After Effects did not provide an output filename for this preset.");
     return match[1];
+}
+function aetoolkitCepAssignOutputFile(queueItem, destination, basename) {
+    var module = queueItem.outputModule(1), suffix, settings, info, frameToken, template;
+    try { suffix = aetoolkitCepOutputSuffix(module); } catch (suffixError) { suffix = ""; }
+    if (suffix) {
+        module.file = new File(destination + "/" + basename + suffix);
+        return;
+    }
+    // Let AE resolve its format-specific extension instead of guessing from a
+    // user-editable preset name. Preserve the preset's sequence frame token.
+    settings = module.getSettings(GetSettingsFormat.STRING);
+    info = settings["Output File Info"] || {};
+    template = String(info["File Template"] || info["File Name"] || "");
+    frameToken = /_?\[[#0]+\]/.exec(template);
+    module.setSettings({ "Output File Info": {
+        "Base Path": destination,
+        "Subfolder Path": "",
+        "File Template": basename + (frameToken ? frameToken[0] : "") + ".[fileextension]"
+    } });
+    // setSettings invalidates the old OutputModule object in AE.
+    module = queueItem.outputModule(1);
+    suffix = aetoolkitCepOutputSuffix(module);
+    module.file = new File(destination + "/" + basename + suffix);
 }
 
 function aetoolkitCepAomNames(data) {

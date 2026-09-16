@@ -56,6 +56,51 @@ assert.equal(renderQueue.numItems, beforeFailure, 'Failed preset leaves no added
 assert.equal(existingQueueItem.render, true);
 assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'online', basePath:'/Job/Output'})), /Choose an output preset/);
 console.log('PASS chosen output preset, sequence suffix, failed-template rollback, and existing queue preservation');
+renderContext.GetSettingsFormat = { STRING: 1 };
+assert.equal(renderContext.aetoolkitCepOutputSuffix({file:null,getSettings(){return {'Output File Info':{'File Name':'Title.mp4'}}}}), '.mp4');
+assert.equal(renderContext.aetoolkitCepOutputSuffix({file:{name:'Title_%5B#####%5D.exr'}}), '_[#####].exr');
+const originalAdd = renderQueue.items.add;
+for (const [template, extension, token] of [
+    ['[compName].[fileextension]', 'mp4', ''],
+    ['[compName]_[#####].[fileextension]', 'exr', '_[#####]']
+]) {
+    let applied, outputSettings, calls = 0, stale = false;
+    const resolved = {file:{name:'Title' + token + '.' + extension}};
+    const initial = {
+        file:null,
+        applyTemplate(name){applied=name;},
+        getSettings(){assert.equal(stale,false); return {'Output File Info':{'File Template':template,'File Name':''}};},
+        setSettings(value){outputSettings=value;stale=true;}
+    };
+    renderQueue.items.add = function(comp) {
+        const item={render:true,comp,outputModule(){calls++;return stale?resolved:initial;},remove(){renderQueue._items.splice(renderQueue._items.indexOf(this),1);renderQueue.numItems--;}};
+        renderQueue._items.push(item);renderQueue.numItems++;return item;
+    };
+    const output = renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'offline',outputTemplate:'User-defined preset',basePath:'/Job/Output',subfolder:'26_0916\\'}));
+    assert.match(output,/^Rendered 1/);
+    assert.equal(applied,'User-defined preset');
+    assert.equal(outputSettings['Output File Info']['Base Path'],'/Job/Output/260915/26_0916');
+    assert.equal(outputSettings['Output File Info']['Subfolder Path'],'');
+    assert.equal(outputSettings['Output File Info']['File Template'],'Title_24fps_1920x1080'+token+'.[fileextension]');
+    assert.equal(resolved.file.fsName,'/Job/Output/260915/26_0916/Title_24fps_1920x1080'+token+'.'+extension);
+    assert.ok(calls>=3,'Reacquires invalidated output module');
+    assert.equal(existingQueueItem.render,true);
+}
+renderQueue.items.add = function(comp) {
+    const item=originalAdd(comp);
+    const module=item.outputModule(1);
+    module.file=null;
+    module.getSettings=()=>({'Output File Info':{}});
+    module.setSettings=()=>{throw new Error('Cannot resolve output settings');};
+    return item;
+};
+const beforeOutputFailure=renderQueue.numItems;
+assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'online',outputTemplate:'Broken',basePath:'/Job/Output'})),/Cannot resolve output settings/);
+assert.equal(renderQueue.numItems,beforeOutputFailure,'Unresolved output rolls back added item');
+assert.equal(existingQueueItem.render,true);
+renderQueue.items.add=originalAdd;
+console.log('PASS empty output-file resolution, sequence tokens, refreshed module, trailing backslash and rollback');
+
 let removedComp = false, removedItem = false;
 const lookupContext = {JSON:undefined,app:{project:{items:{addComp(){return {remove(){removedComp=true}}}},renderQueue:{numItems:0,items:{add(){return {outputModule(){return {templates:['Studio EXR','Client ProRes','_HIDDEN internal']}},remove(){removedItem=true}}}}}}}};
 vm.createContext(lookupContext); vm.runInContext(source, lookupContext);
