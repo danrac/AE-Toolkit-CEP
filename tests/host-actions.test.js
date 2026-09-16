@@ -18,7 +18,7 @@ console.log('PASS bundled JSON works with no native JSON and preserves path char
 assert.equal(context.aetoolkitCepNormalizeSubfolder('Delivery\\v01'), 'Delivery/v01');
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('/Delivery/v01/'));
 for (const invalid of ['//server/share', 'C:relative', 'Delivery/..', '.']) assert.throws(() => context.aetoolkitCepNormalizeSubfolder(invalid));
-assert.equal(context.aetoolkitCepRenderDate(), '260915');
+assert.equal(context.aetoolkitCepRenderDate(), '26_0915');
 assert.equal(context.aetoolkitCepCleanImportPath('file:///Volumes/Jobs/a%20b.mov'), '/Volumes/Jobs/a b.mov');
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('../outside'));
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('C:/outside'));
@@ -37,7 +37,7 @@ const renderQueue = {
     numItems: 1,
     item(index) { return this._items[index - 1]; },
     _items: [existingQueueItem],
-    items: { add(comp) { const module = { applyTemplate(name) { if (name === "Missing") throw new Error("Unavailable"); this.template = name; }, file: {name:"Title_[#####].exr"} }; const item = { render: true, comp, outputModule() { return module; }, remove() { renderQueue._items.splice(renderQueue._items.indexOf(this), 1); renderQueue.numItems--; } }; renderQueue._items.push(item); renderQueue.numItems++; return item; } },
+    items: { add(comp) { const module = { setSettings(value) { this.outputSettings = value; }, applyTemplate(name) { if (name === "Missing") throw new Error("Unavailable"); this.template = name; }, file: {name:"Title_[#####].exr"} }; const item = { render: true, comp, outputModule() { return module; }, remove() { renderQueue._items.splice(renderQueue._items.indexOf(this), 1); renderQueue.numItems--; } }; renderQueue._items.push(item); renderQueue.numItems++; return item; } },
     render() { this.didRender = true; }
 };
 const renderContext = { JSON: undefined, Date: FixedDate, Folder: FakeFolder, File: FakeFile, CompItem: FakeCompItem, app: { project: { file: { fsName: '/Job/test.aep' }, selection: [new FakeCompItem('Title')], renderQueue } } };
@@ -47,9 +47,12 @@ const result = renderContext.aetoolkitCepRenderSelected(JSON.stringify({ mode: '
 assert.ok(/^Rendered 1 composition/.test(result));
 assert.equal(renderQueue.didRender, true);
 assert.equal(existingQueueItem.render, true);
-assert.equal(folders['/Job/Output/260915/Delivery/v01'], true);
+assert.equal(folders['/Job/Output/26_0915/Delivery/v01'], true);
 assert.equal(renderQueue._items[1].outputModule(1).template, 'Studio EXR');
 assert.ok(renderQueue._items[1].outputModule(1).file.fsName.endsWith('_[#####].exr'));
+assert.equal(renderQueue._items[1].outputModule(1).outputSettings['Output File Info']['Subfolder Path'], '');
+assert.equal(renderQueue._items[1].outputModule(1).outputSettings['Output File Info']['File Template'], 'Title_24fps_1920x1080_[#####].exr');
+
 const beforeFailure = renderQueue.numItems;
 assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'online', outputTemplate:'Missing', basePath:'/Job/Output'})), /^ERROR:/);
 assert.equal(renderQueue.numItems, beforeFailure, 'Failed preset leaves no added queue item');
@@ -79,10 +82,10 @@ for (const [template, extension, token] of [
     const output = renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'offline',outputTemplate:'User-defined preset',basePath:'/Job/Output',subfolder:'26_0916\\'}));
     assert.match(output,/^Rendered 1/);
     assert.equal(applied,'User-defined preset');
-    assert.equal(outputSettings['Output File Info']['Base Path'],'/Job/Output/260915/26_0916');
+    assert.equal(outputSettings['Output File Info']['Base Path'],'/Job/Output/26_0915/26_0916');
     assert.equal(outputSettings['Output File Info']['Subfolder Path'],'');
     assert.equal(outputSettings['Output File Info']['File Template'],'Title_24fps_1920x1080'+token+'.[fileextension]');
-    assert.equal(resolved.file.fsName,'/Job/Output/260915/26_0916/Title_24fps_1920x1080'+token+'.'+extension);
+    assert.equal(resolved.file.fsName,'/Job/Output/26_0915/26_0916/Title_24fps_1920x1080'+token+'.'+extension);
     assert.ok(calls>=3,'Reacquires invalidated output module');
     assert.equal(existingQueueItem.render,true);
 }
@@ -113,7 +116,7 @@ for (const mode of ['offline','online','styleFrames','checker']) {
         };
         assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode,outputTemplate:'Client output',basePath:'/Job/Output'})),/^Rendered 1/);
         const file = renderQueue._items[renderQueue._items.length-1].outputModule(1).file;
-        assert.equal(file.fsName,'/Job/Output/260915/ABA_9x16_A_new_v01_dr_'+String(fps).replace('.', '_')+'fps_1920x1080.mp4');
+        assert.equal(file.fsName,'/Job/Output/26_0915/ABA_9x16_A_new_v01_dr_'+String(fps).replace('.', '_')+'fps_1920x1080.mp4');
         assert.equal(namingComp.frameRate, fps, 'Filename formatting must preserve the composition frame rate');
     }
 }

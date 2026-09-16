@@ -652,7 +652,7 @@ function aetoolkitCepImportFromFolder(pathText) {
 }
 function aetoolkitCepRenderDate() {
     var date = new Date(), year = String(date.getFullYear()).slice(-2), month = date.getMonth() + 1, day = date.getDate();
-    return year + (month < 10 ? "0" : "") + month + (day < 10 ? "0" : "") + day;
+    return year + "_" + (month < 10 ? "0" : "") + month + (day < 10 ? "0" : "") + day;
 }
 function aetoolkitCepNormalizeSubfolder(value) {
     var path = String(value || "").replace(/\\/g, "/").replace(/^\s+|\s+$/g, "").replace(/\/+$/g, "");
@@ -1834,6 +1834,15 @@ function aetoolkitCepAssignOutputFile(queueItem, destination, basename) {
     var module = queueItem.outputModule(1), suffix, settings, info, frameToken, template;
     try { suffix = aetoolkitCepOutputSuffix(module); } catch (suffixError) { suffix = ""; }
     if (suffix) {
+        // Reset inherited location-template subfolders even when AE already
+        // supplies a filename (for example a comp-named folder from a preset).
+        module.setSettings({ "Output File Info": {
+            "Base Path": destination,
+            "Subfolder Path": "",
+            "File Template": basename + suffix,
+            "File Name": basename + suffix
+        } });
+        module = queueItem.outputModule(1);
         module.file = new File(destination + "/" + basename + suffix);
         return;
     }

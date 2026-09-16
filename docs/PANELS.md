@@ -31,7 +31,7 @@ Choose **Output Presets** first. Select comps in AE and use **Offline**, **Onlin
 | Style frames | Preset's Style Frames folder |
 | Checker | Graphic Out + preset's Checkers subfolder |
 
-Offline, Online, and Checkers default to separate subfolders with those names. Edit them in Create project presets; a blank subfolder means Graphic Out itself. Rendering adds a `YYMMDD` folder and then the optional subfolder. For example: `Outputs/Offline/260916/review`.
+Offline, Online, and Checkers default to separate subfolders with those names. Edit them in Create project presets; a blank subfolder means Graphic Out itself. Rendering adds a `YY_MMDD` folder and then the optional subfolder. For example: `Outputs/Offline/26_0916/review`.
 
 Output filenames follow this studio format in all four render modes:
 
