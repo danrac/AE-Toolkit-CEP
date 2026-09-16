@@ -43,3 +43,14 @@ assert.match(ctx.aetoolkitCepCreateCustomCheckers(JSON.stringify(options)),/^ERR
 assert.equal(items.length,count,'Failed import must remove only newly added items');assert.equal(undo,0);
 assert.throws(()=>ctx.aetoolkitCepCheckerFile(new Folder('/Shared'),'../secret.aep'));
 console.log('PASS custom checker batch imports, nested replacement, job text, source preservation, rollback and path guards');
+
+const xml = '<AfterEffectsProject><fileReference ascendcount_base="1" ascendcount_target="1" fullpath="C:\\Templates\\A &amp; B.psd" platform="Win" server_name="old" server_volume_name="old" target_is_folder="0"/></AfterEffectsProject>';
+const relocated = ctx.aetoolkitCepResolveCheckerXml(xml, [{original:'C:\\Templates\\A & B.psd',relative:'media/0/A & B.psd'}], new Folder('/Volumes/Shared/Templates'), 'MacPOSIX');
+assert.match(relocated,/fullpath="\/Volumes\/Shared\/Templates\/media\/0\/A &amp; B.psd"/);
+assert.match(relocated,/platform="MacPOSIX"/);
+assert.match(relocated,/server_name=""/);
+assert.match(relocated,/ascendcount_base="0"/);
+assert.throws(()=>ctx.aetoolkitCepResolveCheckerXml(xml, [], new Folder('/Shared'), 'Win'),/Uncollected/);
+const winXml = ctx.aetoolkitCepResolveCheckerXml('<AfterEffectsProject><fileReference fullpath="/Volumes/Source/a.png"/></AfterEffectsProject>', [{original:'/Volumes/Source/a.png',relative:'media/a.png'}], new Folder('Z:/Templates'), 'Win');
+assert.match(winXml,/platform="Win"/);assert.match(winXml,/fullpath="Z:\/Templates\/media\/a.png"/);
+console.log('PASS native XML path relocation escapes filenames, preserves required attributes and supports Mac/Windows mount paths');

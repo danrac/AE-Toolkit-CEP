@@ -1544,10 +1544,11 @@ function aetoolkitCepCreateNoSlateComp(value) {
     } catch (error) { return "ERROR: " + error.toString(); }
 }
 
-// Native checker packages. No working-project save, close, or reduction is performed.
+// Native checker packages. Capture exports XML from a clean saved project and restores its file path; never closes or reduces it.
 function aetoolkitCepCheckerLibraryRoot(path) {
     if (path && !aetoolkitCepIsAbsolutePath(path)) throw new Error("Choose an absolute library folder.");
-    return aetoolkitCepEnsureFolder(path || (aetoolkitCepDataFolder().fsName + "/template-library"));
+    if (path) { var chosen = new Folder(path); if (!chosen.exists) throw new Error("Template library is unavailable. Reconnect the shared drive or choose another folder."); return chosen; }
+    return aetoolkitCepEnsureFolder(aetoolkitCepDataFolder().fsName + "/template-library");
 }
 function aetoolkitCepChooseCheckerLibrary() {
     var folder = Folder.selectDialog("Choose shared template library");
@@ -1557,7 +1558,7 @@ function aetoolkitCepReadCheckerManifest(folder) {
     var file = new File(folder.fsName + "/template.json"), text, data;
     if (!file.exists || !file.open("r")) throw new Error("Cannot read template metadata.");
     text = file.read(); file.close(); data = AEToolkitJSON.parse(text);
-    if (data.version !== 1 || !data.templates || !(data.templates instanceof Array)) throw new Error("Unsupported checker template package.");
+    if ((data.version !== 1 && data.version !== 2) || !data.templates || !(data.templates instanceof Array)) throw new Error("Unsupported checker template package.");
     return data;
 }
 function aetoolkitCepCheckerFile(folder, relative) {
@@ -1605,7 +1606,8 @@ function aetoolkitCepCaptureCheckerTemplates(jsonText) {
     try {
         var options = AEToolkitJSON.parse(jsonText || "{}"), comps = aetoolkitCepSelectedComps(), root, token, projectFile = app.project.file, templates = [], media = [], seen = {}, i, j, item, file, relative, folder, files, f;
         if (!projectFile || !projectFile.exists || app.project.dirty) throw new Error("Save the project, then use selected comps again.");
-        if (!/\.aep$/i.test(projectFile.name)) throw new Error("Save the checker project as an .aep file before capturing.");
+        if (!/\.aepx?$/i.test(projectFile.name)) throw new Error("Save the checker project as .aep or .aepx before capturing.");
+        if (projectFile.readonly) throw new Error("The saved checker project must be writable before capture.");
         for (i = 0; i < comps.length; i++) {
             aetoolkitCepValidateChecker(comps[i]);
             var path = aetoolkitCepCompPath(comps[i]);
@@ -1624,8 +1626,19 @@ function aetoolkitCepCaptureCheckerTemplates(jsonText) {
         root = aetoolkitCepCheckerLibraryRoot(options.libraryRoot);
         token = "checkers-" + new Date().getTime() + "-" + Math.floor(Math.random() * 1000000);
         packageFolder = aetoolkitCepEnsureFolder(root.fsName + "/" + token);
-        // Snapshot the saved native project. Its expressions, effects, and imported-layer settings remain native.
-        if (!projectFile.copy(packageFolder.fsName + "/project.aep")) throw new Error("Cannot copy saved project into the library.");
+        // Native XML retains layer import descriptors; only fileReference paths are rewritten on use.
+        var snapshot = new File(packageFolder.fsName + "/project.aepx");
+        if (/\.aepx$/i.test(projectFile.name)) { if (!projectFile.copy(snapshot.fsName)) throw new Error("Cannot copy template project."); }
+        else {
+            try { app.project.save(snapshot); }
+            finally {
+                if (app.project.file && app.project.file.fsName !== projectFile.fsName) {
+                    try { app.project.save(projectFile); }
+                    catch (restoreError) { throw new Error("XML export succeeded, but the original project path could not be restored. The original file remains at " + projectFile.fsName + ". Current project: " + snapshot.fsName); }
+                }
+            }
+        }
+        if (!snapshot.exists) throw new Error("After Effects did not export the template project.");
         // Copy complete media directories to preserve image sequences and layered import source files.
         for (i = 1; i <= app.project.numItems; i++) {
             item = app.project.item(i);
@@ -1652,7 +1665,7 @@ function aetoolkitCepCaptureCheckerTemplates(jsonText) {
                 media.push({original:file.fsName, relative:relative, sequence:aetoolkitCepLikelyImageSequence(item)});
             }
         }
-        var manifest = {version:1, project:"project.aep", templates:templates, media:media};
+        var manifest = {version:2, project:"project.aepx", templates:templates, media:media};
         var output = new File(packageFolder.fsName + "/template.json"); output.encoding = "UTF-8";
         if (!output.open("w")) throw new Error("Cannot write template metadata.");
         var written = output.write(AEToolkitJSON.stringify(manifest)); output.close();
@@ -1665,8 +1678,43 @@ function aetoolkitCepCaptureCheckerTemplates(jsonText) {
         if (!completed && packageFolder) { var partial = new File(packageFolder.fsName + "/template.json"); if (partial.exists) partial.remove(); }
     }
 }
+function aetoolkitCepXmlEscape(value) {
+    return String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function aetoolkitCepXmlDecode(value) {
+    return String(value).replace(/&#x([0-9a-f]+);/ig, function (_, code) { return String.fromCharCode(parseInt(code, 16)); }).replace(/&#([0-9]+);/g, function (_, code) { return String.fromCharCode(parseInt(code, 10)); }).replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
+function aetoolkitCepCheckerPathKey(path) { return String(path).replace(/\\/g, "/"); }
+function aetoolkitCepResolveCheckerXml(xml, media, folder, platform) {
+    var paths = {}, i;
+    for (i = 0; i < media.length; i++) paths[aetoolkitCepCheckerPathKey(media[i].original)] = aetoolkitCepCheckerFile(folder, media[i].relative).fsName;
+    if (xml.indexOf("<AfterEffectsProject") === -1) throw new Error("Template is not native After Effects XML.");
+    return xml.replace(/<fileReference\b[^>]*\/>/g, function (tag) {
+        var match = /\bfullpath="([^"]*)"/.exec(tag), original, mapped;
+        if (!match || /target_is_folder="1"/.test(tag)) return tag;
+        original = aetoolkitCepCheckerPathKey(aetoolkitCepXmlDecode(match[1])); mapped = paths[original];
+        if (!mapped) throw new Error("Uncollected template media: " + original);
+        tag = tag.replace(/\bfullpath="[^"]*"/, 'fullpath="' + aetoolkitCepXmlEscape(mapped) + '"');
+        tag = tag.replace(/\s+(platform|ascendcount_base|ascendcount_target|server_name|server_volume_name)="[^"]*"/g, "");
+        return tag.replace(/\/>$/, ' platform="' + platform + '" ascendcount_base="0" ascendcount_target="0" server_name="" server_volume_name=""/>');
+    });
+}
+function aetoolkitCepPrepareCheckerProject(folder, data) {
+    var source = aetoolkitCepCheckerFile(folder, data.project);
+    if (data.version !== 2) return source;
+    source.encoding = "UTF-8";
+    if (!source.open("r")) throw new Error("Cannot read template XML.");
+    var xml = source.read(); source.close();
+    xml = aetoolkitCepResolveCheckerXml(xml, data.media, folder, Folder.fs === "Windows" ? "Win" : "MacPOSIX");
+    var tempFolder = aetoolkitCepEnsureFolder(Folder.temp.fsName + "/Toolbox2-checkers");
+    var file = new File(tempFolder.fsName + "/checker-" + new Date().getTime() + "-" + Math.floor(Math.random()*1000000) + ".aepx"); file.encoding = "UTF-8";
+    if (!file.open("w")) throw new Error("Cannot prepare local checker project.");
+    var written = file.write(xml); file.close();
+    if (!written) { file.remove(); throw new Error("Cannot write local checker project."); }
+    return file;
+}
 function aetoolkitCepCreateCustomCheckers(jsonText) {
-    var before = {}, started = false;
+    var before = {}, started = false, preparedProject = null, preparedTemporary = false;
     try {
         var options = AEToolkitJSON.parse(jsonText), root = aetoolkitCepCheckerLibraryRoot(options.libraryRoot), folder, data, template, sourceComps = aetoolkitCepSelectedComps(), job = String(options.jobCode || "").replace(/^\s+|\s+$/g, ""), i, j, item, imported, checker, matches, file, map = {}, media;
         if (!job) throw new Error("Enter a Job code before creating custom checkers.");
@@ -1677,15 +1725,16 @@ function aetoolkitCepCreateCustomCheckers(jsonText) {
         if (!file.exists) throw new Error("Template project is missing.");
         for (i = 0; i < data.media.length; i++) { media = data.media[i]; var target = aetoolkitCepCheckerFile(folder, media.relative); if (!target.exists) throw new Error("Template media is missing: " + target.fsName); map[media.original] = {file:target,sequence:media.sequence}; }
         for (i = 1; i <= app.project.numItems; i++) before[app.project.item(i).id] = true;
+        preparedProject = aetoolkitCepPrepareCheckerProject(folder, data); preparedTemporary = data.version === 2;
         app.beginUndoGroup("Toolbox 2: Custom checkers"); started = true;
         for (i = 0; i < sourceComps.length; i++) {
             var existing = {}; for (j = 1; j <= app.project.numItems; j++) existing[app.project.item(j).id] = true;
-            imported = app.project.importFile(new ImportOptions(file)); matches = [];
+            imported = app.project.importFile(new ImportOptions(preparedProject)); matches = [];
             for (j = 1; j <= app.project.numItems; j++) {
                 item = app.project.item(j); if (existing[item.id]) continue;
                 if (item instanceof CompItem && AEToolkitJSON.stringify(aetoolkitCepCompPath(item, imported)) === AEToolkitJSON.stringify(template.path)) matches.push(item);
                 // Native layered sources require their original or natively collected paths; do not flatten them by replacement.
-                if (item instanceof FootageItem && item.file && map[item.file.fsName]) {
+                if (data.version !== 2 && item instanceof FootageItem && item.file && map[item.file.fsName]) {
                     var mapped = map[item.file.fsName];
                     if (/\.(psd|psb|ai)$/i.test(item.file.name)) {
                         if (!item.file.exists) throw new Error("Layered template media needs its original shared location or an After Effects Collect Files project: " + item.file.name);
@@ -1711,5 +1760,5 @@ function aetoolkitCepCreateCustomCheckers(jsonText) {
     } catch (error) {
         if (started) for (var n = app.project.numItems; n >= 1; n--) { try { var added = app.project.item(n); if (!before[added.id]) added.remove(); } catch (cleanupError) {} }
         return "ERROR: " + error.toString();
-    } finally { if (started) app.endUndoGroup(); }
+    } finally { if (started) app.endUndoGroup(); if (preparedTemporary && preparedProject) preparedProject.remove(); }
 }
