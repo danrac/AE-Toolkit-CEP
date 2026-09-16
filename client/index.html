@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.14-modify">
+  <link rel="stylesheet" href="css/main.css?v=0.1.14-assets">
 </head>
 <body>
   <main class="app-shell">
@@ -283,18 +283,16 @@
     <section id="templates" class="view">
       <details class="card module-panel" data-panel="composition-formats" open>
         <summary>Composition formats</summary>
-        <div class="module-actions"><button id="new-comp-preset" class="quiet">New</button></div>
-        <select id="saved-comp-preset"></select>
+        <div class="naming-presets"><select id="saved-comp-preset" aria-label="Composition format"></select><button id="new-comp-preset">Add</button><button id="remove-comp-preset">Remove</button></div>
         <div class="field-grid">
           <label>Name<input id="saved-comp-preset-name" placeholder="16 × 9"></label>
           <label>Naming code<input id="saved-comp-preset-code" placeholder="e.g. 9x16"></label>
           <label>Width<input id="saved-comp-preset-width" type="number" min="1" max="30000"></label>
           <label>Height<input id="saved-comp-preset-height" type="number" min="1" max="30000"></label>
-          <div class="input-action"><label>Matte guide<input id="saved-comp-preset-matte" readonly placeholder="Optional"></label><button class="tool-icon" data-guide-asset="matte" title="Choose matte guide" aria-label="Choose matte guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2-2h9v16H3z"/></svg></button></div>
-          <div class="input-action"><label>Chart guide 1<input id="saved-comp-preset-chart-one" readonly placeholder="Optional"></label><button class="tool-icon" data-guide-asset="chartOne" title="Choose chart guide 1" aria-label="Choose chart guide 1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2-2h9v16H3z"/></svg></button></div>
-          <div class="input-action"><label>Chart guide 2<input id="saved-comp-preset-chart-two" readonly placeholder="Optional"></label><button class="tool-icon" data-guide-asset="chartTwo" title="Choose chart guide 2" aria-label="Choose chart guide 2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2-2h9v16H3z"/></svg></button></div>
         </div>
 
+        <div id="format-assets" class="format-assets"></div>
+        <button id="add-format-asset">Add guide</button>
         <button id="save-comp-preset" class="primary">Save format</button>
       </details>
       <details class="card module-panel" data-panel="template-library" open>
@@ -331,9 +329,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.14-modify"></script>
-  <script src="js/template-store.js?v=0.1.14-modify"></script>
-  <script src="js/app.js?v=0.1.14-modify"></script>
-  <script src="js/panel-state.js?v=0.1.14-modify"></script>
+  <script src="js/CSInterface.js?v=0.1.14-assets"></script>
+  <script src="js/template-store.js?v=0.1.14-assets"></script>
+  <script src="js/app.js?v=0.1.14-assets"></script>
+  <script src="js/panel-state.js?v=0.1.14-assets"></script>
 </body>
 </html>

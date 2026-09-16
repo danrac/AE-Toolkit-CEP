@@ -959,12 +959,16 @@ function aetoolkitCepCopyPresetAsset(folder, sourcePath, label) {
     if (!source.copy(target.fsName)) throw new Error("Could not copy " + source.name + " into " + folder.fsName);
     return target.fsName;
 }
+function aetoolkitCepGuideKeys(assets) {
+    var keys = [], key;
+    for (key in assets) if (Object.prototype.hasOwnProperty.call(assets, key) && /^(matte|chartOne|chartTwo|matte_[a-z0-9]+|guide_[a-z0-9]+)$/.test(key)) keys.push(key);
+    return keys;
+}
 function aetoolkitCepStorePresetAssets(jsonText) {
     try {
         var options = AEToolkitJSON.parse(jsonText), assets = options.assets || {}, folder = aetoolkitCepPresetAssetFolder(options.id), saved = {};
-        saved.matte = assets.matte ? aetoolkitCepCopyPresetAsset(folder, assets.matte, "matte") : "";
-        saved.chartOne = assets.chartOne ? aetoolkitCepCopyPresetAsset(folder, assets.chartOne, "chart-one") : "";
-        saved.chartTwo = assets.chartTwo ? aetoolkitCepCopyPresetAsset(folder, assets.chartTwo, "chart-two") : "";
+        var keys = aetoolkitCepGuideKeys(assets), i;
+        for (i = 0; i < keys.length; i++) saved[keys[i]] = assets[keys[i]] ? aetoolkitCepCopyPresetAsset(folder, assets[keys[i]], keys[i]) : "";
         return AEToolkitJSON.stringify(saved);
     } catch (error) { return "ERROR: " + error.toString(); }
 }
@@ -977,7 +981,7 @@ function aetoolkitCepGuideFootage(file) {
     return app.project.importFile(new ImportOptions(file));
 }
 function aetoolkitCepAddPresetGuides(comp, assets) {
-    var keys = ["matte", "chartOne", "chartTwo"], i, path, file, footage, layer;
+    var keys = aetoolkitCepGuideKeys(assets), i, path, file, footage, layer;
     for (i = 0; i < keys.length; i++) {
         path = assets[keys[i]];
         if (!path) continue;
@@ -988,11 +992,11 @@ function aetoolkitCepAddPresetGuides(comp, assets) {
         layer.guideLayer = true;
         layer.comment = "Toolbox2:format-guide:" + keys[i];
         try { layer.transform.position.setValue([comp.width / 2, comp.height / 2]); } catch (positionError) {}
-        if (keys[i] !== "matte") try { layer.opacity.setValue(50); } catch (opacityError) {}
+        if (keys[i].indexOf("matte") !== 0) try { layer.opacity.setValue(50); } catch (opacityError) {}
     }
 }
 function aetoolkitCepPrepareGuideFiles(assets) {
-    var keys = ["matte", "chartOne", "chartTwo"], i, file;
+    var keys = aetoolkitCepGuideKeys(assets), i, file;
     for (i = 0; i < keys.length; i++) if (assets[keys[i]]) {
         file = aetoolkitCepResolveGuideAsset(assets[keys[i]]);
         if (!file.exists) throw new Error("Guide file is unavailable: " + file.fsName);
@@ -1000,9 +1004,10 @@ function aetoolkitCepPrepareGuideFiles(assets) {
     }
 }
 function aetoolkitCepReplacePresetGuides(comp, assets, knownAssets) {
-    var old = [], paths = {}, keys = ["matte", "chartOne", "chartTwo"], i, j, layer, file;
-    for (i = 0; i < knownAssets.length; i++) for (j = 0; j < keys.length; j++) {
-        if (knownAssets[i][keys[j]]) paths[aetoolkitCepResolveGuideAsset(knownAssets[i][keys[j]]).fsName] = true;
+    var old = [], paths = {}, keys, i, j, layer, file;
+    for (i = 0; i < knownAssets.length; i++) {
+        keys = aetoolkitCepGuideKeys(knownAssets[i]);
+        for (j = 0; j < keys.length; j++) if (knownAssets[i][keys[j]]) paths[aetoolkitCepResolveGuideAsset(knownAssets[i][keys[j]]).fsName] = true;
     }
     for (i = 1; i <= comp.numLayers; i++) {
         layer = comp.layer(i);

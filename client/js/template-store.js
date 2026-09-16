@@ -142,7 +142,7 @@
         if (!name) throw new Error("Preset name is required.");
         if (!isFinite(width) || Math.floor(width) !== width || width < 1 || width > 30000) throw new Error("Preset width must be between 1 and 30000.");
         if (!isFinite(height) || Math.floor(height) !== height || height < 1 || height > 30000) throw new Error("Preset height must be between 1 and 30000.");
-        return { id: preset.id || idFromName(name), name: name, formatCode: compFormatCode(preset), width: width, height: height, assets: { matte: assets.matte || "", chartOne: assets.chartOne || "", chartTwo: assets.chartTwo || "" } };
+        return { id: preset.id || idFromName(name), name: name, formatCode: compFormatCode(preset), width: width, height: height, assets: Object.keys(assets).reduce(function (result, key) { if (!/^(matte|chartOne|chartTwo|matte_[a-z0-9]+|guide_[a-z0-9]+)$/.test(key)) throw new Error("Invalid guide entry."); result[key] = String(assets[key] || ""); return result; }, {}) };
     }
     function compPresets(state) {
         var saved = state.compPresets || [], defaults = defaultCompPresets(), legacy = { hd: "HD", uhd: "UHD", square: "Square", vertical: "Vertical" };
@@ -152,14 +152,21 @@
             return preset;
         });
         defaults.forEach(function (preset) { if (!result.some(function (entry) { return entry.id === preset.id; })) result.push(preset); });
-        return result;
+        return result.filter(function (preset) { return (state.removedCompPresets || []).indexOf(preset.id) === -1; });
     }
     function upsertCompPreset(state, preset) {
         var next = clone(state), normalized = normalizeCompPreset(preset), presets = compPresets(next), found = false;
+        next.removedCompPresets = (next.removedCompPresets || []).filter(function (id) { return id !== normalized.id; });
         next.compPresets = presets;
         for (var i = 0; i < presets.length; i++) if (presets[i].id === normalized.id) { presets[i] = normalized; found = true; }
         if (!found) presets.push(normalized);
         return next;
     }
-    return { compFormatCode: compFormatCode, previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
+    function removeCompPreset(state, id) {
+        var next = clone(state);
+        next.compPresets = compPresets(next).filter(function (preset) { return preset.id !== id; });
+        next.removedCompPresets = (next.removedCompPresets || []).concat([id]);
+        return next;
+    }
+    return { removeCompPreset: removeCompPreset, compFormatCode: compFormatCode, previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));

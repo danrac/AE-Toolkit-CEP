@@ -98,3 +98,16 @@ assert.equal(store.compFormatCode({ id: 'vertical-tiktok', name: '9:16 TikTok sa
 assert.equal(store.formatNaming(store.namingFields({}), { job: 'ABA', style: 'A', description: 'new', initials: 'dr' }, store.compFormatCode(tikTok)), 'ABA_9x16_A_new_v01_dr');
 assert.equal(store.normalizeCompPreset({ name: 'Custom', width: 100, height: 100, formatCode: 'SQ' }).formatCode, 'SQ');
 console.log('PASS naming codes stay independent of preset display names');
+
+ test('Format asset lists preserve extra mattes and guides across serialization', () => {
+   const assets = { matte: '', chartOne: 'bundled:HD_chart.psd', matte_extra: 'bundled:9x16_matte.png', guide_extra: 'bundled:9x16_chart.psd' };
+   const state = store.upsertCompPreset(store.defaultState(), { name: 'Multi guide', width: 1080, height: 1920, assets });
+   assert.deepEqual(store.compPresets(JSON.parse(JSON.stringify(state))).find(p => p.id === 'multi-guide').assets, assets);
+ });
+ test('Removed built-in formats stay removed and can be recreated', () => {
+   let state = store.defaultState();
+   store.compPresets(state).forEach(p => { state = store.removeCompPreset(state, p.id); });
+   assert.equal(store.compPresets(JSON.parse(JSON.stringify(state))).length, 0);
+   state = store.upsertCompPreset(state, store.defaultCompPresets()[0]);
+   assert.equal(store.compPresets(state).length, 1);
+ });

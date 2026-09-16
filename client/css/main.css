@@ -186,3 +186,7 @@ input, select, textarea { font-weight: 400; }
 
 .modify-settings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .modify-settings .comp-format { grid-column: 1 / -1; }
+
+.format-assets { display: grid; gap: 4px; margin-top: 7px; }
+.format-asset-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 28px 28px; gap: 4px; align-items: center; }
+.format-asset-row input, .format-asset-row select { margin: 0; }
