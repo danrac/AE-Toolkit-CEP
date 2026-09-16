@@ -1,8 +1,8 @@
 # Toolbox 2 panel guide
 
-For **0.1.21 Alpha 1**. [Home and installation](../README.md)
+For **0.1.22 Alpha 1**. [Home and installation](../README.md)
 
-Screenshots show the 0.1.20 browser preview (layout unchanged in 0.1.21) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
+Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
 ## Navigation and saved layout
 
@@ -30,7 +30,7 @@ The first bordered destination uses the current project's Graphic Out / Outputs 
 - Without an optional subfolder: `Outputs/26_0916`.
 - With `review/v01`: `Outputs/review/v01/26_0916`.
 
-The date folder uses `YY_MMDD` and comes last. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. The earlier screenshots show the released 0.1.21 layout; this simplified workflow is currently on main and is not packaged yet.
+The date folder uses `YY_MMDD` and comes last. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. The earlier screenshots show the released 0.1.21 layout; the destination sections described here are included in 0.1.22.
 
 Output filenames follow this studio format:
 

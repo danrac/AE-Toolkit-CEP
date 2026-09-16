@@ -2,7 +2,7 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.21 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.21-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.21.md)
+**Documented version: 0.1.22 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.22-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.22.md)
 
 ## User guide
 
@@ -39,7 +39,8 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Add new project lives in Templates. Create project presets starts with **New**; the editor opens only when needed.
 - Shared resources covers projects, project presets, naming presets, aspect ratio presets, and custom checker packages.
 - Output presets are read from AE and optionally filtered by an AOM file. No fixed ProRes/PNG preset names are required.
-- On main: one Render selected comps button writes to Outputs / optional subfolder / YY_MMDD; the former render-mode buttons and preset render-subfolder fields are removed (not yet packaged).
+- Render to outputs and template-defined custom render destinations each have their own bordered subfolder controls; destinations use optional subfolder / YY_MMDD.
+- Change each connected project’s template from its named button in Current project; paths and render destinations refresh automatically.
 - Modify composition has its own format selector, guide replacement, and Conform solids option.
 - Custom checkers capture native templates with their media; the graphic placeholder and Job text are replaced when generating checkers.
 - Version 0.1.20 fixes the Node-enabled CEP startup regression and reads supported working spaces from unopened AEP/AEPX files.
