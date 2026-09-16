@@ -203,9 +203,12 @@ input, select, textarea { font-weight: 400; }
 .project-folder-settings label { display: grid; grid-template-columns: var(--folder-label-width) minmax(0, 1fr); align-items: center; gap: 6px; margin: 0; }
 .project-folder-settings input { margin-top: 0; }
 .project-folder-settings .folder-grid { grid-template-columns: minmax(0, 1fr); gap: 5px; margin-top: 5px; }
-.project-folder-settings .custom-location { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-top: 1px solid #46596c; padding-top: 5px; }
+.project-folder-settings .custom-location { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid #647d94; border-radius: 5px; padding: 7px; gap: 6px; margin-top: 3px; }
 .project-folder-settings .custom-location label { grid-column: 1; }
-.project-folder-settings .custom-location button { grid-column: 2; grid-row: 1 / 3; }
+.project-folder-settings .custom-location > .custom-location-name { grid-column: 1; grid-row: 1; }
+.project-folder-settings .custom-location > .custom-location-path { grid-column: 1 / -1; grid-row: 2; }
+.project-folder-settings .custom-location > .custom-render-toggle { grid-column: 1 / -1; grid-row: 3; justify-self: end; }
+.project-folder-settings .custom-location > .custom-location-remove { grid-column: 2; grid-row: 1; width: 28px; height: 28px; padding: 0; margin: 0; font-size: 20px; line-height: 1; }
 .project-folder-settings .add-folder { width: 100%; }
 .preset-save { border-top: 1px solid #647d94; margin-top: 7px; padding-top: 7px; }
 .preset-save .primary { margin-top: 0; }
