@@ -149,3 +149,21 @@ test('CEP Node context also exports the template API to the browser window', () 
     assert.equal(original.projects[0].templateId,'default-motion');
     assert.throws(()=>store.assignProject(original,{...original.projects[0],templateId:'missing'}));
 });
+
+test('Custom render destinations persist, follow template assignment, and ignore unmarked locations', () => {
+    let state = store.defaultState();
+    state = store.upsertTemplate(state,{id:'multi',name:'Multi',folders:{outputs:'Renders'},customFolders:[
+        {label:'Client review',path:'Deliveries/Review',renderOutput:true},
+        {label:'References',path:'References'},
+        {label:'Masters',path:'Deliveries/Masters',renderOutput:true}
+    ]});
+    state = store.assignProject(state,{id:'job',name:'Job',root:'/Jobs/A',templateId:'multi'});
+    state = JSON.parse(JSON.stringify(state));
+    assert.deepEqual(store.renderDestinations(state,'job'),[
+        {id:'outputs',label:'Outputs',path:'/Jobs/A/Renders'},
+        {id:'client-review',label:'Client review',path:'/Jobs/A/Deliveries/Review'},
+        {id:'masters',label:'Masters',path:'/Jobs/A/Deliveries/Masters'}
+    ]);
+    state = store.assignProject(state,{...state.projects[0],templateId:'default-motion'});
+    assert.deepEqual(store.renderDestinations(state,'job'),[{id:'outputs',label:'Outputs',path:'/Jobs/A/Outputs'}]);
+});

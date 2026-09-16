@@ -223,3 +223,11 @@ input, select, textarea { font-weight: 400; }
 
 .current-project-selector { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 5px; align-items: center; margin-top: 5px; }
 .current-project-selector select { margin: 0; }
+
+.render-destinations { display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
+.render-destinations button { width: 100%; }
+.project-folder-settings .custom-location .custom-render-toggle { display: flex; align-items: center; gap: 6px; }
+.custom-render-toggle input { width: auto; margin: 0; }
+
+.render-destination { border: 1px solid var(--accent, #ad795d); border-radius: 5px; padding: 8px; }
+.render-destination > button { margin-top: 6px; }

@@ -126,7 +126,11 @@
         renderNamingOrder();
         var grid = byId("template-folders"); grid.innerHTML = "";
         store.FOLDER_KEYS.forEach(function (key) { var label = document.createElement("label"); label.textContent = folderLabels[key]; if (key === "styleFrames") label.className = "full-row"; var input = document.createElement("input"); input.dataset.key = key; input.value = template.folders[key] || ""; input.placeholder = "Relative folder"; input.oninput = function () { templateDraft.folders[key] = input.value; }; label.appendChild(input); grid.appendChild(label); });
-        template.customFolders.forEach(function (entry, index) { var row = document.createElement("div"), labelField = document.createElement("label"), pathField = document.createElement("label"), labelInput = document.createElement("input"), pathInput = document.createElement("input"), remove = document.createElement("button"); row.className = "custom-location"; labelField.textContent = "Custom name"; labelInput.value = entry.label; labelInput.oninput = function () { templateDraft.customFolders[index].label = labelInput.value; }; labelField.appendChild(labelInput); pathField.textContent = "Relative folder"; pathInput.value = entry.path; pathInput.oninput = function () { templateDraft.customFolders[index].path = pathInput.value; }; pathField.appendChild(pathInput); remove.textContent = "Remove"; remove.onclick = function () { templateDraft.customFolders.splice(index, 1); renderTemplateForm(); }; row.appendChild(labelField); row.appendChild(pathField); row.appendChild(remove); grid.appendChild(row); });
+        template.customFolders.forEach(function (entry, index) { var row = document.createElement("div"), labelField = document.createElement("label"), pathField = document.createElement("label"), labelInput = document.createElement("input"), pathInput = document.createElement("input"), remove = document.createElement("button"); row.className = "custom-location"; labelField.textContent = "Custom name"; labelInput.value = entry.label; labelInput.oninput = function () { templateDraft.customFolders[index].label = labelInput.value; }; labelField.appendChild(labelInput); pathField.textContent = "Relative folder"; pathInput.value = entry.path; pathInput.oninput = function () { templateDraft.customFolders[index].path = pathInput.value; }; pathField.appendChild(pathInput); remove.textContent = "Remove"; remove.onclick = function () { templateDraft.customFolders.splice(index, 1); renderTemplateForm(); }; var renderLabel = document.createElement("label"), renderCheck = document.createElement("input");
+            renderLabel.className = "custom-render-toggle"; renderCheck.type = "checkbox"; renderCheck.checked = entry.renderOutput === true;
+            renderCheck.onchange = function () { templateDraft.customFolders[index].renderOutput = renderCheck.checked; };
+            renderLabel.appendChild(renderCheck); renderLabel.appendChild(document.createTextNode("Render output"));
+            row.appendChild(labelField); row.appendChild(pathField); row.appendChild(renderLabel); row.appendChild(remove); grid.appendChild(row); });
     }
     function renderProjects() {
         var list = byId("project-list"), project = activeProject(); clearChildren(list);
@@ -198,7 +202,7 @@
         var assignedProject = activeProject(), assignedTemplate = assignedProject && templateById(assignedProject.templateId);
         byId("change-project-template").textContent = assignedTemplate ? assignedTemplate.name : "No project selected";
         byId("change-project-template").disabled = !assignedProject;
-        var select = byId("active-project"), project = activeProject(), ids = ["open-project-file", "reveal-project-root", "remove-project", "choose-render-subfolder"];
+        var select = byId("active-project"), project = activeProject(), ids = ["open-project-file", "reveal-project-root", "remove-project"];
         var query = byId("project-search").value.toLowerCase().trim();
         clearChildren(select); var matches = state.projects.filter(function (entry) { return !query || (entry.name + " " + entry.root).toLowerCase().indexOf(query) !== -1; });
         var prompt = document.createElement("option"); prompt.value = ""; prompt.textContent = matches.length ? "Select project" : "No matching projects"; select.appendChild(prompt);
@@ -206,8 +210,7 @@
         if (project) { if (state.activeProjectId !== project.id) state.activeProjectId = project.id; select.value = matches.some(function (entry) { return entry.id === project.id; }) ? project.id : ""; }
         select.disabled = !project;
         for (var i = 0; i < ids.length; i++) byId(ids[i]).disabled = !project;
-        byId("render-subfolder").disabled = !project;
-        byId("render-selected-comps").disabled = !project;
+        renderDestinationButtons();
 
     }
     function load() { libraryReady = false; callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); libraryReady = true; if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets().length ? compPresets()[0].id : ""; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Ready."); refreshCheckerLibrary(); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Library could not be loaded. Saving is disabled: " + error.message, true); } }); }
@@ -326,13 +329,33 @@
     byId("remove-project").onclick = function () { var project = activeProject(); if (!project) return; try { state = store.removeProject(state, project.id); save(function () { renderProjects(); renderActiveProject(); status("Project removed."); }); } catch (error) { status(error.message, true); } };
     byId("open-project-file").onclick = function () { var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id); if (paths) callHost("aetoolkitCepOpenProjectFromFolder", paths.afterEffects, function (result) { showHostResult(result); }); };
     byId("reveal-project-root").onclick = function () { var project = activeProject(); if (project) callHost("aetoolkitCepRevealFolder", project.root, function (result) { showHostResult(result, "Opened " + project.root); }); };
-    byId("choose-render-subfolder").onclick = function () { callHost("aetoolkitCepChooseRenderSubfolder", "", function (result) { if (result && result.indexOf("ERROR:") === 0) status(result, true); else if (result) byId("render-subfolder").value = result; }); };
-    byId("render-selected-comps").onclick = function () {
-        var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id);
-        if (!paths) return;
-        if (!byId("render-output-preset").value) { status("Choose an output preset. Refresh presets in Templates if needed.", true); return; }
-        callHost("aetoolkitCepRenderSelected", JSON.stringify({ outputTemplate: byId("render-output-preset").value, basePath: paths.outputs, subfolder: byId("render-subfolder").value }), function (result) { showHostResult(result); });
-    };
+    var renderSubfolderValues = {};
+    function renderDestinationButtons() {
+        var container = byId("render-destinations"), project = activeProject(); clearChildren(container);
+        var destinations = project ? store.renderDestinations(state, project.id) : [{ id: "outputs", label: "Outputs", path: "" }];
+        destinations.forEach(function (destination) {
+            var section = document.createElement("section"), row = document.createElement("div"), label = document.createElement("label"), input = document.createElement("input"), choose = document.createElement("button");
+            var key = project ? project.id + ":" + project.templateId + ":" + destination.id : "none";
+            section.className = "render-destination"; section.setAttribute("aria-label", destination.label);
+            row.className = "input-action folder-action"; label.textContent = "Optional subfolder";
+            input.type = "text"; input.placeholder = "Version or delivery folder"; input.value = renderSubfolderValues[key] || "";
+            input.disabled = !project || !destination.path; input.oninput = function () { renderSubfolderValues[key] = input.value; };
+            choose.textContent = "Choose subfolder"; choose.className = "quiet choose-folder"; choose.disabled = input.disabled;
+            choose.onclick = function () { callHost("aetoolkitCepChooseRenderSubfolder", "", function (result) {
+                if (result && result.indexOf("ERROR:") === 0) status(result, true);
+                else if (result) { input.value = result; renderSubfolderValues[key] = result; }
+            }); };
+            label.appendChild(input); row.appendChild(label); row.appendChild(choose); section.appendChild(row);
+            var button = document.createElement("button"); button.className = "primary";
+            button.textContent = destination.id === "outputs" ? "Render to outputs" : "Render to " + destination.label;
+            button.disabled = !project || !destination.path; button.title = destination.path || "Choose a project with an output folder";
+            button.onclick = function () {
+                if (!byId("render-output-preset").value) { status("Choose an output preset. Refresh presets in Templates if needed.", true); return; }
+                callHost("aetoolkitCepRenderSelected", JSON.stringify({ outputTemplate: byId("render-output-preset").value, basePath: destination.path, subfolder: input.value }), function (result) { showHostResult(result); });
+            };
+            section.appendChild(button); container.appendChild(section);
+        });
+    }
     var aomPresetNames = null;
     function inspectAom(path) {
         callHost("aetoolkitCepReadAom", path, function (result) {

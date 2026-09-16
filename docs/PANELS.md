@@ -22,9 +22,10 @@ The button beneath the project selector shows its assigned template. Click it to
 
 ### Render to outputs
 
-Choose **Output Presets**, enter or choose an Optional subfolder if needed, then click **Render selected comps** below that row. Select the comps in AE before rendering.
+Choose **Output Presets**, enter or choose an Optional subfolder if needed, then click **Render to outputs** below that row. Select the comps in AE before rendering.
 
-The destination uses the current project's Graphic Out / Outputs mapping:
+The first bordered destination uses the current project's Graphic Out / Outputs mapping. Custom locations marked **Render output** in the project preset add more bordered sections below it, each with its own Optional subfolder, Choose subfolder, and **Render to [location]** button. Subfolder values are independent per project, template, and destination during the panel session:
+
 
 - Without an optional subfolder: `Outputs/26_0916`.
 - With `review/v01`: `Outputs/review/v01/26_0916`.
@@ -101,7 +102,7 @@ Choose a format, dimensions, duration, and FPS. Fill Top line, Bottom line, Date
 
 Select graphic comps in AE and choose a format. General checkers use the Width, Height, and **Checker frame** controls; the chosen frame is held. Custom presets instead import their saved template and preserve its timing. Custom presets require a Job code and do not use the General checker held-frame setting.
 
-Each selected graphic creates its own checker. Render the generated comps using **Projects → Render to outputs → Render selected comps**.
+Each selected graphic creates its own checker. Render the generated comps using **Projects → Render to outputs → Render to outputs**.
 
 ### Custom checker template preparation
 
@@ -208,7 +209,7 @@ Initially this module shows **New**. Click it to open the editor; choose a Saved
 
 ![Earlier project folder editor; legacy render-subfolder fields are now removed](images/project-preset-editor.png)
 
-Enter a template name and relative folder paths for AE Projects, Assets, Graphic In, Graphic Out, and Style Frames. Add custom locations when needed. The project root is chosen when adding a project, not stored in these relative folder fields.
+Enter a template name and relative folder paths for AE Projects, Assets, Graphic In, Graphic Out, and Style Frames. Add custom locations when needed. Check **Render output** to give that location a dedicated render section; unmarked locations remain available for Reveal/Import only. Save the preset to refresh render destinations automatically. The project root is chosen when adding a project, not stored in these relative folder fields.
 
 The bordered **Comp naming** section contains a stacked module list. Drag to reorder, or focus a row and use Alt+Up/Down. Edit opens preferences with Save/Cancel; Remove deletes a module. **Add to template** opens a new module dialog.
 

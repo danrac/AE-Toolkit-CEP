@@ -79,6 +79,15 @@
         Object.keys(folders).forEach(function (key) { result[key] = paths.outputs ? paths.outputs + (folders[key] ? "/" + folders[key] : "") : ""; });
         return result;
     }
+    function renderDestinations(state, projectId) {
+        var paths = resolveProjectPaths(state, projectId), project = state.projects.filter(function (entry) { return entry.id === projectId; })[0];
+        var template = state.templates.filter(function (entry) { return entry.id === project.templateId; })[0];
+        var result = [{ id: "outputs", label: "Outputs", path: paths.outputs }];
+        (template.customFolders || []).forEach(function (entry) {
+            if (entry.renderOutput === true) result.push({ id: entry.id, label: entry.label, path: paths[entry.id] });
+        });
+        return result;
+    }
     function validateTemplate(template) {
         if (!template || !String(template.name || "").replace(/^\s+|\s+$/g, "")) throw new Error("Template name is required.");
         var folders = {}, key;
@@ -93,7 +102,7 @@
             var id = idFromName(label);
             if (usedIds[id] || reservedIds[id]) throw new Error("Custom location names must be unique and cannot replace a standard location.");
             usedIds[id] = true;
-            customFolders.push({ id: id, label: label, path: normalizeRelativePath(entry.path) });
+            customFolders.push({ id: id, label: label, path: normalizeRelativePath(entry.path), renderOutput: entry.renderOutput === true });
         }
         return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders, renderFolders: renderFolders(template), customFolders: customFolders, namingFields: namingFields(template) };
     }
@@ -180,5 +189,5 @@
         next.removedCompPresets = (next.removedCompPresets || []).concat([id]);
         return next;
     }
-    return { renderFolders: renderFolders, resolveRenderPaths: resolveRenderPaths, removeCompPreset: removeCompPreset, compFormatCode: compFormatCode, previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
+    return { renderDestinations: renderDestinations, renderFolders: renderFolders, resolveRenderPaths: resolveRenderPaths, removeCompPreset: removeCompPreset, compFormatCode: compFormatCode, previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));
