@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.22 Alpha 1**. [Home and installation](../README.md)
+For **0.1.23 Alpha 1**. [Home and installation](../README.md)
 
 Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
