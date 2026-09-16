@@ -1,6 +1,7 @@
 (function (root, factory) {
     var api = factory();
     if (typeof module === "object" && module.exports) module.exports = api;
+    if (typeof window !== "undefined") window.AEToolkitTemplates = api;
     else root.AEToolkitTemplates = api;
 }(this, function () {
     var FOLDER_KEYS = ["afterEffects", "assets", "toGfx", "outputs", "styleFrames"];

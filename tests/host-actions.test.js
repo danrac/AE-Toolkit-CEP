@@ -368,3 +368,11 @@ console.log('PASS custom fields, version format, removal and order reach comp cr
     }
     console.log('PASS rendered-image discovery routes embedded XMP and sidecars without filtering image extensions (mocked metadata reader)');
 }
+
+{
+ const header='<AfterEffectsProject><pcms bdata="01"/><cpid bdata="abc"/><PwCs bdata="01"/><string>{"baseColorProfile":{"colorProfileName":"Rec.709 Gamma 2.4"}}</string><ProjectXMPMetadata>';
+ assert.equal(context.aetoolkitCepParseProjectColor(header,true),'Rec.709 Gamma 2.4');
+ assert.throws(()=>context.aetoolkitCepParseProjectColor(header.replace('bdata="01"','bdata="02"'),true),/Unsupported/);
+ assert.throws(()=>context.aetoolkitCepParseProjectColor('not a project',false));
+ console.log('PASS source-project working-space parser and unsupported format rejection');
+}

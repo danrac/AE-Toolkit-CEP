@@ -125,3 +125,10 @@ test('Render destinations migrate defaults and follow template edits on Mac and 
         template.renderFolders.offline='../outside'; assert.throws(()=>store.upsertTemplate(state,template));
     }
 });
+
+test('CEP Node context also exports the template API to the browser window', () => {
+    const fs=require('fs'),vm=require('vm'); const context={window:{},module:{exports:{}}};
+    vm.createContext(context);vm.runInContext(fs.readFileSync(require.resolve('../client/js/template-store.js'),'utf8'),context);
+    assert.equal(typeof context.window.AEToolkitTemplates.defaultState,'function');
+    assert.equal(context.module.exports,context.window.AEToolkitTemplates);
+});

@@ -1911,5 +1911,50 @@ function aetoolkitCepSourceProjectColorSpace(file) {
             if (a === b) return app.project.workingSpace || "None";
         }
     } catch (error) {}
-    return "";
+    var opened = false;
+    try {
+        if (!file.exists) return "Unavailable (source project missing)";
+        if (file.length > 256 * 1024 * 1024) return "Unavailable (project exceeds inspection limit)";
+        var xml = /\.aepx$/i.test(file.name);
+        file.encoding = xml ? "UTF-8" : "BINARY";
+        opened = file.open("r");
+        if (!opened) return "Unavailable (cannot read source project)";
+        return aetoolkitCepParseProjectColor(file.read(), xml);
+    } catch (error) { return "Unavailable: " + error.message; }
+    finally { if (opened) file.close(); }
+}
+
+function aetoolkitCepParseProjectColor(data, xml) {
+    var mode = "", profile = "", cpid = "", payload = "", match, p, size, tag, previous = "";
+    if (xml) {
+        if (data.indexOf("<AfterEffectsProject") === -1) throw new Error("Not an AE XML project.");
+        // Restrict inspection to project settings, before metadata and footage records.
+        var boundary = data.indexOf("<ProjectXMPMetadata");
+        if (boundary < 0) throw new Error("Unsupported project settings layout.");
+        var header = data.substring(0, boundary);
+        match = /<pcms\s+bdata="([a-fA-F0-9]+)"\s*\/>/.exec(header); mode = match ? match[1] : "";
+        match = /<cpid\s+bdata="([a-fA-F0-9]+)"\s*\/>/.exec(header); cpid = match ? match[1].toLowerCase() : "";
+        match = /<PwCs\s+bdata="[a-fA-F0-9]+"\s*\/>\s*<string>([\s\S]*?)<\/string>/.exec(header);
+        if (match) payload = match[1].replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+    } else {
+        if (data.substr(0, 4) !== "RIFX" || data.substr(8, 4) !== "Egg!") throw new Error("Unsupported AE project format.");
+        function integer(at) { if (at + 4 > data.length) throw new Error("Truncated project."); return data.charCodeAt(at)*16777216 + data.charCodeAt(at+1)*65536 + data.charCodeAt(at+2)*256 + data.charCodeAt(at+3); }
+        var projectEnd = integer(4) + 8;
+        if (projectEnd > data.length) throw new Error("Truncated project.");
+        function utf8(value) { var encoded="", i, hex; for(i=0;i<value.length;i++){hex=value.charCodeAt(i).toString(16);encoded+="%"+(hex.length<2?"0":"")+hex;}return decodeURIComponent(encoded); }
+        for (p=12; p+8<=projectEnd; p+=8+size+size%2) {
+            tag=data.substr(p,4);size=integer(p+4);
+            if(p+8+size>projectEnd) throw new Error("Invalid project chunk.");
+            if(tag==="pcms" && size===1) mode=data.charCodeAt(p+8)===1?"01":"other";
+            if(tag==="cpid" && size===16) {cpid="";for(var i=0;i<16;i++){var h=data.charCodeAt(p+8+i).toString(16);cpid+=(h.length<2?"0":"")+h;}}
+            if(tag==="Utf8" && previous==="PwCs") {payload=utf8(data.substr(p+8,size));break;}
+            previous=tag;
+        }
+    }
+    if(mode!=="01") throw new Error("Unsupported or OCIO project color settings.");
+    if(!payload) throw new Error("Project working-space settings not found.");
+    var settings=AEToolkitJSON.parse(payload);
+    if(settings.baseColorProfile && settings.baseColorProfile.colorProfileName) return String(settings.baseColorProfile.colorProfileName);
+    if(cpid==="ffffffffffffffffffffffffffffffff") return "None";
+    throw new Error("Project working-space profile not found.");
 }
