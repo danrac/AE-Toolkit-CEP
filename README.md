@@ -28,6 +28,8 @@ The seven sections use an icon toolbar that docks to any edge. Drag its dotted h
 
 New composition names use `Job_Format_Style_Description_v01_Initials`, with initials last. Empty fields are omitted.
 
+Modify composition has its own format dropdown and compact Width, Height, and FPS fields, independent of Create. Size is enabled by default; enable FPS or Rename only when needed. Existing composition duration stays unchanged. Applying a preset size replaces Toolbox format guides with that preset’s guides. Other layers and unrelated user guide layers are preserved. Custom dimensions keep existing guides.
+
 The Create / Modify panel rebuilds the core composition tools without the legacy temporary-null resize workflow. Creating a comp validates its dimensions, frame rate, and duration before creating it. Editing selected comps writes only their width, height, frame rate, or requested name, preserving existing layers, parent relationships, and transforms.
 
 Project-item rename actions treat the search text literally, so names containing characters such as `[` and `.` are handled predictably. The solid conform action only changes selected `SolidSource` layers in the active composition.

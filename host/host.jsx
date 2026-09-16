@@ -986,9 +986,34 @@ function aetoolkitCepAddPresetGuides(comp, assets) {
         footage = aetoolkitCepGuideFootage(file);
         layer = comp.layers.add(footage);
         layer.guideLayer = true;
+        layer.comment = "Toolbox2:format-guide:" + keys[i];
         try { layer.transform.position.setValue([comp.width / 2, comp.height / 2]); } catch (positionError) {}
         if (keys[i] !== "matte") try { layer.opacity.setValue(50); } catch (opacityError) {}
     }
+}
+function aetoolkitCepPrepareGuideFiles(assets) {
+    var keys = ["matte", "chartOne", "chartTwo"], i, file;
+    for (i = 0; i < keys.length; i++) if (assets[keys[i]]) {
+        file = aetoolkitCepResolveGuideAsset(assets[keys[i]]);
+        if (!file.exists) throw new Error("Guide file is unavailable: " + file.fsName);
+        aetoolkitCepGuideFootage(file);
+    }
+}
+function aetoolkitCepReplacePresetGuides(comp, assets, knownAssets) {
+    var old = [], paths = {}, keys = ["matte", "chartOne", "chartTwo"], i, j, layer, file;
+    for (i = 0; i < knownAssets.length; i++) for (j = 0; j < keys.length; j++) {
+        if (knownAssets[i][keys[j]]) paths[aetoolkitCepResolveGuideAsset(knownAssets[i][keys[j]]).fsName] = true;
+    }
+    for (i = 1; i <= comp.numLayers; i++) {
+        layer = comp.layer(i);
+        if (String(layer.comment || "").indexOf("Toolbox2:format-guide:") === 0) old.push(layer);
+        else if (layer.guideLayer) {
+            try { file = layer.source.file; if (file && paths[file.fsName]) old.push(layer); } catch (ignoreError) {}
+        }
+    }
+    // Add the replacement before removing existing guides so a failed import preserves them.
+    aetoolkitCepAddPresetGuides(comp, assets);
+    for (i = 0; i < old.length; i++) { old[i].locked = false; old[i].remove(); }
 }
 function aetoolkitCepModifySelectedComps(jsonText) {
     try {
@@ -998,8 +1023,10 @@ function aetoolkitCepModifySelectedComps(jsonText) {
         comps = aetoolkitCepSelectedComps();
         app.beginUndoGroup("AE Toolkit CEP: Modify compositions");
         try {
+            if (updateSize && options.replaceGuides) aetoolkitCepPrepareGuideFiles(options.guideAssets || {});
             for (i = 0; i < comps.length; i++) {
                 if (updateSize) { comps[i].width = settings.width; comps[i].height = settings.height; }
+                if (updateSize && options.replaceGuides) aetoolkitCepReplacePresetGuides(comps[i], options.guideAssets || {}, options.knownGuideAssets || []);
                 if (updateFps) comps[i].frameRate = settings.fps;
                 if (renameBase) comps[i].name = renameBase + "_" + aetoolkitCepPadNumber(i + 1, 2);
             }

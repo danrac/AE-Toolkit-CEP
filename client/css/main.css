@@ -183,3 +183,6 @@ input, select, textarea { font-weight: 400; }
 .module-content { display: flex; flex-direction: column; overflow: hidden; border: 1px solid #647d94; border-radius: 5px; background: #191f26; }
 .section-title { flex-shrink: 0; padding: 8px; font-size: 14px; font-weight: 500; border-bottom: 1px solid #495b6c; background: #242c35; }
 .module-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 5px 5px; }
+
+.modify-settings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.modify-settings .comp-format { grid-column: 1 / -1; }

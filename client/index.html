@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.14">
+  <link rel="stylesheet" href="css/main.css?v=0.1.14-modify">
 </head>
 <body>
   <main class="app-shell">
@@ -112,15 +112,21 @@
         <button id="create-comp" class="primary">Create composition</button>
       </details>
       <details class="card module-panel" data-panel="modify-selected-compositions" open>
-        <summary>Modify selected compositions</summary>
+        <summary>Modify composition</summary>
+        <div class="field-grid modify-settings">
+          <label class="comp-format">Format<select id="modify-preset"></select></label>
+          <label>Width<input id="modify-width" type="number" min="1" max="30000" value="1920"></label>
+          <label>Height<input id="modify-height" type="number" min="1" max="30000" value="1080"></label>
+          <label>FPS<input id="modify-target-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
+        </div>
 
         <div class="toggle-grid compact-toggles">
-          <label title="Update selected composition sizes"><input id="modify-size" type="checkbox"> Size</label>
+          <label title="Update selected composition sizes"><input id="modify-size" type="checkbox" checked> Size</label>
           <label title="Update selected composition frame rates"><input id="modify-fps" type="checkbox"> FPS</label>
           <label title="Rename selected compositions"><input id="modify-name" type="checkbox"> Rename</label>
         </div>
-        <label>New base name<input id="modify-name-base" placeholder="Campaign_Main"></label>
-        <button id="modify-comps" class="primary">Modify selected comps</button>
+        <label>Name<input id="modify-name-base" placeholder="Campaign_Main"></label>
+        <button id="modify-comps" class="primary">Modify composition</button>
       </details>
       <details class="card module-panel" data-panel="rename-selected-project-items" open>
         <summary>Rename selected project items</summary>
@@ -325,9 +331,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.14"></script>
-  <script src="js/template-store.js?v=0.1.14"></script>
-  <script src="js/app.js?v=0.1.14"></script>
-  <script src="js/panel-state.js?v=0.1.14"></script>
+  <script src="js/CSInterface.js?v=0.1.14-modify"></script>
+  <script src="js/template-store.js?v=0.1.14-modify"></script>
+  <script src="js/app.js?v=0.1.14-modify"></script>
+  <script src="js/panel-state.js?v=0.1.14-modify"></script>
 </body>
 </html>
