@@ -306,3 +306,8 @@ console.log('PASS Terminal-escaped Mac screenshot paths and Windows separators i
 
 for (const absolute of ['/Users/example/file.png', 'C:/Jobs/file.png', String.raw`C:\Jobs\file.png`, String.raw`\\server\share\file.png`]) assert.equal(context.aetoolkitCepIsAbsolutePath(absolute), true);
 assert.equal(context.aetoolkitCepIsAbsolutePath('file.png'), false);
+
+const nameOptions = { job: 'ABA', format: 'HD', style: 'A', description: 'NewCard', initials: 'DR', namingOrder: ['job', 'style', 'description', 'format', 'version', 'initials'] };
+const namedComp = JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify(Object.assign({ width: 1920, height: 1080, fps: 24, duration: 10 }, nameOptions))));
+assert.equal(namedComp.name, 'ABA_A_NewCard_HD_01_DR');
+console.log('PASS comp creation uses custom template naming order');

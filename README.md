@@ -90,3 +90,7 @@ Asset import accepts absolute Mac paths, Windows drive and UNC paths, and Termin
 Project Reveal Folder and Import Assets buttons use the final folder name from the assigned template, including custom location labels. Saving a template refreshes those buttons and the connected-project paths immediately.
 
 Standalone module action buttons fill their row by default. Buttons grouped in toolbars, headers, or beside inputs retain their compact layout.
+
+## Template comp naming
+
+Under Templates → Edit template → Comp naming, move Job, Format, Style, Description, Version, and Initials earlier or later using the arrow buttons. The preview updates immediately; Save template stores that order with the folder mappings. Create composition uses the active connected project’s assigned template. Templates without a saved naming order retain the default with initials last. Empty name values are skipped, and existing composition names are not changed.

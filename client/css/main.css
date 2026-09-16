@@ -106,3 +106,10 @@ input[type="checkbox"] { padding: 0; flex-shrink: 0; }
 
 /* Folder actions retain one row regardless of the template folder count. */
 #reveal-actions, #import-actions { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+
+.naming-order { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+.naming-token { min-width: 0; padding: 4px; border: 1px solid #495b6c; border-radius: 4px; }
+.naming-token span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.naming-token > div { display: flex; gap: 3px; margin-top: 3px; }
+.naming-token button { flex: 1; padding: 0 3px; min-height: 24px; }
+.naming-preview { display: block; margin-top: 6px; padding: 6px; background: #11171d; color: #a7c9ee; overflow-wrap: anywhere; }

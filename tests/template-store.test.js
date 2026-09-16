@@ -55,3 +55,11 @@ for (const invalid of ['/Users/example/Assets', '//server/share', 'C:relative', 
     assert.throws(() => store.validateTemplate({ name: 'Unsafe', folders: { assets: invalid } }));
 }
 console.log('PASS Mac, Windows, UNC, and trailing traversal paths are rejected in templates');
+
+const customOrder = ['job', 'style', 'description', 'format', 'version', 'initials'];
+let namedState = store.upsertTemplate(store.defaultState(), { id: 'naming-test', name: 'Naming test', folders: {}, namingOrder: customOrder });
+namedState = JSON.parse(JSON.stringify(namedState));
+assert.deepEqual(store.namingOrder(namedState.templates[1]), customOrder);
+assert.deepEqual(store.namingOrder({}), ['job', 'format', 'style', 'description', 'version', 'initials']);
+assert.throws(() => store.namingOrder({ namingOrder: ['job', 'job', 'style', 'description', 'version', 'initials'] }));
+console.log('PASS template naming order persists and validates unique fields');

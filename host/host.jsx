@@ -874,15 +874,18 @@ function aetoolkitCepSafeName(value) {
     return String(value || "").replace(/^\s+|\s+$/g, "").replace(/[\\\/:*?"<>|\r\n]+/g, "").replace(/\s+/g, " ");
 }
 function aetoolkitCepBuildCompName(options, index) {
-    var parts = [], fields = [options.job, options.format, options.style, options.description], i;
-    for (i = 0; i < fields.length; i++) {
-        var part = aetoolkitCepSafeName(fields[i]);
+    var defaults = ["job", "format", "style", "description", "version", "initials"];
+    var order = options.namingOrder || defaults, parts = [], seen = {}, i, j, key, valid, part;
+    if (!(order instanceof Array) || order.length !== defaults.length) throw new Error("Invalid composition naming order.");
+    for (i = 0; i < order.length; i++) {
+        key = order[i]; valid = false;
+        for (j = 0; j < defaults.length; j++) if (defaults[j] === key) valid = true;
+        if (!valid || seen[key]) throw new Error("Each naming field must appear exactly once.");
+        seen[key] = true;
+        part = key === "version" ? aetoolkitCepPadNumber(index || 1, 2) : aetoolkitCepSafeName(options[key]);
         if (part) parts.push(part.replace(/\s+/g, "_"));
     }
-    if (!parts.length) parts.push("Comp");
-    parts.push(aetoolkitCepPadNumber(index || 1, 2));
-    var initials = aetoolkitCepSafeName(options.initials);
-    if (initials) parts.push(initials.replace(/\s+/g, "_"));
+    if (parts.length === 1 && !options.initials) parts.unshift("Comp");
     return parts.join("_");
 }
 function aetoolkitCepCompDimensions(options) {

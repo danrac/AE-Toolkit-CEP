@@ -18,7 +18,7 @@
     function copy(value) { return JSON.parse(JSON.stringify(value)); }
     function startTemplateDraft(template) {
         template = template || { id: "", name: "", folders: {}, customFolders: [] };
-        templateDraft = { id: template.id || "", name: template.name || "", folders: copy(template.folders || {}), customFolders: copy(template.customFolders || []) };
+        templateDraft = { id: template.id || "", name: template.name || "", folders: copy(template.folders || {}), customFolders: copy(template.customFolders || []), namingOrder: store.namingOrder(template) };
     }
     function renderTemplateSelect() { var select = byId("project-template"); select.innerHTML = ""; state.templates.forEach(function (template) { var option = document.createElement("option"); option.value = template.id; option.textContent = template.name; select.appendChild(option); }); }
     function renderTemplates() {
@@ -26,8 +26,28 @@
         state.templates.forEach(function (template) { var item = document.createElement("button"), title = document.createElement("strong"), detail = document.createElement("small"); item.className = "list-item"; title.textContent = template.name; detail.textContent = template.id; item.appendChild(title); item.appendChild(detail); item.onclick = function () { selectedTemplateId = template.id; startTemplateDraft(template); renderTemplateForm(); }; list.appendChild(item); });
         renderTemplateSelect();
     }
+    function renderNamingOrder() {
+        var labels = { job: "Job", format: "Format", style: "Style", description: "Description", version: "Version", initials: "Initials" };
+        var samples = { job: "ABA", format: "HD", style: "A", description: "NewCard", version: "01", initials: "DR" };
+        var container = byId("naming-order"); clearChildren(container);
+        templateDraft.namingOrder.forEach(function (key, index) {
+            var token = document.createElement("div"), label = document.createElement("span"), controls = document.createElement("div");
+            token.className = "naming-token";
+            label.textContent = (index + 1) + ". " + labels[key]; token.appendChild(label);
+            [-1, 1].forEach(function (direction) {
+                var button = document.createElement("button"); button.textContent = direction < 0 ? "←" : "→";
+                button.title = "Move " + labels[key] + (direction < 0 ? " earlier" : " later"); button.setAttribute("aria-label", button.title);
+                button.disabled = index + direction < 0 || index + direction >= templateDraft.namingOrder.length;
+                button.onclick = function () { var other = index + direction; templateDraft.namingOrder[index] = templateDraft.namingOrder[other]; templateDraft.namingOrder[other] = key; renderNamingOrder(); };
+                controls.appendChild(button);
+            });
+            token.appendChild(controls); container.appendChild(token);
+        });
+        byId("naming-preview").textContent = templateDraft.namingOrder.map(function (key) { return samples[key]; }).join("_");
+    }
     function renderTemplateForm() {
         var template = templateDraft || templateById(selectedTemplateId) || { id: "", name: "", folders: {}, customFolders: [] }; byId("template-name").value = template.name; byId("template-name").oninput = function () { templateDraft.name = byId("template-name").value; }; byId("template-form-title").textContent = template.id ? "Edit template" : "New template";
+        renderNamingOrder();
         var grid = byId("template-folders"); grid.innerHTML = "";
         store.FOLDER_KEYS.forEach(function (key) { var label = document.createElement("label"); label.textContent = folderLabels[key]; var input = document.createElement("input"); input.dataset.key = key; input.value = template.folders[key] || ""; input.placeholder = "Relative folder"; input.oninput = function () { templateDraft.folders[key] = input.value; }; label.appendChild(input); grid.appendChild(label); });
         template.customFolders.forEach(function (entry, index) { var row = document.createElement("div"), labelField = document.createElement("label"), pathField = document.createElement("label"), labelInput = document.createElement("input"), pathInput = document.createElement("input"), remove = document.createElement("button"); row.className = "custom-location"; labelField.textContent = "Custom name"; labelInput.value = entry.label; labelInput.oninput = function () { templateDraft.customFolders[index].label = labelInput.value; }; labelField.appendChild(labelInput); pathField.textContent = "Relative folder"; pathInput.value = entry.path; pathInput.oninput = function () { templateDraft.customFolders[index].path = pathInput.value; }; pathField.appendChild(pathInput); remove.textContent = "Remove"; remove.onclick = function () { templateDraft.customFolders.splice(index, 1); renderTemplateForm(); }; row.appendChild(labelField); row.appendChild(pathField); row.appendChild(remove); grid.appendChild(row); });
@@ -42,7 +62,7 @@
     function compPresets() { return store.compPresets(state); }
     function compPresetById(id) { return compPresets().filter(function (preset) { return preset.id === id; })[0]; }
     function presetFor(prefix) { return compPresetById(byId(prefix + "-preset").value); }
-    function compOptions() { var width = byId("comp-width").value, height = byId("comp-height").value, preset = presetFor("comp"); return { width: width, height: height, fps: byId("comp-fps").value, duration: byId("comp-duration").value, format: preset ? preset.name : width + "x" + height, guideAssets: preset && preset.assets || {}, addGuides: byId("comp-add-guides").checked, job: byId("comp-job").value, style: byId("comp-style").value, description: byId("comp-description").value, initials: byId("comp-initials").value }; }
+    function compOptions() { var width = byId("comp-width").value, height = byId("comp-height").value, preset = presetFor("comp"); return { namingOrder: store.namingOrder(activeProject() && templateById(activeProject().templateId)), width: width, height: height, fps: byId("comp-fps").value, duration: byId("comp-duration").value, format: preset ? preset.name : width + "x" + height, guideAssets: preset && preset.assets || {}, addGuides: byId("comp-add-guides").checked, job: byId("comp-job").value, style: byId("comp-style").value, description: byId("comp-description").value, initials: byId("comp-initials").value }; }
     function coverOptions() { var preset = presetFor("cover"); return { width: byId("cover-width").value, height: byId("cover-height").value, fps: byId("cover-fps").value, duration: byId("cover-duration").value, format: preset ? preset.name : byId("cover-width").value + "x" + byId("cover-height").value, topLine: byId("cover-top-line").value, bottomLine: byId("cover-bottom-line").value, date: byId("cover-date").value, spot: byId("cover-spot").value }; }
     function checkerOptions() { return { width: byId("checker-width").value, height: byId("checker-height").value, frame: byId("checker-frame").value }; }
     function renderFormatSelect(prefix) { var select = byId(prefix + "-preset"), selected = select.value; select.innerHTML = ""; compPresets().forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); }); var custom = document.createElement("option"); custom.value = "custom"; custom.textContent = "Custom"; select.appendChild(custom); select.value = compPresetById(selected) ? selected : compPresets()[0].id; }

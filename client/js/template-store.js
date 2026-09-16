@@ -12,6 +12,18 @@
         if (path.charAt(0) === "/" || /^[A-Za-z]:/.test(path) || /(^|\/)\.\.?($|\/)/.test(path)) throw new Error("Template folders must be relative paths without '..'.");
         return path;
     }
+    function namingOrder(template) {
+        var defaults = ["job", "format", "style", "description", "version", "initials"];
+        var order = template ? template.namingOrder : undefined;
+        if (order === undefined) return defaults;
+        if (!Array.isArray(order) || order.length !== defaults.length) throw new Error("Naming order must include all six fields.");
+        var seen = {};
+        order.forEach(function (key) {
+            if (defaults.indexOf(key) < 0 || seen[key]) throw new Error("Each naming field must appear exactly once.");
+            seen[key] = true;
+        });
+        return order.slice();
+    }
     function defaultCompPresets() {
         return [{ id: "hd", name: "HD", width: 1920, height: 1080, assets: {} }, { id: "uhd", name: "UHD", width: 3840, height: 2160, assets: {} }, { id: "square", name: "Square", width: 1080, height: 1080, assets: {} }, { id: "vertical", name: "Vertical", width: 1080, height: 1920, assets: {} }];
     }
@@ -34,7 +46,7 @@
             usedIds[id] = true;
             customFolders.push({ id: id, label: label, path: normalizeRelativePath(entry.path) });
         }
-        return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders, customFolders: customFolders };
+        return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders, customFolders: customFolders, namingOrder: namingOrder(template) };
     }
     function upsertTemplate(state, template) {
         var next = clone(state), normalized = validateTemplate(template), found = false;
@@ -97,5 +109,5 @@
         if (!found) presets.push(normalized);
         return next;
     }
-    return { FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
+    return { namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));
