@@ -99,3 +99,6 @@ input[type="checkbox"] { padding: 0; flex-shrink: 0; }
 .comp-settings { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .comp-settings .comp-format { grid-column: 1 / -1; }
 .comp-settings input { padding-left: 4px; padding-right: 2px; }
+
+.rename-fields .rename-operation { grid-column: 1 / -1; }
+.rename-fields [hidden] { display: none; }

@@ -120,16 +120,15 @@
       <article class="card">
         <h2>Rename selected project items</h2>
         <div class="field-grid rename-fields">
-          <label>Operation<select id="rename-operation">
+          <label class="rename-operation">Operation<select id="rename-operation">
             <option value="replace">Find and replace</option>
             <option value="prefix">Add prefix</option>
             <option value="suffix">Add suffix</option>
             <option value="number">Append sequence</option>
             <option value="remove">Remove text</option>
           </select></label>
-          <label>Find / value<input id="rename-find" placeholder="Old text or prefix"></label>
-          <label>Replace with<input id="rename-replace" placeholder="New text"></label>
-          <label>Start number<input id="rename-start" type="number" value="1" min="0" max="999999"></label>
+          <label id="rename-find-field"><span id="rename-find-label">Search</span><input id="rename-find" placeholder="Search"></label>
+          <label id="rename-replace-field">Replace<input id="rename-replace" placeholder="Replace"></label>
         </div>
         <button id="rename-selected" class="primary">Rename selected items</button>
       </article>
