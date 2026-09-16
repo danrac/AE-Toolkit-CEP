@@ -26,19 +26,19 @@
     function endDrag(event, cancel) {
         if (!dragging) return;
         var moved = dragging.moved; dragging = null; overlay.hidden = true; document.body.classList.remove("toolbar-dragging");
-        if (event && grip.hasPointerCapture(event.pointerId)) grip.releasePointerCapture(event.pointerId);
         if (!cancel && moved) dock(candidate(event));
     }
-    grip.addEventListener("pointerdown", function (event) { if (event.button !== 0) return; event.preventDefault(); grip.focus(); dragging = { x: event.clientX, y: event.clientY, moved: false }; grip.setPointerCapture(event.pointerId); });
-    grip.addEventListener("pointermove", function (event) {
+    // Use document mouse events: CEP can lose pointer capture inside docked panels.
+    grip.addEventListener("mousedown", function (event) { if (event.button !== 0) return; event.preventDefault(); grip.focus(); dragging = { x: event.clientX, y: event.clientY, moved: false }; });
+    document.addEventListener("mousemove", function (event) {
         if (!dragging) return;
         if (Math.abs(event.clientX - dragging.x) + Math.abs(event.clientY - dragging.y) < 5 && !dragging.moved) return;
         dragging.moved = true; overlay.hidden = false; document.body.classList.add("toolbar-dragging");
         var edge = candidate(event); overlay.querySelectorAll(".dock-target").forEach(function (target) { target.classList.toggle("selected", target.getAttribute("data-edge") === edge); });
     });
-    grip.addEventListener("pointerup", function (event) { endDrag(event, false); });
-    grip.addEventListener("pointercancel", function (event) { endDrag(event, true); });
-    grip.addEventListener("lostpointercapture", function () { endDrag(null, true); });
+    document.addEventListener("mouseup", function (event) { endDrag(event, false); });
+    window.addEventListener("blur", function () { endDrag(null, true); });
+    grip.addEventListener("dragstart", function (event) { event.preventDefault(); });
     grip.addEventListener("keydown", function (event) {
         var edges = { ArrowUp: "top", ArrowDown: "bottom", ArrowLeft: "left", ArrowRight: "right" };
         if (event.key === "Escape") { endDrag(null, true); return; }
