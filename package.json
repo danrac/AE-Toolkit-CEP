@@ -1,6 +1,6 @@
 {
   "name": "ae-toolkit-cep",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "scripts": {
     "test": "node tests/template-store.test.js && node tests/host-actions.test.js",

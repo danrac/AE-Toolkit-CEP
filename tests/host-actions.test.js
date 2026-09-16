@@ -295,3 +295,14 @@ console.log('PASS host reuses guide assets already stored for a format');
 // ExtendScript rejects unescaped slash delimiters inside regex character classes.
 assert.equal(context.aetoolkitCepSafeName('a/b:c'), 'abc');
 assert.ok(!source.includes(String.raw`[\\/`), 'Escape slash delimiters for the ExtendScript parser');
+
+importFiles['/assets/Screenshot 2026-09-15 at 3.52.14\u202fPM.png'] = true;
+const escapedScreenshot = String.raw`/assets/Screenshot\ 2026-09-15\ at\ 3.52.14` + '\u202fPM.png';
+assert.equal(JSON.parse(importContext.aetoolkitCepImportAssetPaths(escapedScreenshot)).imported, 1);
+assert.equal(importedAssets[importedAssets.length - 1], '/assets/Screenshot 2026-09-15 at 3.52.14\u202fPM.png');
+importFiles['C:/Jobs/My Clip.mov'] = true;
+assert.equal(JSON.parse(importContext.aetoolkitCepImportAssetPaths(String.raw`C:\Jobs\My Clip.mov`)).imported, 1);
+console.log('PASS Terminal-escaped Mac screenshot paths and Windows separators import');
+
+for (const absolute of ['/Users/example/file.png', 'C:/Jobs/file.png', String.raw`C:\Jobs\file.png`, String.raw`\\server\share\file.png`]) assert.equal(context.aetoolkitCepIsAbsolutePath(absolute), true);
+assert.equal(context.aetoolkitCepIsAbsolutePath('file.png'), false);

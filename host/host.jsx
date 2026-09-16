@@ -696,7 +696,12 @@ function aetoolkitCepCleanImportPath(value) {
     return path;
 }
 function aetoolkitCepIsAbsolutePath(path) {
-    return path.charAt(0) === "/" || path.substr(0, 2) === "\\\\" || path.length > 2 && path.charAt(1) === ":" && (path.charAt(2) === "/" || path.charAt(2) === "\\");
+    // Keep the branches separate: ExtendScript can mis-evaluate mixed logical chains.
+    if (path.charAt(0) === "/") return true;
+    if (path.substr(0, 2) === "\\\\") return true;
+    if (path.length < 3) return false;
+    if (path.charAt(1) !== ":") return false;
+    return path.charAt(2) === "/" || path.charAt(2) === "\\";
 }
 function aetoolkitCepJoinImportPath(folder, name) {
     while (folder.length && (folder.charAt(folder.length - 1) === "/" || folder.charAt(folder.length - 1) === "\\")) folder = folder.substring(0, folder.length - 1);
@@ -714,6 +719,15 @@ function aetoolkitCepImportAssetPaths(text) {
             var candidate = aetoolkitCepIsAbsolutePath(path) ? path : folderPath ? aetoolkitCepJoinImportPath(folderPath, path) : "";
             if (!candidate) { errors.push("Line " + (i + 1) + " needs an absolute path or a preceding folder path."); continue; }
             var file = new File(candidate);
+            // Try the literal path first. Terminal escapes spaces in dragged Mac paths.
+            // Never strip Windows separators or alter an existing literal filename.
+            if (!file.exists && !new Folder(candidate).exists && candidate.charAt(0) === "/" && candidate.substr(0, 2) !== "//") {
+                var unescaped = candidate.replace(/\\([ \t\u00a0\u202f])/g, "$1");
+                if (unescaped !== candidate && (new File(unescaped).exists || new Folder(unescaped).exists)) {
+                    candidate = unescaped;
+                    file = new File(candidate);
+                }
+            }
             if (!file.exists && new Folder(candidate).exists) { folderPath = candidate; continue; }
             var key = candidate.split("\\").join("/");
             if ($.os.indexOf("Win") !== -1) key = key.toLowerCase();
