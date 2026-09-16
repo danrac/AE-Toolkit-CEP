@@ -141,12 +141,14 @@
     <section id="covers-checkers" class="view">
       <article class="card">
         <h2>Create cover</h2>
-        <div class="field-grid">
-          <label>Format<select id="cover-preset"></select></label>
+        <div class="field-grid comp-settings">
+          <label class="comp-format">Format<select id="cover-preset"></select></label>
           <label>Width<input id="cover-width" type="number" min="1" max="30000" value="1920"></label>
           <label>Height<input id="cover-height" type="number" min="1" max="30000" value="1080"></label>
-          <label>Duration (seconds)<input id="cover-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
           <label>FPS<input id="cover-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
+          <label title="Duration in seconds">Dur. (s)<input aria-label="Duration in seconds" id="cover-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
+        </div>
+        <div class="field-grid">
           <label>Top line<input id="cover-top-line" placeholder="Top line"></label>
           <label>Bottom line<input id="cover-bottom-line" placeholder="Bottom line"></label>
           <label>Date<input id="cover-date" placeholder="September 15, 2026"></label>
