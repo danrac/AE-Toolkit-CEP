@@ -74,9 +74,6 @@ button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #tools .action-grid.animation-actions { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 #tools .action-grid.timing-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 #tools .card > .tool-icon { width: 100%; margin-top: 6px; }
-.module-help { margin: 5px 0; color: #9fb1c3; font-size: 10px; }
-.module-help summary { cursor: pointer; }
-.module-help .help { line-height: 1.4; margin: 4px 0; }
 :root { font-size: calc(9px + .48vw); }
 @media (min-width: 420px) { :root { font-size: 11px; } }
 @media (max-width: 360px) {

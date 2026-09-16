@@ -48,7 +48,6 @@
         </div>
         <div class="project-operation">
           <h3>Import assets</h3>
-          <details class="module-help"><summary>Help</summary><p class="help">Opens After Effects' import dialog in the selected folder.</p></details>
           <div id="import-actions" class="action-grid"></div>
         </div>
       </article>
@@ -72,14 +71,12 @@
     <section id="sourcing" class="view">
       <article class="card">
         <h2>Import asset paths</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Paste absolute files, file URLs, or a folder followed by file names. Use one item per line.</p></details>
         <textarea id="source-asset-paths" rows="8" placeholder="Paste full file paths, one per line. You can also paste a folder path followed by filenames."></textarea>
         <button id="source-import-assets" class="primary">Import assets</button>
         <p id="source-import-result" class="help" aria-live="polite"></p>
       </article>
       <article class="card">
         <h2>Import source AE projects</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Reads explicit After Effects project links from selected rendered footage. Review found projects before importing.</p></details>
         <button id="source-discover-projects">Discover selected sources</button>
         <div id="source-project-records" class="item-list"></div>
         <button id="source-import-projects" class="primary" disabled>Import selected source projects</button>
@@ -96,7 +93,6 @@
           <label>FPS<input id="comp-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
           <label>Duration (seconds)<input id="comp-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
         </div>
-        <details class="module-help"><summary>Help</summary><p class="help">The format label and name parts form a predictable composition name. Invalid filename characters are removed.</p></details>
         <div class="field-grid">
           <label>Job<input id="comp-job" placeholder="Job"></label>
           <label>Style<input id="comp-style" placeholder="Style"></label>
@@ -108,7 +104,6 @@
       </article>
       <article class="card">
         <h2>Modify selected compositions</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Directly changes the selected comps. It does not add temporary layers, re-parent layers, or alter existing transforms.</p></details>
         <div class="toggle-grid">
           <label><input id="modify-size" type="checkbox"> Update size</label>
           <label><input id="modify-fps" type="checkbox"> Update FPS</label>
@@ -135,7 +130,6 @@
       </article>
       <article class="card">
         <h2>Conform selected solids</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">With a composition active, resizes selected solid layers to its width and height. Nulls and non-solid footage are left untouched.</p></details>
         <button id="conform-solids">Conform selected solids to active comp</button>
       </article>
     </section>
@@ -143,7 +137,6 @@
     <section id="covers-checkers" class="view">
       <article class="card">
         <h2>Create cover</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Creates an editable native cover comp, so it is not dependent on a fragile Photoshop layer order.</p></details>
         <div class="field-grid">
           <label>Format<select id="cover-preset"></select></label>
           <label>Width<input id="cover-width" type="number" min="1" max="30000" value="1920"></label>
@@ -159,7 +152,6 @@
       </article>
       <article class="card">
         <h2>Create checkers from selected comps</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Select comps in the Project panel. Each checker holds on the chosen source frame and adds editable frame information.</p></details>
         <div class="field-grid">
           <label>Format<select id="checker-preset"></select></label>
           <label>Width<input id="checker-width" type="number" min="1" max="30000" value="1920"></label>
@@ -167,14 +159,12 @@
           <label>Frame to hold<input id="checker-frame" type="number" min="0" max="999999" value="10"></label>
         </div>
         <button id="create-checkers" class="primary">Create checkers</button>
-        <details class="module-help"><summary>Help</summary><p class="help">To render them, select the new checker comps and use <strong>Projects → Render to outputs → Checker</strong>. Existing render-queue items are preserved.</p></details>
       </article>
     </section>
 
     <section id="cleanup-collect" class="view">
       <article class="card">
         <h2>Project maintenance</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Each action uses After Effects’ native project operations and is one undo step. Select project items before reducing; reduce removes unselected dependencies.</p></details>
         <div class="action-grid maintenance-grid">
           <button id="consolidate-footage">Consolidate footage</button>
           <button id="remove-unused">Remove unused</button>
@@ -183,7 +173,6 @@
       </article>
       <article class="card">
         <h2>Organize project</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Selected Project-panel items remain at the root after organizing. Selected folders keep their contents unchanged. The operation never deletes existing folders.</p></details>
         <label>Organizer preset<select id="organizer-preset">
           <option value="basic">Basic project folders</option>
           <option value="dms-16x9">DMS · 16 × 9</option>
@@ -196,12 +185,10 @@
       </article>
       <article class="card">
         <h2>Localize selected assets</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Copies selected file-based footage into the active project’s mapped Assets/Localized folder, then relinks those footage items. Existing files are never overwritten; image sequences are skipped.</p></details>
         <button id="localize-assets">Localize selected assets</button>
       </article>
       <article class="card">
         <h2>Collect project</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Opens After Effects’ native Collect Files dialog. There you can choose the scope and destination, including sequences and proxies.</p></details>
         <button id="collect-project" class="primary">Open Collect Files</button>
       </article>
     </section>
@@ -209,7 +196,6 @@
     <section id="tools" class="view">
       <article class="card">
         <h2>Composition timing</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Select compositions in the Project panel. Frame changes preserve a minimum one-frame duration.</p></details>
         <div class="action-grid maintenance-grid timing-actions">
           <button data-comp-frame-change="-10">−10 frames</button>
           <button data-comp-frame-change="-1">−1 frame</button>
@@ -227,7 +213,6 @@
       </article>
       <article class="card">
         <h2>Animation and layers</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Use an active composition and selected layers. Fades add opacity keyframes over the requested number of frames.</p></details>
         <label>Fade frames<input id="tool-fade-frames" type="number" min="1" max="9999" value="10"></label>
         <div class="action-grid maintenance-grid animation-actions">
           <button id="fade-in" class="tool-icon" title="Fade in" aria-label="Fade in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19 21 5v14z"/></svg></button>
@@ -252,7 +237,6 @@
       </article>
       <article class="card">
         <h2>Transfer transform</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Copies selected properties from the last selected layer to the other selected layers. Animated properties receive a key at the current time.</p></details>
         <div class="toggle-grid compact-toggles">
           <label><input id="transfer-position" type="checkbox" checked> Position</label>
           <label><input id="transfer-scale" type="checkbox" checked> Scale</label>
@@ -262,7 +246,6 @@
       </article>
       <article class="card">
         <h2>Replace selected text</h2>
-        <details class="module-help"><summary>Help</summary><p class="help">Updates selected text layers at the current comp time. Existing animated text receives a keyframe at that time.</p></details>
         <textarea id="tool-replace-text" rows="3" placeholder="Replacement text"></textarea>
         <button id="replace-text" class="primary tool-icon" title="Replace selected text" aria-label="Replace selected text"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h12M9 5v14M5 19h8M16 10h5m-2-2 2 2-2 2M21 16h-5m2-2-2 2 2 2"/></svg></button>
       </article>
@@ -294,7 +277,6 @@
       <article class="card">
         <h2 id="template-form-title">Edit template</h2>
         <label>Template name<input id="template-name" placeholder="Default Motion Project"></label>
-        <details class="module-help"><summary>Help</summary><p class="help">Use paths relative to the project root.</p></details>
         <div id="template-folders" class="folder-grid"></div>
         <button id="add-custom-folder" class="quiet add-folder">Add custom location</button>
         <button id="save-template" class="primary">Save template</button>

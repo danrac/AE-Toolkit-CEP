@@ -4,7 +4,7 @@ A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox
 
 ## Compact panel
 
-The seven sections use an icon toolbar at the top. Hover an icon for its name; the heading identifies the active section. Tool actions also use labeled icons, with smaller controls and consistent card spacing. Rows keep their column count as the panel narrows, while field widths, spacing, and type shrink to fit. Longer instructions live under each module’s **Help** disclosure. The panel scrolls vertically.
+The seven sections use an icon toolbar at the top. Hover an icon for its name; the heading identifies the active section. Tool actions also use labeled icons, with smaller controls and consistent card spacing. Rows keep their column count as the panel narrows, while field widths, spacing, and type shrink to fit. The panel scrolls vertically.
 
 ## Current foundation
 
