@@ -1,4 +1,4 @@
-# AE Toolkit CEP
+# Toolbox 2
 
 A separate CEP-panel implementation of AE Toolkit. The existing ScriptUI Toolbox repository remains independent.
 

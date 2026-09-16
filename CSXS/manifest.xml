@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.danrac.aetoolkit.cep" ExtensionBundleVersion="0.1.12" ExtensionBundleName="AE Toolkit CEP">
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.danrac.aetoolkit.cep" ExtensionBundleVersion="0.1.12" ExtensionBundleName="Toolbox 2">
   <ExtensionList>
     <Extension Id="com.danrac.aetoolkit.cep.panel" Version="0.1.12" />
   </ExtensionList>
@@ -26,7 +26,7 @@
         </Lifecycle>
         <UI>
           <Type>Panel</Type>
-          <Menu>AE Toolkit CEP</Menu>
+          <Menu>Toolbox 2</Menu>
           <Geometry>
             <Size>
               <Width>420</Width>
