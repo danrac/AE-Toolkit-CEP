@@ -1,11 +1,36 @@
 (function () {
     var store = window.AEToolkitTemplates, cs = new CSInterface(), state = store.defaultState(), selectedTemplateId = state.templates[0].id, selectedCompPresetId = state.compPresets[0].id, templateDraft, compPresetDraft, sourceDiscovery = null;
-    var customCheckerPresets = [], checkerLibraryRoot = "";
+    var customCheckerPresets = [], checkerLibraryRoot = "", libraryReady = false;
     try { checkerLibraryRoot = window.localStorage.getItem("toolbox2.template-library") || ""; } catch (ignoreLibraryPreference) {}
     var folderLabels = { afterEffects: "AE Projects", assets: "Assets", toGfx: "Graphic In", outputs: "Graphic Out", styleFrames: "Style Frames" };
     function byId(id) { return document.getElementById(id); }
     function status(message, error) { var target = byId("status"); target.textContent = message; target.style.color = error ? "#ff9d9d" : "#91d0a4"; ["format-dialog", "custom-format-dialog"].forEach(function (id) { var dialog = byId(id); if (dialog && dialog.open) byId(id === "format-dialog" ? "format-dialog-status" : "custom-format-status").textContent = message; }); }
-    function callHost(name, argument, callback) { var setup = "", root = cs.getExtensionPath(); if (root) setup = "AEToolkitHostDirectory = new Folder(" + JSON.stringify(root + "/host") + ").fsName;"; cs.evalScript(setup + name + "(" + JSON.stringify(argument || "") + ")", callback); }
+    function callHost(name, argument, callback) {
+        if (name === "aetoolkitCepSaveState" && !libraryReady) { callback("ERROR: Library unavailable. Refresh or choose a library before saving."); return; }
+        var setup = "AEToolkitLibraryRoot = " + JSON.stringify(checkerLibraryRoot) + ";", root = cs.getExtensionPath();
+        if (root) setup += "AEToolkitHostDirectory = new Folder(" + JSON.stringify(root + "/host") + ").fsName;";
+        function execute(release) {
+            try {
+                cs.evalScript(setup + name + "(" + JSON.stringify(argument || "") + ")", function (result) {
+                    if (name === "aetoolkitCepSaveState" && result === "OK") state.libraryRevision = Number(state.libraryRevision || 0) + 1;
+                    if (release) try { release(); } catch (error) { status("Saved, but library lock cleanup failed: " + error.message, true); }
+                    if (callback) callback(result);
+                });
+            } catch (error) { if (release) release(); if (callback) callback("ERROR: " + error.message); }
+        }
+        if (name !== "aetoolkitCepSaveState") { execute(); return; }
+        cs.evalScript(setup + "aetoolkitCepStatePath()", function (path) {
+            var release;
+            try {
+                if (!path || path.indexOf("ERROR:") === 0) throw new Error(path || "Library path unavailable.");
+                var nodeRequire = window.cep_node && window.cep_node.require || window.require;
+                if (!nodeRequire) throw new Error("Library locking requires the updated extension. Restart After Effects after installing it.");
+                release = nodeRequire(root + "/client/js/library-lock.js").acquire(path);
+            } catch (error) { if (callback) callback("ERROR: " + error.message); return; }
+            execute(release);
+        });
+    }
+
     function save(onSaved) { callHost("aetoolkitCepSaveState", JSON.stringify(state), function (result) { if (result === "OK") { if (onSaved) onSaved(); } else status(result || "Could not save project templates.", true); }); }
     function templateById(id) { return state.templates.filter(function (template) { return template.id === id; })[0]; }
     function projectById(id) { return state.projects.filter(function (project) { return project.id === id; })[0]; }
@@ -172,22 +197,25 @@
     function renderSourceDiscovery() {
         var list = byId("source-project-records"), importButton = byId("source-import-projects"); clearChildren(list);
         if (!sourceDiscovery) { importButton.disabled = true; return; }
-        (sourceDiscovery.records || []).forEach(function (record) { var row = document.createElement("label"), check = document.createElement("input"), detail = document.createElement("div"), name = document.createElement("strong"), path = document.createElement("small"); row.className = "source-record"; check.type = "checkbox"; check.value = record.path; check.checked = record.exists; check.disabled = !record.exists; name.textContent = record.exists ? "Found" : "Missing"; path.textContent = record.path; detail.appendChild(name); detail.appendChild(path); row.appendChild(check); row.appendChild(detail); list.appendChild(row); });
+        (sourceDiscovery.records || []).forEach(function (record) { var row = document.createElement("label"), check = document.createElement("input"), detail = document.createElement("div"), name = document.createElement("strong"), path = document.createElement("small"); row.className = "source-record"; check.type = "checkbox"; check.value = record.path; check.checked = record.exists; check.disabled = !record.exists; name.textContent = record.exists ? "Found" : "Missing"; path.textContent = record.path; detail.appendChild(name); detail.appendChild(path); var color = document.createElement("small"); color.textContent = "Project color space: " + (record.colorSpace || "Unavailable without opening the source project"); detail.appendChild(color); row.appendChild(check); row.appendChild(detail); list.appendChild(row); });
         (sourceDiscovery.notices || []).forEach(function (notice) { var note = document.createElement("small"); note.textContent = notice; list.appendChild(note); });
         importButton.disabled = !(sourceDiscovery.records || []).some(function (record) { return record.exists; });
     }
     function renderActiveProject() {
         renderCompNamingFields();
         var select = byId("active-project"), project = activeProject(), ids = ["open-project-file", "reveal-project-root", "remove-project", "choose-render-subfolder"];
-        clearChildren(select); state.projects.forEach(function (entry) { var option = document.createElement("option"); option.value = entry.id; option.textContent = entry.name; select.appendChild(option); });
-        if (project) { if (state.activeProjectId !== project.id) state.activeProjectId = project.id; select.value = project.id; }
+        var query = byId("project-search").value.toLowerCase().trim();
+        clearChildren(select); var matches = state.projects.filter(function (entry) { return !query || (entry.name + " " + entry.root).toLowerCase().indexOf(query) !== -1; });
+        var prompt = document.createElement("option"); prompt.value = ""; prompt.textContent = matches.length ? "Select project" : "No matching projects"; select.appendChild(prompt);
+        matches.forEach(function (entry) { var option = document.createElement("option"); option.value = entry.id; option.textContent = entry.name; select.appendChild(option); });
+        if (project) { if (state.activeProjectId !== project.id) state.activeProjectId = project.id; select.value = matches.some(function (entry) { return entry.id === project.id; }) ? project.id : ""; }
         select.disabled = !project;
         for (var i = 0; i < ids.length; i++) byId(ids[i]).disabled = !project;
         byId("render-subfolder").disabled = !project;
         document.querySelectorAll("[data-render-mode]").forEach(function (button) { button.disabled = !project; });
 
     }
-    function load() { callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets().length ? compPresets()[0].id : ""; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Ready."); refreshCheckerLibrary(); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Using the default template: " + error.message, true); } }); }
+    function load() { libraryReady = false; callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); libraryReady = true; if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets().length ? compPresets()[0].id : ""; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Ready."); refreshCheckerLibrary(); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Library could not be loaded. Saving is disabled: " + error.message, true); } }); }
     document.querySelectorAll(".tab").forEach(function (tab) { tab.onclick = function () { document.querySelectorAll(".tab, .view").forEach(function (entry) { entry.classList.remove("active"); }); document.querySelectorAll(".tab").forEach(function (button) { button.setAttribute("aria-pressed", button === tab ? "true" : "false"); }); tab.classList.add("active"); document.querySelector("h1").textContent = tab.getAttribute("aria-label"); byId(tab.dataset.view).classList.add("active"); }; });
     byId("add-naming-field").onclick = function () { editNamingField(-1); };
     byId("naming-preset").onchange = function () { var id = this.value, preset = namingPresets().filter(function (entry) { return entry.id === id; })[0]; if (preset) { templateDraft.namingFields = copy(preset.namingFields); renderNamingOrder(); } };
@@ -219,8 +247,9 @@
     byId("cancel-custom-dialog").onclick = function () { byId("custom-format-dialog").close(); };
     byId("new-custom-preset").onclick = function () { byId("custom-format-status").textContent = ""; byId("custom-format-detail").textContent = ""; byId("custom-format-dialog").showModal(); };
     byId("edit-comp-preset").onclick = function () { var preset = compPresetById(byId("saved-comp-preset").value); if (!preset) return; startCompPresetDraft(preset); renderCompPresetForm(); if (preset.kind === "custom-checker") { byId("custom-format-detail").textContent = preset.name + " · " + preset.width + " × " + preset.height + ". Capture selected comps to save a new version."; byId("custom-format-dialog").showModal(); } else byId("format-dialog").showModal(); };
-    byId("choose-checker-library").onclick = function () { callHost("aetoolkitCepChooseCheckerLibrary", "", function (path) { if (!path) return; customCheckerPresets = []; checkerLibraryRoot = path; try { window.localStorage.setItem("toolbox2.template-library", path); } catch (error) { status("Could not save library preference.", true); } refreshCheckerLibrary(); }); };
-    byId("refresh-checker-library").onclick = function () { refreshCheckerLibrary(function () { status("Library refreshed."); }); };
+    byId("choose-checker-library").onclick = function () { callHost("aetoolkitCepChooseCheckerLibrary", "", function (path) { if (!path) return; customCheckerPresets = []; checkerLibraryRoot = path; try { window.localStorage.setItem("toolbox2.template-library", path); } catch (error) { status("Could not save library preference.", true); } load(); }); };
+    byId("refresh-checker-library").onclick = function () { load(); };
+    byId("use-local-library").onclick = function () { checkerLibraryRoot = ""; customCheckerPresets = []; try { window.localStorage.removeItem("toolbox2.template-library"); } catch (ignore) {} load(); };
     byId("capture-custom-checkers").onclick = function () { var button = this; button.disabled = true; status("Copying selected checker templates and media…"); callHost("aetoolkitCepCaptureCheckerTemplates", JSON.stringify({libraryRoot:checkerLibraryRoot}), function (result) { button.disabled = false; try { var summary = JSON.parse(result); refreshCheckerLibrary(function () { byId("custom-format-dialog").close(); status("Saved " + summary.captured + " checker template(s)."); }); } catch (error) { status(result || error.message, true); } }); };
     byId("saved-comp-preset").onchange = function () { selectedCompPresetId = byId("saved-comp-preset").value; startCompPresetDraft(compPresetById(selectedCompPresetId)); renderCompPresetForm(); };
     byId("new-comp-preset").onclick = function () { startCompPresetDraft(); renderCompPresetForm(); byId("format-dialog-status").textContent = ""; byId("format-dialog").showModal(); };
@@ -268,7 +297,8 @@
     byId("transfer-transform").onclick = function () { callHost("aetoolkitCepTransferTransform", JSON.stringify({ position: byId("transfer-position").checked, scale: byId("transfer-scale").checked, rotation: byId("transfer-rotation").checked }), function (result) { try { var summary = JSON.parse(result); status("Updated " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("replace-text").onclick = function () { callHost("aetoolkitCepReplaceSelectedText", byId("tool-replace-text").value, function (result) { try { var summary = JSON.parse(result); status("Updated " + summary.changed + " text layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("connect-project").onclick = function () { try { var name = byId("project-name").value, root = byId("project-root").value; state = store.assignProject(state, { name: name, root: root, templateId: byId("project-template").value }); var matched = state.projects.filter(function (project) { return project.name === name && project.root === String(root).replace(/\\/g, "/").replace(/\/+$/g, ""); })[0]; state = store.setActiveProject(state, matched.id); save(function () { renderProjects(); renderActiveProject(); status("Project added."); }); } catch (error) { status(error.message, true); } };
-    byId("active-project").onchange = function () { try { state = store.setActiveProject(state, byId("active-project").value); save(function () { renderProjects(); renderActiveProject(); status("Project selected."); }); } catch (error) { status(error.message, true); } };
+    byId("project-search").oninput = function () { renderActiveProject(); };
+    byId("active-project").onchange = function () { if (!this.value) return; try { state = store.setActiveProject(state, byId("active-project").value); byId("project-search").value = ""; save(function () { renderProjects(); renderActiveProject(); status("Project selected."); }); } catch (error) { status(error.message, true); } };
     byId("remove-project").onclick = function () { var project = activeProject(); if (!project) return; try { state = store.removeProject(state, project.id); save(function () { renderProjects(); renderActiveProject(); status("Project removed."); }); } catch (error) { status(error.message, true); } };
     byId("open-project-file").onclick = function () { var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id); if (paths) callHost("aetoolkitCepOpenProjectFromFolder", paths.afterEffects, function (result) { showHostResult(result); }); };
     byId("reveal-project-root").onclick = function () { var project = activeProject(); if (project) callHost("aetoolkitCepRevealFolder", project.root, function (result) { showHostResult(result, "Opened " + project.root); }); };

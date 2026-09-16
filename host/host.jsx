@@ -1,6 +1,12 @@
+var AEToolkitLibraryRoot = "";
 // Capture the extension location while this file is loaded, not during later evalScript calls.
 var AEToolkitHostDirectory = (typeof $ !== "undefined" && $.fileName && typeof File !== "undefined") ? new File($.fileName).parent.fsName : "";
 function aetoolkitCepResolveGuideAsset(path) {
+    if (String(path).indexOf("library:") === 0) {
+        var relative = String(path).substring(8);
+        if (!relative || /(^|[\\\/])\.\.([\\\/]|$)/.test(relative) || aetoolkitCepIsAbsolutePath(relative)) throw new Error("Invalid library guide path.");
+        return new File((AEToolkitLibraryRoot ? aetoolkitCepCheckerLibraryRoot(AEToolkitLibraryRoot).fsName : aetoolkitCepDataFolder().fsName) + "/" + relative);
+    }
     if (String(path).indexOf("bundled:") !== 0) return new File(path);
     var name = String(path).substring(8);
     if (!/^[a-zA-Z0-9_.-]+$/.test(name) || name.indexOf("..") !== -1 || !AEToolkitHostDirectory) throw new Error("Invalid bundled guide path.");
@@ -549,14 +555,18 @@ function aetoolkitCepDataFolder() {
     if (!folder.exists && !folder.create()) throw new Error("Cannot create " + folder.fsName);
     return folder;
 }
-function aetoolkitCepStateFile() { return new File(aetoolkitCepDataFolder().fsName + "/project-templates.json"); }
+function aetoolkitCepStateFile() {
+    return new File((AEToolkitLibraryRoot ? aetoolkitCepCheckerLibraryRoot(AEToolkitLibraryRoot).fsName : aetoolkitCepDataFolder().fsName) + "/project-templates.json");
+}
 function aetoolkitCepDefaultState() {
     return '{"version":1,"templates":[{"id":"default-motion","name":"Default Motion Project","folders":{"afterEffects":"After Effects","assets":"Assets","toGfx":"Incoming","outputs":"Outputs","styleFrames":"Outputs/Style Frames"},"customFolders":[]}],"projects":[],"activeProjectId":""}';
 }
 function aetoolkitCepLoadState() {
     try {
         var file = aetoolkitCepStateFile();
+        if (new File(file.fsName + ".lock").exists) throw new Error("Library is being saved. Refresh after the save finishes.");
         if (!file.exists) return aetoolkitCepDefaultState();
+        file.encoding = "UTF-8";
         if (!file.open("r")) throw new Error("Cannot read saved templates.");
         var text = file.read(); file.close();
         AEToolkitJSON.parse(text);
@@ -568,7 +578,17 @@ function aetoolkitCepSaveState(jsonText) {
         var parsed = AEToolkitJSON.parse(jsonText);
         if (!parsed.templates || !(parsed.templates instanceof Array) || parsed.templates.length === 0 || !parsed.projects || !(parsed.projects instanceof Array)) throw new Error("Invalid project-template data.");
         var file = aetoolkitCepStateFile();
+        if (file.exists) {
+            file.encoding = "UTF-8";
+            if (!file.open("r")) throw new Error("Cannot check the latest library revision.");
+            var latestText = file.read(); file.close();
+            var latest = AEToolkitJSON.parse(latestText);
+            if (Number(latest.libraryRevision || 0) !== Number(parsed.libraryRevision || 0)) throw new Error("Library changed on another computer. Refresh library before saving your changes.");
+        }
+        parsed.libraryRevision = Number(parsed.libraryRevision || 0) + 1;
+        jsonText = AEToolkitJSON.stringify(parsed);
         var temp = new File(file.fsName + ".tmp");
+        temp.encoding = "UTF-8";
         if (!temp.open("w")) throw new Error("Cannot prepare template save.");
         if (!temp.write(jsonText)) { temp.close(); throw new Error("Cannot write template data."); }
         temp.close();
@@ -824,7 +844,7 @@ function aetoolkitCepDiscoverSourceProjects() {
                 if (!file) { notices.push(item.name + ": project link is not an absolute .aep or .aepx path."); continue; }
                 var key = file.fsName;
                 if ($.os.indexOf("Win") !== -1) key = key.toLowerCase();
-                if (!seen[key]) { seen[key] = true; records.push({ path: file.fsName, exists: file.exists }); }
+                if (!seen[key]) { seen[key] = true; records.push({ path: file.fsName, exists: file.exists, colorSpace: aetoolkitCepSourceProjectColorSpace(file) }); }
             }
             for (j = 0; j < result.notices.length; j++) notices.push(item.name + ": " + result.notices[j]);
         }
@@ -973,7 +993,11 @@ function aetoolkitCepStorePresetAssets(jsonText) {
     try {
         var options = AEToolkitJSON.parse(jsonText), assets = options.assets || {}, folder = aetoolkitCepPresetAssetFolder(options.id, options.libraryRoot), saved = {};
         var keys = aetoolkitCepGuideKeys(assets), i;
-        for (i = 0; i < keys.length; i++) saved[keys[i]] = assets[keys[i]] ? aetoolkitCepCopyPresetAsset(folder, assets[keys[i]], keys[i]) : "";
+        for (i = 0; i < keys.length; i++) {
+            var stored = assets[keys[i]] ? aetoolkitCepCopyPresetAsset(folder, assets[keys[i]], keys[i]) : "";
+            var base = options.libraryRoot ? aetoolkitCepCheckerLibraryRoot(options.libraryRoot).fsName : aetoolkitCepDataFolder().fsName;
+            saved[keys[i]] = stored.indexOf(base + "/") === 0 ? "library:" + stored.substring(base.length + 1) : stored;
+        }
         return AEToolkitJSON.stringify(saved);
     } catch (error) { return "ERROR: " + error.toString(); }
 }
@@ -1870,4 +1894,22 @@ function aetoolkitCepConformCompSolids(comp, selected) {
         } finally { layer.locked = locked; }
     }
     return count;
+}
+
+function aetoolkitCepStatePath() {
+    try { return aetoolkitCepStateFile().fsName; }
+    catch (error) { return "ERROR: " + error.toString(); }
+}
+
+function aetoolkitCepSourceProjectColorSpace(file) {
+    // Never substitute footage/output profiles for the source project's working space.
+    try {
+        var current = app.project.file;
+        if (current) {
+            var a = current.fsName, b = file.fsName;
+            if ($.os.indexOf("Win") !== -1) { a = a.toLowerCase(); b = b.toLowerCase(); }
+            if (a === b) return app.project.workingSpace || "None";
+        }
+    } catch (error) {}
+    return "";
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.danrac.aetoolkit.cep" ExtensionBundleVersion="0.1.18" ExtensionBundleName="Toolbox 2">
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.danrac.aetoolkit.cep" ExtensionBundleVersion="0.1.19" ExtensionBundleName="Toolbox 2">
   <ExtensionList>
-    <Extension Id="com.danrac.aetoolkit.cep.panel" Version="0.1.18" />
+    <Extension Id="com.danrac.aetoolkit.cep.panel" Version="0.1.19" />
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
@@ -20,6 +20,7 @@
         <Resources>
           <MainPath>./client/index.html</MainPath>
           <ScriptPath>./host/host.jsx</ScriptPath>
+          <CEFCommandLine><Parameter>--enable-nodejs</Parameter></CEFCommandLine>
         </Resources>
         <Lifecycle>
           <AutoVisible>true</AutoVisible>

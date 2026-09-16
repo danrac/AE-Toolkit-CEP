@@ -1,9 +1,9 @@
 {
   "name": "ae-toolkit-cep",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "private": true,
   "scripts": {
-    "test": "node scripts/check-extendscript.mjs && node tests/template-store.test.js && node tests/host-actions.test.js && node tests/custom-checkers.test.js",
+    "test": "node scripts/check-extendscript.mjs && node tests/template-store.test.js && node tests/host-actions.test.js && node tests/custom-checkers.test.js && node tests/shared-library.test.js && node tests/library-lock.test.js",
     "package:stage": "node scripts/stage-extension.mjs",
     "package:zxp": "node scripts/package-zxp.mjs",
     "release:check": "node scripts/check-extendscript.mjs && node scripts/release-check.mjs"

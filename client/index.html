@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.18">
+  <link rel="stylesheet" href="css/main.css?v=0.1.19">
 </head>
 <body>
   <main class="app-shell">
     <header>
       <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-      <span class="badge">0.1.18 Alpha</span>
+      <span class="badge">0.1.19 Alpha</span>
     </header>
 
     <div class="toolkit-workspace" data-dock="top">
@@ -31,6 +31,7 @@
     <section id="projects" class="view active">
       <details class="card connected-projects module-panel" data-panel="connected-projects">
         <summary>Current project</summary>
+        <input id="project-search" type="search" placeholder="Search projects" aria-label="Search projects">
         <div class="current-project-selector">
           <select id="active-project" aria-label="Current project"></select>
           <button id="refresh-projects" class="quiet">Refresh</button>
@@ -70,7 +71,7 @@
       <details class="card module-panel" data-panel="import-source-ae-projects" open>
         <summary>Import source AE projects</summary>
 
-        <button id="source-discover-projects">Discover selected sources</button>
+        <button id="source-discover-projects" title="Find AE project links in selected rendered images or videos, including XMP sidecars">Discover selected sources</button>
         <div id="source-project-records" class="item-list"></div>
         <button id="source-import-projects" class="primary" disabled>Import selected source projects</button>
       </details>
@@ -256,12 +257,16 @@
     </section>
 
     <section id="templates" class="view">
+      <details class="card module-panel" data-panel="shared-resources" open>
+        <summary>Shared resources</summary>
+        <div class="input-action folder-action"><label>Shared templates<input id="checker-library-root" readonly placeholder="Local library (default)"></label><button id="choose-checker-library">Browse</button></div>
+        <div class="project-actions"><button id="refresh-checker-library">Refresh library</button><button id="use-local-library">Use local library</button></div>
+        <p class="help">Projects, project presets, naming presets, aspect ratios, and checker templates use this library. Local storage is the default.</p>
+      </details>
       <details class="card module-panel" data-panel="composition-formats" open>
         <summary>Create aspect ratio presets</summary>
         <div class="naming-presets"><select id="saved-comp-preset" aria-label="Composition format"></select><button id="edit-comp-preset">Edit</button><button id="remove-comp-preset">Remove</button></div>
         <div class="project-actions"><button id="new-comp-preset">Create General</button><button id="new-custom-preset">Create Custom</button></div>
-        <div class="input-action folder-action"><label>Template library<input id="checker-library-root" readonly placeholder="Local library"></label><button id="choose-checker-library">Choose</button></div>
-        <button id="refresh-checker-library">Refresh library</button>
       </details>
       <details class="card module-panel" data-panel="edit-template" open>
         <summary id="template-form-title">Create project presets</summary>
@@ -344,9 +349,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.18"></script>
-  <script src="js/template-store.js?v=0.1.18"></script>
-  <script src="js/app.js?v=0.1.18"></script>
-  <script src="js/panel-state.js?v=0.1.18"></script>
+  <script src="js/CSInterface.js?v=0.1.19"></script>
+  <script src="js/template-store.js?v=0.1.19"></script>
+  <script src="js/app.js?v=0.1.19"></script>
+  <script src="js/panel-state.js?v=0.1.19"></script>
 </body>
 </html>

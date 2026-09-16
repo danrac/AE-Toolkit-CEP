@@ -351,3 +351,20 @@ console.log('PASS custom fields, version format, removal and order reach comp cr
     assert.deepEqual(anchor.value,[540,960]); assert.equal(layer.locked,true); assert(removed);
     console.log('PASS comp solid conform creates independent sources, preserves locks, and shifts anchor center');
 }
+
+{
+    const projectPath='/Jobs/Still/Source.aep';
+    const metadata={getStructField(ns,field){return field==='aeProjectLink'?{value:projectPath}:null},getProperty(){return null}};
+    for (const extension of ['png','jpg','tif','exr']) {
+        let closed=false;
+        function ImageFile(name){this.fsName=name;this.name=name.split('/').pop();this.exists=false;}
+        const ctx={JSON:undefined,File:ImageFile,XMPConst:{NS_CREATOR_ATOM:'creator',NS_DM:'dynamic',FILE_UNKNOWN:0,OPEN_FOR_READ:1},XMPFile:function(){this.getXMP=()=>metadata;this.closeFile=()=>{closed=true}}};
+        vm.createContext(ctx);vm.runInContext(source,ctx);
+        assert.equal(ctx.aetoolkitCepReadFootageSourceLinks(new ImageFile('/Render/still.'+extension)).paths[0],projectPath);assert(closed);
+        ctx.XMPFile=function(){throw new Error('No embedded packet')};
+        ImageFile.prototype.open=function(){return true};ImageFile.prototype.read=function(){return 'fixture'};ImageFile.prototype.close=function(){};
+        ctx.File=function(name){const f=new ImageFile(name);f.exists=name==='/Render/still.xmp';f.length=7;return f};ctx.XMPMeta=function(){return metadata};
+        assert.equal(ctx.aetoolkitCepReadFootageSourceLinks(new ImageFile('/Render/still.'+extension)).paths[0],projectPath);
+    }
+    console.log('PASS rendered-image discovery routes embedded XMP and sidecars without filtering image extensions (mocked metadata reader)');
+}
