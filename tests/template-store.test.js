@@ -91,3 +91,10 @@ const customSaved = { id: 'hd', name: 'My HD', width: 1920, height: 1080, assets
 assert.deepEqual(store.compPresets({ compPresets: [customSaved] })[0], customSaved);
 assert.equal(store.compPresets({ compPresets: [{ id: 'hd', name: 'HD', width: 1920, height: 1080, assets: {} }] })[0].assets.chartOne, 'bundled:HD_chart.psd');
 console.log('PASS all 14 bundled formats have guides and preserve user presets');
+
+const tikTok = store.defaultCompPresets().find(p => p.id === 'vertical-tiktok');
+assert.equal(store.compFormatCode(tikTok), '9x16');
+assert.equal(store.compFormatCode({ id: 'vertical-tiktok', name: '9:16 TikTok safe', width: 1080, height: 1920 }), '9x16');
+assert.equal(store.formatNaming(store.namingFields({}), { job: 'ABA', style: 'A', description: 'new', initials: 'dr' }, store.compFormatCode(tikTok)), 'ABA_9x16_A_new_v01_dr');
+assert.equal(store.normalizeCompPreset({ name: 'Custom', width: 100, height: 100, formatCode: 'SQ' }).formatCode, 'SQ');
+console.log('PASS naming codes stay independent of preset display names');

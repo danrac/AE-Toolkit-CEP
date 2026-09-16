@@ -106,7 +106,7 @@
         </div>
         <div id="comp-naming-fields" class="field-grid"></div>
         <output id="comp-name-preview" class="naming-preview" aria-live="polite"></output>
-        <label class="inline-toggle"><input id="comp-add-guides" type="checkbox"> Add this format’s stored guide assets</label>
+        <label class="inline-toggle"><input id="comp-add-guides" type="checkbox" checked> Add this format’s stored guide assets</label>
         <button id="create-comp" class="primary">Create composition</button>
       </details>
       <details class="card module-panel" data-panel="modify-selected-compositions" open>
@@ -279,6 +279,7 @@
         <select id="saved-comp-preset"></select>
         <div class="field-grid">
           <label>Name<input id="saved-comp-preset-name" placeholder="16 × 9"></label>
+          <label>Naming code<input id="saved-comp-preset-code" placeholder="e.g. 9x16"></label>
           <label>Width<input id="saved-comp-preset-width" type="number" min="1" max="30000"></label>
           <label>Height<input id="saved-comp-preset-height" type="number" min="1" max="30000"></label>
           <div class="input-action"><label>Matte guide<input id="saved-comp-preset-matte" readonly placeholder="Optional"></label><button class="tool-icon" data-guide-asset="matte" title="Choose matte guide" aria-label="Choose matte guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2-2h9v16H3z"/></svg></button></div>

@@ -106,3 +106,5 @@ Comp Naming now uses a stacked module list. Edit opens preferences with Save/Can
 The default library includes 16:9 HD, UHD 3840, 9:16 Social, 9:16 TikTok safe, 4:5 Social, 4:5 with 9:16 safe, 1:1 Square, HD letterbox 1.85/2.00/2.10/2.35/2.40/2.41, and HD 10/20. Custom size remains available. Original Toolbox matte/chart guides are bundled in the extension, resolved relative to its installation, and imported when Add Guides is enabled. User-created formats are preserved; missing defaults are added automatically.
 
 Native Toolkit confirmation popups have been removed; results and errors appear in the panel. The organizer offers Basic and DMS presets.
+
+Composition format display labels are separate from their Naming code. For example, both 9:16 Social and 9:16 TikTok safe use `9x16` in names. Edit Naming code under Composition formats for custom formats. Add Guides is enabled by default and can be unchecked; bundled guide paths are resolved from CEP’s actual extension directory on each host call.
