@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.14-assets">
+  <link rel="stylesheet" href="css/main.css?v=0.1.15-custom">
 </head>
 <body>
   <main class="app-shell">
@@ -177,8 +177,9 @@
           <label>Format<select id="checker-preset"></select></label>
           <label>Width<input id="checker-width" type="number" min="1" max="30000" value="1920"></label>
           <label>Height<input id="checker-height" type="number" min="1" max="30000" value="1080"></label>
-          <label>Frame to hold<input id="checker-frame" type="number" min="0" max="999999" value="10"></label>
+          <label id="checker-frame-field">Frame to hold<input id="checker-frame" type="number" min="0" max="999999" value="10"></label>
         </div>
+        <label id="checker-job-field" hidden>Job code<input id="checker-job-code" placeholder="Job code"></label>
         <button id="create-checkers" class="primary">Create checkers</button>
       </details>
     </section>
@@ -283,17 +284,10 @@
     <section id="templates" class="view">
       <details class="card module-panel" data-panel="composition-formats" open>
         <summary>Composition formats</summary>
-        <div class="naming-presets"><select id="saved-comp-preset" aria-label="Composition format"></select><button id="new-comp-preset">Add</button><button id="remove-comp-preset">Remove</button></div>
-        <div class="field-grid">
-          <label>Name<input id="saved-comp-preset-name" placeholder="16 × 9"></label>
-          <label>Naming code<input id="saved-comp-preset-code" placeholder="e.g. 9x16"></label>
-          <label>Width<input id="saved-comp-preset-width" type="number" min="1" max="30000"></label>
-          <label>Height<input id="saved-comp-preset-height" type="number" min="1" max="30000"></label>
-        </div>
-
-        <div id="format-assets" class="format-assets"></div>
-        <button id="add-format-asset">Add guide</button>
-        <button id="save-comp-preset" class="primary">Save format</button>
+        <div class="naming-presets"><select id="saved-comp-preset" aria-label="Composition format"></select><button id="edit-comp-preset">Edit</button><button id="remove-comp-preset">Remove</button></div>
+        <div class="project-actions"><button id="new-comp-preset">Create General</button><button id="new-custom-preset">Create Custom</button></div>
+        <div class="input-action folder-action"><label>Template library<input id="checker-library-root" readonly placeholder="Local library"></label><button id="choose-checker-library">Choose</button></div>
+        <button id="refresh-checker-library">Refresh library</button>
       </details>
       <details class="card module-panel" data-panel="template-library" open>
         <summary>Template library</summary>
@@ -321,6 +315,31 @@
     </div>
     </div>
   </main>
+  <dialog id="format-dialog" class="toolkit-dialog" aria-labelledby="format-dialog-title">
+    <h2 id="format-dialog-title">General format</h2>
+        <div class="field-grid">
+          <label>Name<input id="saved-comp-preset-name" placeholder="16 × 9"></label>
+          <label>Naming code<input id="saved-comp-preset-code" placeholder="e.g. 9x16"></label>
+          <label>Width<input id="saved-comp-preset-width" type="number" min="1" max="30000"></label>
+          <label>Height<input id="saved-comp-preset-height" type="number" min="1" max="30000"></label>
+        </div>
+
+        <div id="format-assets" class="format-assets"></div>
+        <button id="add-format-asset">Add guide</button>
+        <button id="save-comp-preset" class="primary">Save format</button>
+    <button id="cancel-format-dialog">Cancel</button>
+    <p id="format-dialog-status" class="help" aria-live="polite"></p>
+  </dialog>
+  <dialog id="custom-format-dialog" class="toolkit-dialog" aria-labelledby="custom-format-title">
+    <h2 id="custom-format-title">Custom checker</h2>
+    <p class="help">In a dedicated checker project, select the template comps and save. Each selected comp becomes a preset.</p>
+    <p class="help">Templates need a precomp layer named “REPLACE THIS LAYER WITH GRAPHIC COMP” and a text layer named “XXXX”.</p>
+    <p class="help">The library stores a copy of the saved project and media. Your working project stays open.</p>
+    <p id="custom-format-detail" class="help"></p>
+    <button id="capture-custom-checkers" class="primary">Use selected comps</button>
+    <button id="cancel-custom-dialog">Cancel</button>
+    <p id="custom-format-status" class="help" aria-live="polite"></p>
+  </dialog>
   <dialog id="naming-dialog" aria-labelledby="naming-dialog-title">
     <form id="naming-dialog-form">
       <h2 id="naming-dialog-title">Module preferences</h2>
@@ -329,9 +348,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.14-assets"></script>
-  <script src="js/template-store.js?v=0.1.14-assets"></script>
-  <script src="js/app.js?v=0.1.14-assets"></script>
-  <script src="js/panel-state.js?v=0.1.14-assets"></script>
+  <script src="js/CSInterface.js?v=0.1.15-custom"></script>
+  <script src="js/template-store.js?v=0.1.15-custom"></script>
+  <script src="js/app.js?v=0.1.15-custom"></script>
+  <script src="js/panel-state.js?v=0.1.15-custom"></script>
 </body>
 </html>

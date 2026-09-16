@@ -943,10 +943,10 @@ function aetoolkitCepChooseGuideAsset() {
         return file ? file.fsName : "";
     } catch (error) { return "ERROR: " + error.toString(); }
 }
-function aetoolkitCepPresetAssetFolder(id) {
+function aetoolkitCepPresetAssetFolder(id, libraryRoot) {
     var safeId = String(id || "").replace(/[^a-z0-9_-]/ig, "");
     if (!safeId) throw new Error("Preset needs a safe name before copying guide assets.");
-    return aetoolkitCepEnsureFolder(aetoolkitCepDataFolder().fsName + "/guide-assets/" + safeId);
+    return aetoolkitCepEnsureFolder((libraryRoot ? aetoolkitCepCheckerLibraryRoot(libraryRoot).fsName : aetoolkitCepDataFolder().fsName) + "/guide-assets/" + safeId);
 }
 function aetoolkitCepCopyPresetAsset(folder, sourcePath, label) {
     var source = aetoolkitCepResolveGuideAsset(sourcePath), safeLabel = String(label).replace(/[^a-z0-9_-]/ig, ""), target, attempt = 0, dot, base, extension;
@@ -966,7 +966,7 @@ function aetoolkitCepGuideKeys(assets) {
 }
 function aetoolkitCepStorePresetAssets(jsonText) {
     try {
-        var options = AEToolkitJSON.parse(jsonText), assets = options.assets || {}, folder = aetoolkitCepPresetAssetFolder(options.id), saved = {};
+        var options = AEToolkitJSON.parse(jsonText), assets = options.assets || {}, folder = aetoolkitCepPresetAssetFolder(options.id, options.libraryRoot), saved = {};
         var keys = aetoolkitCepGuideKeys(assets), i;
         for (i = 0; i < keys.length; i++) saved[keys[i]] = assets[keys[i]] ? aetoolkitCepCopyPresetAsset(folder, assets[keys[i]], keys[i]) : "";
         return AEToolkitJSON.stringify(saved);
@@ -1542,4 +1542,174 @@ function aetoolkitCepCreateNoSlateComp(value) {
         } finally { app.endUndoGroup(); }
         return AEToolkitJSON.stringify({ id: comp.id, name: comp.name });
     } catch (error) { return "ERROR: " + error.toString(); }
+}
+
+// Native checker packages. No working-project save, close, or reduction is performed.
+function aetoolkitCepCheckerLibraryRoot(path) {
+    if (path && !aetoolkitCepIsAbsolutePath(path)) throw new Error("Choose an absolute library folder.");
+    return aetoolkitCepEnsureFolder(path || (aetoolkitCepDataFolder().fsName + "/template-library"));
+}
+function aetoolkitCepChooseCheckerLibrary() {
+    var folder = Folder.selectDialog("Choose shared template library");
+    return folder ? folder.fsName : "";
+}
+function aetoolkitCepReadCheckerManifest(folder) {
+    var file = new File(folder.fsName + "/template.json"), text, data;
+    if (!file.exists || !file.open("r")) throw new Error("Cannot read template metadata.");
+    text = file.read(); file.close(); data = AEToolkitJSON.parse(text);
+    if (data.version !== 1 || !data.templates || !(data.templates instanceof Array)) throw new Error("Unsupported checker template package.");
+    return data;
+}
+function aetoolkitCepCheckerFile(folder, relative) {
+    if (!relative || /(^|[\\\/])\.\.([\\\/]|$)/.test(relative) || aetoolkitCepIsAbsolutePath(relative)) throw new Error("Invalid template asset path.");
+    return new File(folder.fsName + "/" + relative);
+}
+function aetoolkitCepListCheckerTemplates(jsonText) {
+    try {
+        var options = AEToolkitJSON.parse(jsonText || "{}"), root = aetoolkitCepCheckerLibraryRoot(options.libraryRoot), folders = root.getFiles(), records = [], notices = [], i, j, data, entry;
+        for (i = 0; i < folders.length; i++) if (folders[i] instanceof Folder && new File(folders[i].fsName + "/template.json").exists) {
+            try {
+                data = aetoolkitCepReadCheckerManifest(folders[i]);
+                for (j = 0; j < data.templates.length; j++) { entry = data.templates[j]; records.push({id: "custom-" + folders[i].name + "-" + j, kind: "custom-checker", name: entry.name, width: entry.width, height: entry.height, packageId: folders[i].name, templateIndex: j, assets: {}}); }
+            } catch (error) { notices.push(folders[i].name + ": " + error.toString()); }
+        }
+        return AEToolkitJSON.stringify({root:root.fsName, presets:records, notices:notices});
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepCompPath(item, stop) {
+    var parts = [item.name], parent = item.parentFolder;
+    while (parent && parent !== app.project.rootFolder && parent !== stop) { parts.unshift(parent.name); parent = parent.parentFolder; }
+    return parts;
+}
+function aetoolkitCepCheckerWalk(comp, callback, visited) {
+    visited = visited || {};
+    if (visited[comp.id]) return;
+    visited[comp.id] = true;
+    for (var i = 1; i <= comp.numLayers; i++) {
+        var layer = comp.layer(i);
+        callback(layer, comp);
+        if (layer.source instanceof CompItem && layer.name !== "REPLACE THIS LAYER WITH GRAPHIC COMP") aetoolkitCepCheckerWalk(layer.source, callback, visited);
+    }
+}
+function aetoolkitCepValidateChecker(comp) {
+    var slots = 0, labels = 0;
+    aetoolkitCepCheckerWalk(comp, function (layer) {
+        if (layer.name === "REPLACE THIS LAYER WITH GRAPHIC COMP" && layer.source instanceof CompItem) slots++;
+        if (layer.name === "XXXX" && layer.property("ADBE Text Properties")) { if (layer.property("ADBE Text Properties").property("ADBE Text Document").expressionEnabled) throw new Error('Disable the expression on the "XXXX" text before capturing.'); labels++; }
+    });
+    if (!slots) throw new Error(comp.name + ': needs a precomp layer named "REPLACE THIS LAYER WITH GRAPHIC COMP".');
+    if (!labels) throw new Error(comp.name + ': needs a text layer named "XXXX".');
+}
+function aetoolkitCepCaptureCheckerTemplates(jsonText) {
+    var packageFolder = null, completed = false;
+    try {
+        var options = AEToolkitJSON.parse(jsonText || "{}"), comps = aetoolkitCepSelectedComps(), root, token, projectFile = app.project.file, templates = [], media = [], seen = {}, i, j, item, file, relative, folder, files, f;
+        if (!projectFile || !projectFile.exists || app.project.dirty) throw new Error("Save the project, then use selected comps again.");
+        if (!/\.aep$/i.test(projectFile.name)) throw new Error("Save the checker project as an .aep file before capturing.");
+        for (i = 0; i < comps.length; i++) {
+            aetoolkitCepValidateChecker(comps[i]);
+            var path = aetoolkitCepCompPath(comps[i]);
+            for (j = 1; j <= app.project.numItems; j++) { item = app.project.item(j); if (item !== comps[i] && item instanceof CompItem && AEToolkitJSON.stringify(aetoolkitCepCompPath(item)) === AEToolkitJSON.stringify(path)) throw new Error("Give same-folder compositions unique names before capturing."); }
+            templates.push({name:comps[i].name, width:comps[i].width, height:comps[i].height, path:path});
+        }
+        // Only export dedicated template projects; never publish unrelated work into a shared library.
+        var dependencies = {};
+        function visitDependency(comp) {
+            if (dependencies[comp.id]) return;
+            dependencies[comp.id] = true;
+            for (var n = 1; n <= comp.numLayers; n++) { var src = comp.layer(n).source; if (!src) continue; if (src instanceof CompItem) visitDependency(src); else dependencies[src.id] = true; }
+        }
+        for (i = 0; i < comps.length; i++) visitDependency(comps[i]);
+        for (i = 1; i <= app.project.numItems; i++) { item = app.project.item(i); if (!(item instanceof FolderItem) && !dependencies[item.id]) throw new Error("Use a dedicated checker project with only the selected templates and their dependencies. Unrelated item: " + item.name); }
+        root = aetoolkitCepCheckerLibraryRoot(options.libraryRoot);
+        token = "checkers-" + new Date().getTime() + "-" + Math.floor(Math.random() * 1000000);
+        packageFolder = aetoolkitCepEnsureFolder(root.fsName + "/" + token);
+        // Snapshot the saved native project. Its expressions, effects, and imported-layer settings remain native.
+        if (!projectFile.copy(packageFolder.fsName + "/project.aep")) throw new Error("Cannot copy saved project into the library.");
+        // Copy complete media directories to preserve image sequences and layered import source files.
+        for (i = 1; i <= app.project.numItems; i++) {
+            item = app.project.item(i);
+            if (!(item instanceof FootageItem)) continue;
+            var sources = [];
+            if (item.file) sources.push(item.file);
+            try { if (item.proxySource && item.proxySource.file) sources.push(item.proxySource.file); } catch (ignoreProxy) {}
+            for (j = 0; j < sources.length; j++) {
+                file = sources[j];
+                if (!file.exists) throw new Error("Missing media: " + file.fsName);
+                if (seen[file.fsName]) continue;
+                relative = "media/" + media.length + "/" + file.name;
+                folder = aetoolkitCepEnsureFolder(packageFolder.fsName + "/media/" + media.length);
+                if (aetoolkitCepLikelyImageSequence(item)) {
+                    var sequenceMatch = file.name.match(/^(.*?)([0-9]+)(\.[^.]+)$/);
+                    if (!sequenceMatch) throw new Error("Collect this image sequence in After Effects first: " + file.name);
+                    files = file.parent.getFiles();
+                    for (f = 0; f < files.length; f++) if (files[f] instanceof File) {
+                        var match = files[f].name.match(/^(.*?)([0-9]+)(\.[^.]+)$/);
+                        if (match && match[1] === sequenceMatch[1] && match[3] === sequenceMatch[3] && !files[f].copy(folder.fsName + "/" + files[f].name)) throw new Error("Cannot collect image sequence.");
+                    }
+                } else if (!file.copy(folder.fsName + "/" + file.name)) throw new Error("Cannot copy media: " + file.fsName);
+                seen[file.fsName] = true;
+                media.push({original:file.fsName, relative:relative, sequence:aetoolkitCepLikelyImageSequence(item)});
+            }
+        }
+        var manifest = {version:1, project:"project.aep", templates:templates, media:media};
+        var output = new File(packageFolder.fsName + "/template.json"); output.encoding = "UTF-8";
+        if (!output.open("w")) throw new Error("Cannot write template metadata.");
+        var written = output.write(AEToolkitJSON.stringify(manifest)); output.close();
+        if (!written) throw new Error("Cannot finish template metadata.");
+        completed = true;
+        return AEToolkitJSON.stringify({captured:templates.length, packageId:token, root:root.fsName});
+    } catch (error) { return "ERROR: " + error.toString(); }
+    finally {
+        // Incomplete folders have no catalog manifest and never appear as usable presets.
+        if (!completed && packageFolder) { var partial = new File(packageFolder.fsName + "/template.json"); if (partial.exists) partial.remove(); }
+    }
+}
+function aetoolkitCepCreateCustomCheckers(jsonText) {
+    var before = {}, started = false;
+    try {
+        var options = AEToolkitJSON.parse(jsonText), root = aetoolkitCepCheckerLibraryRoot(options.libraryRoot), folder, data, template, sourceComps = aetoolkitCepSelectedComps(), job = String(options.jobCode || "").replace(/^\s+|\s+$/g, ""), i, j, item, imported, checker, matches, file, map = {}, media;
+        if (!job) throw new Error("Enter a Job code before creating custom checkers.");
+        if (!/^checkers-[a-z0-9-]+$/i.test(options.packageId || "")) throw new Error("Invalid checker package.");
+        folder = new Folder(root.fsName + "/" + options.packageId); data = aetoolkitCepReadCheckerManifest(folder); template = data.templates[options.templateIndex];
+        if (!template) throw new Error("This checker template is unavailable. Refresh the library.");
+        file = aetoolkitCepCheckerFile(folder, data.project);
+        if (!file.exists) throw new Error("Template project is missing.");
+        for (i = 0; i < data.media.length; i++) { media = data.media[i]; var target = aetoolkitCepCheckerFile(folder, media.relative); if (!target.exists) throw new Error("Template media is missing: " + target.fsName); map[media.original] = {file:target,sequence:media.sequence}; }
+        for (i = 1; i <= app.project.numItems; i++) before[app.project.item(i).id] = true;
+        app.beginUndoGroup("Toolbox 2: Custom checkers"); started = true;
+        for (i = 0; i < sourceComps.length; i++) {
+            var existing = {}; for (j = 1; j <= app.project.numItems; j++) existing[app.project.item(j).id] = true;
+            imported = app.project.importFile(new ImportOptions(file)); matches = [];
+            for (j = 1; j <= app.project.numItems; j++) {
+                item = app.project.item(j); if (existing[item.id]) continue;
+                if (item instanceof CompItem && AEToolkitJSON.stringify(aetoolkitCepCompPath(item, imported)) === AEToolkitJSON.stringify(template.path)) matches.push(item);
+                // Native layered sources require their original or natively collected paths; do not flatten them by replacement.
+                if (item instanceof FootageItem && item.file && map[item.file.fsName]) {
+                    var mapped = map[item.file.fsName];
+                    if (/\.(psd|psb|ai)$/i.test(item.file.name)) {
+                        if (!item.file.exists) throw new Error("Layered template media needs its original shared location or an After Effects Collect Files project: " + item.file.name);
+                    } else if (mapped.sequence) item.replaceWithSequence(mapped.file, false); else item.replace(mapped.file);
+                }
+            }
+            if (matches.length !== 1) throw new Error("Cannot uniquely locate the template composition in its saved project.");
+            checker = matches[0]; aetoolkitCepValidateChecker(checker);
+            (function(graphic){ aetoolkitCepCheckerWalk(checker, function(layer) {
+                if (layer.name === "REPLACE THIS LAYER WITH GRAPHIC COMP") { var locked = layer.locked; layer.locked = false; layer.replaceSource(graphic, false); layer.locked = locked; }
+                if (layer.name === "XXXX" && layer.property("ADBE Text Properties")) {
+                    var text = layer.property("ADBE Text Properties").property("ADBE Text Document"), doc, k;
+                    if (text.expressionEnabled) throw new Error('Disable the expression on the "XXXX" text before capturing.');
+                    var wasLocked = layer.locked; layer.locked = false;
+                    if (text.numKeys) for (k = 1; k <= text.numKeys; k++) { doc = text.keyValue(k); doc.text = job; text.setValueAtKey(k, doc); }
+                    else { doc = text.value; doc.text = job; text.setValue(doc); }
+                    layer.locked = wasLocked;
+                }
+            }); })(sourceComps[i]);
+            checker.name = "CHK_" + sourceComps[i].name; imported.name = checker.name + " template";
+        }
+        return AEToolkitJSON.stringify({created:sourceComps.length});
+    } catch (error) {
+        if (started) for (var n = app.project.numItems; n >= 1; n--) { try { var added = app.project.item(n); if (!before[added.id]) added.remove(); } catch (cleanupError) {} }
+        return "ERROR: " + error.toString();
+    } finally { if (started) app.endUndoGroup(); }
 }

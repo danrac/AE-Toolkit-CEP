@@ -112,3 +112,19 @@ Native Toolkit confirmation popups have been removed; results and errors appear 
 Composition format display labels are separate from their Naming code. For example, both 9:16 Social and 9:16 TikTok safe use `9x16` in names. Edit Naming code under Composition formats for custom formats. Add Guides is enabled by default and can be unchecked; bundled guide paths are resolved from CEP’s actual extension directory on each host call.
 
 Composition formats use a dropdown with Add and Remove on the same row. New formats start with one Matte and one Guide row. Add guide adds another row; each row can be switched between Matte and Guide, assigned a file, or removed. All configured assets are used by Create and Modify. Removing a format removes it from the selectors without deleting its files or existing layers.
+
+## Custom checker templates (development)
+
+Composition Formats now offers **Create General** and **Create Custom** dialogs. General formats retain dimensions and a variable list of mattes/guides. Custom checkers use a native `.aep` snapshot with JSON metadata, rather than reconstructing effects and expressions from a new interchange format.
+
+1. Prepare a dedicated checker project containing the selected templates and their dependencies. Save it as `.aep` before capture.
+2. Each template must include a precomp layer named `REPLACE THIS LAYER WITH GRAPHIC COMP` and a text layer named `XXXX`. These may be nested. Source-text expressions on `XXXX` must be disabled.
+3. Choose a Template library folder (local or a mounted shared folder), then **Create Custom → Use selected comps**. Multiple selected checker comps become separate presets. The current project is never saved, closed, or reduced by this operation.
+4. In Covers / Checkers, choose a custom preset, supply the Job code, select graphic comps, and click Create checkers. The Job field is initially populated from the current naming template’s Job value when available. Each graphic gets an independent native template import. The placeholder’s transforms and template timing remain intact; `XXXX` receives the Job code.
+5. Other users choose the same mounted library and Refresh library. Their library path is saved locally, so Windows and Mac can use different mount paths. Removing a preset hides it for the current user, without deleting shared package files.
+
+A package contains `project.aep`, `template.json`, and copied media. The manifest uses package-relative paths. Failed captures never publish a valid manifest; failed checker creation removes newly imported items. The snapshot contains the whole dedicated template project, including expression dependencies, so each generated checker also imports that package’s other templates. Fonts and third-party plugins must be installed separately.
+
+Ordinary footage is relinked to the packaged copy. Native layered PSD/PSB/AI footage retains its original shared/native-collected location to avoid flattening imported layers; if unavailable, creation fails with an explicit message. Fully portable layered-media collection is not yet implemented. Custom creation preserves the template timing; it does not apply the General checker’s held-frame setting.
+
+Validation currently includes strict ES3 parsing before tests and packaging, model tests, and mocked native-project integration. The exact source template shown in the reference was not available. End-to-end native capture/import validation remains pending; do not treat this development feature as release-ready.

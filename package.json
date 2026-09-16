@@ -3,9 +3,12 @@
   "version": "0.1.14",
   "private": true,
   "scripts": {
-    "test": "node tests/template-store.test.js && node tests/host-actions.test.js",
+    "test": "node scripts/check-extendscript.mjs && node tests/template-store.test.js && node tests/host-actions.test.js && node tests/custom-checkers.test.js",
     "package:stage": "node scripts/stage-extension.mjs",
     "package:zxp": "node scripts/package-zxp.mjs",
-    "release:check": "node scripts/release-check.mjs"
+    "release:check": "node scripts/check-extendscript.mjs && node scripts/release-check.mjs"
+  },
+  "devDependencies": {
+    "acorn": "8.15.0"
   }
 }
