@@ -31,6 +31,15 @@ Choose **Output Presets** first. Select comps in AE and use **Offline**, **Onlin
 
 Offline, Online, and Checkers default to separate subfolders with those names. Edit them in Create project presets; a blank subfolder means Graphic Out itself. Rendering adds a `YYMMDD` folder and then the optional subfolder. For example: `Outputs/Offline/260916/review`.
 
+Output filenames follow this studio format in all four render modes:
+
+```text
+[compName]_[frameRate]fps_[width]x[height].[fileExtension]
+```
+
+For example: `ABA_9x16_A_new_v01_dr_23.976fps_1080x1920.mp4`.
+The comp name is preserved, FPS uses up to three decimal places, and dimensions come from the selected comp. The extension comes from AE's output module. Image sequences retain the preset's frame-number suffix before the extension so individual frames have unique filenames.
+
 The selected output-module name is applied to AE's installed template of exactly that name. AE supplies the extension and sequence numbering. Existing render-queue enabled states are restored after the workflow. Save the AE project and select comps before rendering. See [Load AOM presets](#load-aom-presets) for setup.
 
 ## Sourcing

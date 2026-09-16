@@ -100,6 +100,26 @@ assert.equal(renderQueue.numItems,beforeOutputFailure,'Unresolved output rolls b
 assert.equal(existingQueueItem.render,true);
 renderQueue.items.add=originalAdd;
 console.log('PASS empty output-file resolution, sequence tokens, refreshed module, trailing backslash and rollback');
+const namingComp = renderContext.app.project.selection[0];
+const savedNaming = {name:namingComp.name, frameRate:namingComp.frameRate};
+namingComp.name = 'ABA_9x16_A_new_v01_dr';
+for (const mode of ['offline','online','styleFrames','checker']) {
+    for (const fps of [23.976,24,29.97,59.94]) {
+        namingComp.frameRate = fps;
+        renderQueue.items.add = function(comp) {
+            const item = originalAdd(comp);
+            item.outputModule(1).file = {name:'Default.mp4'};
+            return item;
+        };
+        assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode,outputTemplate:'Client output',basePath:'/Job/Output'})),/^Rendered 1/);
+        const file = renderQueue._items[renderQueue._items.length-1].outputModule(1).file;
+        assert.equal(file.fsName,'/Job/Output/260915/ABA_9x16_A_new_v01_dr_'+fps+'fps_1920x1080.mp4');
+    }
+}
+Object.assign(namingComp,savedNaming);
+renderQueue.items.add = originalAdd;
+console.log('PASS studio naming format in all four render modes, including fractional FPS');
+
 
 let removedComp = false, removedItem = false;
 const lookupContext = {JSON:undefined,app:{project:{items:{addComp(){return {remove(){removedComp=true}}}},renderQueue:{numItems:0,items:{add(){return {outputModule(){return {templates:['Studio EXR','Client ProRes','_HIDDEN internal']}},remove(){removedItem=true}}}}}}}};
