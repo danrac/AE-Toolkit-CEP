@@ -66,3 +66,11 @@ Before releasing host changes, run `tests/after-effects-load-check.jsx` through 
 Published GitHub releases trigger the workflow that signs and attaches `AE-Toolkit-CEP-v<version>.zxp`. Configure repository secrets `ZXP_CERT_BASE64` and `ZXP_CERT_PASSWORD`; optionally set `ZXP_TSA_URL`. For local signing, set `ZXPSIGNCMD_PATH`, `ZXP_CERT_PATH`, and `ZXP_CERT_PASSWORD`, then run `npm run package:zxp`. Never commit signing material.
 
 Use a distinct package version for each distributed build so installers can distinguish updates. Prerelease tags use the form `v0.1.20-alpha.1`.
+
+## License and credit
+
+Copyright 2026 Dan Racusin. Licensed under the [Apache License 2.0](LICENSE).
+
+**Toolbox 2 was created by Dan Racusin.** When redistributing Toolbox 2 or derivative works, retain applicable copyright and attribution notices, include the license, and preserve the attribution in [NOTICE](NOTICE) as required by Section 4. Mark modified files as changed. Credit may be carried in the distributed NOTICE, documentation/source, or an appropriate notices display as the license allows.
+
+Suggested credit: **Toolbox 2 — created by Dan Racusin**. Apache 2.0 does not require credit in every render or private use of the tool. Third-party components retain their own terms and notices.

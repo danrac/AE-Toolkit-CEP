@@ -14,10 +14,10 @@ if (!versionMatch || versionMatch[1] !== packageJson.version) {
 const stage = resolve(root, 'dist/AE-Toolkit-CEP');
 rmSync(stage, { recursive: true, force: true });
 mkdirSync(stage, { recursive: true });
-for (const entry of ['CSXS', 'client', 'host']) {
+for (const entry of ['CSXS', 'client', 'host', 'LICENSE', 'NOTICE']) {
   const source = resolve(root, entry);
   if (!existsSync(source)) throw new Error(`Missing extension entry: ${entry}`);
   cpSync(source, resolve(stage, entry), { recursive: true });
 }
-writeFileSync(resolve(stage, 'package.json'), JSON.stringify({ name: packageJson.name, version: packageJson.version }, null, 2) + '\n');
+writeFileSync(resolve(stage, 'package.json'), JSON.stringify({ name: packageJson.name, version: packageJson.version, license: packageJson.license }, null, 2) + '\n');
 console.log(`Staged CEP extension: ${stage}`);
