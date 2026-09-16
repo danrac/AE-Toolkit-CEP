@@ -113,12 +113,13 @@ for (const mode of ['offline','online','styleFrames','checker']) {
         };
         assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode,outputTemplate:'Client output',basePath:'/Job/Output'})),/^Rendered 1/);
         const file = renderQueue._items[renderQueue._items.length-1].outputModule(1).file;
-        assert.equal(file.fsName,'/Job/Output/260915/ABA_9x16_A_new_v01_dr_'+fps+'fps_1920x1080.mp4');
+        assert.equal(file.fsName,'/Job/Output/260915/ABA_9x16_A_new_v01_dr_'+String(fps).replace('.', '_')+'fps_1920x1080.mp4');
+        assert.equal(namingComp.frameRate, fps, 'Filename formatting must preserve the composition frame rate');
     }
 }
 Object.assign(namingComp,savedNaming);
 renderQueue.items.add = originalAdd;
-console.log('PASS studio naming format in all four render modes, including fractional FPS');
+console.log('PASS studio naming format in all four render modes, including underscore-separated fractional FPS');
 
 
 let removedComp = false, removedItem = false;

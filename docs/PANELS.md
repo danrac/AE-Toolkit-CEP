@@ -37,8 +37,8 @@ Output filenames follow this studio format in all four render modes:
 [compName]_[frameRate]fps_[width]x[height].[fileExtension]
 ```
 
-For example: `ABA_9x16_A_new_v01_dr_23.976fps_1080x1920.mp4`.
-The comp name is preserved, FPS uses up to three decimal places, and dimensions come from the selected comp. The extension comes from AE's output module. Image sequences retain the preset's frame-number suffix before the extension so individual frames have unique filenames.
+For example: `ABA_9x16_A_new_v01_dr_23_976fps_1080x1920.mp4`.
+The comp name is preserved, FPS uses up to three decimal places with an underscore replacing the decimal point (`23_976fps`, `29_97fps`, `59_94fps`; whole rates remain `24fps`). This only formats the filename; the composition frame rate is unchanged. Dimensions come from the selected comp. The extension comes from AE's output module. Image sequences retain the preset's frame-number suffix before the extension so individual frames have unique filenames.
 
 The selected output-module name is applied to AE's installed template of exactly that name. AE supplies the extension and sequence numbering. Existing render-queue enabled states are restored after the workflow. Save the AE project and select comps before rendering. See [Load AOM presets](#load-aom-presets) for setup.
 

@@ -698,7 +698,7 @@ function aetoolkitCepRenderSelected(jsonText) {
             catch (templateError) { throw new Error("The render template '" + templateName + "' is not installed. " + templateError.toString()); }
             outputModule = queueItem.outputModule(1);
             // Studio naming: [compName]_[frameRate]fps_[width]x[height].[fileExtension]
-            frameRate = Math.round(comps[i].frameRate * 1000) / 1000;
+            frameRate = String(Math.round(comps[i].frameRate * 1000) / 1000).replace(".", "_");
             aetoolkitCepAssignOutputFile(queueItem, destination, comps[i].name + "_" + frameRate + "fps_" + comps[i].width + "x" + comps[i].height);
             if (mode === "checker") {
                 workAreas.push({ comp: comps[i], start: comps[i].workAreaStart, duration: comps[i].workAreaDuration });
