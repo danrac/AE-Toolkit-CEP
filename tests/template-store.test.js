@@ -72,3 +72,22 @@ assert.equal(store.namingFields({ namingOrder: customOrder })[4].type, 'version'
 assert.throws(() => store.namingFields({ namingFields: [] }));
 assert.throws(() => store.namingFields({ namingFields: [{ id: 'v', label: 'Version', type: 'version', value: '-1' }] }));
 console.log('PASS typed naming fields migrate, format versions, and validate input');
+
+const previewFields = store.namingFields({});
+assert.equal(store.previewNaming(previewFields), '[Job]_HD_[Style]_[Description]_v01_[Initials]');
+previewFields[0].label = 'Client';
+assert.ok(store.previewNaming(previewFields).startsWith('[Client]_HD_'));
+previewFields[0].value = 'ABA';
+assert.ok(store.previewNaming(previewFields).startsWith('ABA_HD_'));
+previewFields.reverse();
+assert.ok(store.previewNaming(previewFields).startsWith('[Initials]_v01_'));
+assert.equal(store.formatNaming(store.namingFields({}), {}, 'HD'), 'HD_v01');
+console.log('PASS template preview shows empty modules without changing generated names');
+
+const fs = require('fs'), path = require('path');
+assert.equal(store.defaultCompPresets().length, 14);
+for (const preset of store.defaultCompPresets()) for (const asset of Object.values(preset.assets)) assert.ok(fs.existsSync(path.join(__dirname, '../host/guide-assets', asset.slice(8))));
+const customSaved = { id: 'hd', name: 'My HD', width: 1920, height: 1080, assets: { matte: '/custom.png' } };
+assert.deepEqual(store.compPresets({ compPresets: [customSaved] })[0], customSaved);
+assert.equal(store.compPresets({ compPresets: [{ id: 'hd', name: 'HD', width: 1920, height: 1080, assets: {} }] })[0].assets.chartOne, 'bundled:HD_chart.psd');
+console.log('PASS all 14 bundled formats have guides and preserve user presets');

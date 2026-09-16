@@ -13,7 +13,7 @@
         <p class="eyebrow">AE TOOLKIT CEP</p>
         <h1>Project Navigator</h1>
       </div>
-      <span class="badge">0.1.11 Alpha</span>
+      <span class="badge">0.1.12 Alpha</span>
     </header>
 
     <nav class="tabs" aria-label="Project navigator views">
@@ -27,8 +27,9 @@
     </nav>
 
     <section id="projects" class="view active">
-      <article class="card">
-        <h2>Connect project</h2>
+      <details class="card module-panel" data-panel="connect-project" open>
+        <summary>Connect project</summary>
+
         <label>Project name<input id="project-name" placeholder="Campaign 2026"></label>
         <div class="input-action folder-action">
         <label>Project root<input id="project-root" placeholder="Choose or paste an absolute project folder path"></label>
@@ -36,9 +37,10 @@
         </div>
         <label>Template<select id="project-template"></select></label>
         <button id="connect-project" class="primary">Connect project</button>
-      </article>
-      <article class="card">
-        <div class="card-heading"><h2>Active project</h2><button id="remove-project" class="quiet danger">Remove</button></div>
+      </details>
+      <details class="card module-panel" data-panel="active-project" open>
+        <summary>Active project</summary>
+        <div class="module-actions"><button id="remove-project" class="quiet danger">Remove</button></div>
         <select id="active-project"></select>
         <div id="active-project-actions" class="project-actions">
           <button id="open-project-file">Open project file</button>
@@ -52,9 +54,10 @@
           <h3>Import assets</h3>
           <div id="import-actions" class="action-grid"></div>
         </div>
-      </article>
-      <article class="card">
-        <h2>Render to outputs</h2>
+      </details>
+      <details class="card module-panel" data-panel="render-to-outputs" open>
+        <summary>Render to outputs</summary>
+
         <div class="input-action folder-action">
         <label>Optional subfolder<input id="render-subfolder" placeholder="Version or delivery folder"></label>
         <button id="choose-render-subfolder" class="quiet choose-folder">Choose subfolder</button>
@@ -65,8 +68,8 @@
           <button data-render-mode="styleFrames">Style frames</button>
           <button data-render-mode="checker">Checker</button>
         </div>
-      </article>
-      <details class="card connected-projects">
+      </details>
+      <details class="card connected-projects module-panel" data-panel="connected-projects">
         <summary>Connected projects</summary>
         <div class="connected-projects-actions"><button id="refresh-projects" class="quiet">Refresh</button></div>
         <div id="project-list" class="item-list"></div>
@@ -74,23 +77,26 @@
     </section>
 
     <section id="sourcing" class="view">
-      <article class="card">
-        <h2>Import asset paths</h2>
+      <details class="card module-panel" data-panel="import-asset-paths" open>
+        <summary>Import asset paths</summary>
+
         <textarea id="source-asset-paths" rows="8" placeholder="Paste full file paths, one per line. You can also paste a folder path followed by filenames."></textarea>
         <button id="source-import-assets" class="primary">Import assets</button>
         <p id="source-import-result" class="help" aria-live="polite"></p>
-      </article>
-      <article class="card">
-        <h2>Import source AE projects</h2>
+      </details>
+      <details class="card module-panel" data-panel="import-source-ae-projects" open>
+        <summary>Import source AE projects</summary>
+
         <button id="source-discover-projects">Discover selected sources</button>
         <div id="source-project-records" class="item-list"></div>
         <button id="source-import-projects" class="primary" disabled>Import selected source projects</button>
-      </article>
+      </details>
     </section>
 
     <section id="create-modify" class="view">
-      <article class="card">
-        <h2>Create composition</h2>
+      <details class="card module-panel" data-panel="create-composition" open>
+        <summary>Create composition</summary>
+
         <div class="field-grid comp-settings">
           <label class="comp-format">Format<select id="comp-preset"></select></label>
           <label>Width<input id="comp-width" type="number" min="1" max="30000" value="1920"></label>
@@ -102,9 +108,10 @@
         <output id="comp-name-preview" class="naming-preview" aria-live="polite"></output>
         <label class="inline-toggle"><input id="comp-add-guides" type="checkbox"> Add this format’s stored guide assets</label>
         <button id="create-comp" class="primary">Create composition</button>
-      </article>
-      <article class="card">
-        <h2>Modify selected compositions</h2>
+      </details>
+      <details class="card module-panel" data-panel="modify-selected-compositions" open>
+        <summary>Modify selected compositions</summary>
+
         <div class="toggle-grid compact-toggles">
           <label title="Update selected composition sizes"><input id="modify-size" type="checkbox"> Size</label>
           <label title="Update selected composition frame rates"><input id="modify-fps" type="checkbox"> FPS</label>
@@ -112,9 +119,10 @@
         </div>
         <label>New base name<input id="modify-name-base" placeholder="Campaign_Main"></label>
         <button id="modify-comps" class="primary">Modify selected comps</button>
-      </article>
-      <article class="card">
-        <h2>Rename selected project items</h2>
+      </details>
+      <details class="card module-panel" data-panel="rename-selected-project-items" open>
+        <summary>Rename selected project items</summary>
+
         <div class="field-grid rename-fields">
           <label class="rename-operation">Operation<select id="rename-operation">
             <option value="replace">Find and replace</option>
@@ -127,16 +135,18 @@
           <label id="rename-replace-field">Replace<input id="rename-replace" placeholder="Replace"></label>
         </div>
         <button id="rename-selected" class="primary">Rename selected items</button>
-      </article>
-      <article class="card">
-        <h2>Conform selected solids</h2>
+      </details>
+      <details class="card module-panel" data-panel="conform-selected-solids" open>
+        <summary>Conform selected solids</summary>
+
         <button id="conform-solids">Conform selected solids to active comp</button>
-      </article>
+      </details>
     </section>
 
     <section id="covers-checkers" class="view">
-      <article class="card">
-        <h2>Create cover</h2>
+      <details class="card module-panel" data-panel="create-cover" open>
+        <summary>Create cover</summary>
+
         <div class="field-grid comp-settings">
           <label class="comp-format">Format<select id="cover-preset"></select></label>
           <label>Width<input id="cover-width" type="number" min="1" max="30000" value="1920"></label>
@@ -151,9 +161,10 @@
           <label>Spot / version<input id="cover-spot" placeholder="Name and version"></label>
         </div>
         <button id="create-cover" class="primary">Create cover</button>
-      </article>
-      <article class="card">
-        <h2>Create checkers from selected comps</h2>
+      </details>
+      <details class="card module-panel" data-panel="create-checkers-from-selected-comps" open>
+        <summary>Create checkers from selected comps</summary>
+
         <div class="field-grid">
           <label>Format<select id="checker-preset"></select></label>
           <label>Width<input id="checker-width" type="number" min="1" max="30000" value="1920"></label>
@@ -161,43 +172,47 @@
           <label>Frame to hold<input id="checker-frame" type="number" min="0" max="999999" value="10"></label>
         </div>
         <button id="create-checkers" class="primary">Create checkers</button>
-      </article>
+      </details>
     </section>
 
     <section id="cleanup-collect" class="view">
-      <article class="card">
-        <h2>Project maintenance</h2>
+      <details class="card module-panel" data-panel="project-maintenance" open>
+        <summary>Project maintenance</summary>
+
         <div class="action-grid maintenance-grid">
           <button id="consolidate-footage">Consolidate footage</button>
           <button id="remove-unused">Remove unused</button>
           <button id="reduce-project" class="danger">Reduce to selection</button>
         </div>
-      </article>
-      <article class="card">
-        <h2>Organize project</h2>
+      </details>
+      <details class="card module-panel" data-panel="organize-project" open>
+        <summary>Organize project</summary>
+
         <label>Organizer preset<select id="organizer-preset">
           <option value="basic">Basic project folders</option>
           <option value="dms-16x9">DMS · 16 × 9</option>
           <option value="dms-9x16">DMS · 9 × 16</option>
           <option value="dms-4x5">DMS · 4 × 5</option>
           <option value="dms-1x1">DMS · 1 × 1</option>
-          <option value="xav-2025">XAV Organizer 2025</option>
         </select></label>
         <button id="organize-project" class="primary">Organize project</button>
-      </article>
-      <article class="card">
-        <h2>Localize selected assets</h2>
+      </details>
+      <details class="card module-panel" data-panel="localize-selected-assets" open>
+        <summary>Localize selected assets</summary>
+
         <button id="localize-assets">Localize selected assets</button>
-      </article>
-      <article class="card">
-        <h2>Collect project</h2>
+      </details>
+      <details class="card module-panel" data-panel="collect-project" open>
+        <summary>Collect project</summary>
+
         <button id="collect-project" class="primary">Open Collect Files</button>
-      </article>
+      </details>
     </section>
 
     <section id="tools" class="view">
-      <article class="card">
-        <h2>Composition timing</h2>
+      <details class="card module-panel" data-panel="composition-timing" open>
+        <summary>Composition timing</summary>
+
         <div class="action-grid maintenance-grid timing-actions">
           <button data-comp-frame-change="-10">−10 frames</button>
           <button data-comp-frame-change="-1">−1 frame</button>
@@ -212,9 +227,10 @@
         <label>Slate frames to remove<input id="tool-slate-frames" type="number" min="1" max="9999" value="144"></label>
         <button id="create-no-slate" class="tool-icon" title="Create no-slate comp from selected footage" aria-label="Create no-slate comp from selected footage"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M9 6h12v12H9zM2 8l3 4-3 4"/></svg></button>
         </div>
-      </article>
-      <article class="card">
-        <h2>Animation and layers</h2>
+      </details>
+      <details class="card module-panel" data-panel="animation-and-layers" open>
+        <summary>Animation and layers</summary>
+
         <label>Fade frames<input id="tool-fade-frames" type="number" min="1" max="9999" value="10"></label>
         <div class="action-grid maintenance-grid animation-actions">
           <button id="fade-in" class="tool-icon" title="Fade in" aria-label="Fade in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19 21 5v14z"/></svg></button>
@@ -224,9 +240,10 @@
           <button id="unparent-layers" class="tool-icon" title="Unparent selected" aria-label="Unparent selected"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v5H9zM2 16h6v5H2zM16 16h6v5h-6zM9 11l6 4m0-4-6 4"/></svg></button>
           <button id="mark-guides" class="tool-icon" title="Mark as guides" aria-label="Mark as guides"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 2v20M2 8h20"/></svg></button>
         </div>
-      </article>
-      <article class="card">
-        <h2>Select and align layers</h2>
+      </details>
+      <details class="card module-panel" data-panel="select-and-align-layers" open>
+        <summary>Select and align layers</summary>
+
         <div class="field-grid">
           <label>Layer type<select id="tool-select-type"><option value="null">Nulls</option><option value="solid">Solids</option><option value="shape">Shapes</option><option value="comp">Comp layers</option><option value="footage">Footage</option><option value="text">Text</option><option value="camera">Cameras</option><option value="light">Lights</option></select></label>
           <label>Selection mode<select id="tool-select-mode"><option value="only">Only</option><option value="add">Add</option><option value="subtract">Subtract</option></select></label>
@@ -236,26 +253,29 @@
           <button id="flip-layer-order" class="tool-icon" title="Reverse selected order" aria-label="Reverse selected order"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4"/></svg></button>
           <button id="snap-to-last" class="tool-icon" title="Snap to last selected" aria-label="Snap to last selected"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3v18M3 12h10m-4-4 4 4-4 4"/></svg></button>
         </div>
-      </article>
-      <article class="card">
-        <h2>Transfer transform</h2>
+      </details>
+      <details class="card module-panel" data-panel="transfer-transform" open>
+        <summary>Transfer transform</summary>
+
         <div class="toggle-grid compact-toggles">
           <label><input id="transfer-position" type="checkbox" checked> Position</label>
           <label><input id="transfer-scale" type="checkbox" checked> Scale</label>
           <label><input id="transfer-rotation" type="checkbox" checked> Rotation</label>
         </div>
         <button id="transfer-transform" class="tool-icon" title="Transfer transform" aria-label="Transfer transform"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h7v7H3zM14 12h7v7h-7zM13 5h6v4m-3-3 3 3 3-3"/></svg></button>
-      </article>
-      <article class="card">
-        <h2>Replace selected text</h2>
+      </details>
+      <details class="card module-panel" data-panel="replace-selected-text" open>
+        <summary>Replace selected text</summary>
+
         <textarea id="tool-replace-text" rows="3" placeholder="Replacement text"></textarea>
         <button id="replace-text" class="primary tool-icon" title="Replace selected text" aria-label="Replace selected text"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h12M9 5v14M5 19h8M16 10h5m-2-2 2 2-2 2M21 16h-5m2-2-2 2 2 2"/></svg></button>
-      </article>
+      </details>
     </section>
 
     <section id="templates" class="view">
-      <article class="card">
-        <div class="card-heading"><h2>Composition formats</h2><button id="new-comp-preset" class="quiet">New</button></div>
+      <details class="card module-panel" data-panel="composition-formats" open>
+        <summary>Composition formats</summary>
+        <div class="module-actions"><button id="new-comp-preset" class="quiet">New</button></div>
         <select id="saved-comp-preset"></select>
         <div class="field-grid">
           <label>Name<input id="saved-comp-preset-name" placeholder="16 × 9"></label>
@@ -267,29 +287,41 @@
         </div>
 
         <button id="save-comp-preset" class="primary">Save format</button>
-      </article>
-      <article class="card">
-        <div class="card-heading"><h2>Template library</h2><button id="new-template" class="quiet">New</button></div>
+      </details>
+      <details class="card module-panel" data-panel="template-library" open>
+        <summary>Template library</summary>
+        <div class="module-actions"><button id="new-template" class="quiet">New</button></div>
         <div id="template-list" class="item-list"></div>
-      </article>
-      <article class="card">
-        <h2 id="template-form-title">Edit template</h2>
+      </details>
+      <details class="card module-panel" data-panel="edit-template" open>
+        <summary id="template-form-title">Edit template</summary>
+
         <label>Template name<input id="template-name" placeholder="Default Motion Project"></label>
         <div id="template-folders" class="folder-grid"></div>
         <button id="add-custom-folder" class="quiet add-folder">Add custom location</button>
         <section class="project-operation">
           <h3>Comp naming</h3>
-          <button id="add-naming-field" class="quiet" type="button">Add field</button>
+          <div class="naming-presets"><select id="naming-preset" aria-label="Naming preset"></select><button id="add-naming-preset">Add</button><button id="remove-naming-preset">Remove</button></div>
           <div id="naming-order" class="naming-order" aria-label="Composition name field order"></div>
+          <button id="add-naming-field" class="naming-add" type="button">Add to template</button>
           <output id="naming-preview" class="naming-preview" aria-live="polite"></output>
         </section>
         <button id="save-template" class="primary">Save template</button>
-      </article>
+      </details>
     </section>
     <p id="status" class="status" aria-live="polite"></p>
   </main>
+  <dialog id="naming-dialog" aria-labelledby="naming-dialog-title">
+    <form id="naming-dialog-form">
+      <h2 id="naming-dialog-title">Module preferences</h2>
+      <div id="naming-dialog-fields"></div>
+      <p id="naming-dialog-error" role="alert"></p>
+      <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
+    </form>
+  </dialog>
   <script src="js/CSInterface.js"></script>
   <script src="js/template-store.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/panel-state.js"></script>
 </body>
 </html>

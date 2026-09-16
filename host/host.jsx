@@ -1,3 +1,11 @@
+// Capture the extension location while this file is loaded, not during later evalScript calls.
+var AEToolkitHostDirectory = (typeof $ !== "undefined" && $.fileName && typeof File !== "undefined") ? new File($.fileName).parent.fsName : "";
+function aetoolkitCepResolveGuideAsset(path) {
+    if (String(path).indexOf("bundled:") !== 0) return new File(path);
+    var name = String(path).substring(8);
+    if (!/^[a-zA-Z0-9_.-]+$/.test(name) || name.indexOf("..") !== -1 || !AEToolkitHostDirectory) throw new Error("Invalid bundled guide path.");
+    return new File(AEToolkitHostDirectory + "/guide-assets/" + name);
+}
 // Bundled ES3 JSON support. Private namespace: never depends on another panel defining JSON.
 // Source: https://github.com/douglascrockford/JSON-js/blob/master/json2.js (2023-05-10, public domain)
 var AEToolkitJSON = (function () {
@@ -941,8 +949,9 @@ function aetoolkitCepPresetAssetFolder(id) {
     return aetoolkitCepEnsureFolder(aetoolkitCepDataFolder().fsName + "/guide-assets/" + safeId);
 }
 function aetoolkitCepCopyPresetAsset(folder, sourcePath, label) {
-    var source = new File(sourcePath), safeLabel = String(label).replace(/[^a-z0-9_-]/ig, ""), target, attempt = 0, dot, base, extension;
+    var source = aetoolkitCepResolveGuideAsset(sourcePath), safeLabel = String(label).replace(/[^a-z0-9_-]/ig, ""), target, attempt = 0, dot, base, extension;
     if (!source.exists) throw new Error(label + " guide file is unavailable: " + source.fsName);
+    if (String(sourcePath).indexOf("bundled:") === 0) return sourcePath;
     if (source.parent && source.parent.fsName === folder.fsName) return source.fsName;
     dot = source.name.lastIndexOf("."); base = dot > 0 ? source.name.substring(0, dot) : source.name; extension = dot > 0 ? source.name.substring(dot) : "";
     do { target = new File(folder.fsName + "/" + safeLabel + "_" + base + (attempt ? "_" + aetoolkitCepPadNumber(attempt, 2) : "") + extension); attempt++; } while (target.exists && target.fsName !== source.fsName && attempt < 10000);
@@ -972,7 +981,7 @@ function aetoolkitCepAddPresetGuides(comp, assets) {
     for (i = 0; i < keys.length; i++) {
         path = assets[keys[i]];
         if (!path) continue;
-        file = new File(path);
+        file = aetoolkitCepResolveGuideAsset(path);
         if (!file.exists) throw new Error("Stored " + keys[i] + " guide file is unavailable: " + file.fsName);
         footage = aetoolkitCepGuideFootage(file);
         layer = comp.layers.add(footage);
@@ -1280,52 +1289,15 @@ function aetoolkitCepOrganizeDms(snapshot, ratio) {
     }
     return moved;
 }
-function aetoolkitCepOrganizeXav(snapshot) {
-    var root = app.project.rootFolder, comps = aetoolkitCepOrganizerFolder(snapshot, "01_compositions", root), cuts = aetoolkitCepOrganizerFolder(snapshot, "02_cuts", root), assets = aetoolkitCepOrganizerFolder(snapshot, "03_assets", root), c4d = aetoolkitCepOrganizerFolder(snapshot, "04_c4d", root), aeImport = aetoolkitCepOrganizerFolder(snapshot, "05_AE-import", root), solids = aetoolkitCepOrganizerFolder(snapshot, "Solids", root), unsorted = aetoolkitCepOrganizerFolder(snapshot, "unsorted", root), pre = aetoolkitCepOrganizerFolder(snapshot, "_PRE", comps), indivs = aetoolkitCepOrganizerFolder(snapshot, "_INDIVS", comps), subs = aetoolkitCepOrganizerFolder(snapshot, "_SUBS", comps), audio = aetoolkitCepOrganizerFolder(snapshot, "Audio", assets), images = aetoolkitCepOrganizerFolder(snapshot, "Images", assets), footage = aetoolkitCepOrganizerFolder(snapshot, "Footage", assets), imageFolders = {}, footageFolders = {}, imageTypes = ["psd", "png", "tiff", "ai", "svg", "jpg", "exr"], footageTypes = ["mxf", "mov", "mp4", "avi"], usedCompIds = {}, i, j, item, layer, name, fileName, ext, destination, moved = 0;
-    for (i = 0; i < imageTypes.length; i++) imageFolders[imageTypes[i]] = aetoolkitCepOrganizerFolder(snapshot, imageTypes[i], images);
-    imageFolders.tif = imageFolders.tiff; imageFolders.jpeg = imageFolders.jpg;
-    for (i = 0; i < footageTypes.length; i++) footageFolders[footageTypes[i]] = aetoolkitCepOrganizerFolder(snapshot, footageTypes[i], footage);
-    for (i = 0; i < snapshot.items.length; i++) {
-        item = snapshot.items[i];
-        if (!(item instanceof CompItem)) continue;
-        for (j = 1; j <= item.numLayers; j++) { try { layer = item.layer(j); if (layer && layer.source instanceof CompItem) usedCompIds[layer.source.id] = true; } catch (layerError) {} }
-    }
-    function has(text, values) { for (var index = 0; index < values.length; index++) if (text.indexOf(values[index]) !== -1) return true; return false; }
-    for (i = 0; i < snapshot.items.length; i++) {
-        item = snapshot.items[i];
-        if (snapshot.protectedIds[item.id]) continue;
-        name = String(item.name || "").toLowerCase();
-        if (item instanceof CompItem) {
-            if (has(name, ["_indiv", "indiv_"])) destination = indivs;
-            else if (has(name, ["_sub", "sub_", "subtitle", "captions"])) destination = subs;
-            else if ((has(name, ["_pre_", "precomp", "_pc", "pc_"]) || usedCompIds[item.id]) && !has(name, ["_ref", "_ckr", "_chkr", "_key", "_alpha", "_txls", "_txtls", "_comp"])) destination = pre;
-            else destination = comps;
-        } else if (item instanceof FootageItem) {
-            fileName = item.file ? item.file.name.toLowerCase() : name; ext = aetoolkitCepOrganizerExtension(item);
-            if (aetoolkitCepIsSolid(item)) destination = solids;
-            else if (name.indexOf("_ref") !== -1 || fileName.indexOf("_ref") !== -1) destination = cuts;
-            else if (has(name, ["adobe after effects", "aegraphic", "ae import", "essential graphics"])) destination = aeImport;
-            else if (ext === "c4d") destination = c4d;
-            else if (imageFolders[ext]) destination = imageFolders[ext];
-            else if (footageFolders[ext]) destination = footageFolders[ext];
-            else if (/^(aif|aiff|mp3|wav)$/.test(ext)) destination = audio;
-            else destination = unsorted;
-        } else destination = unsorted;
-        item.parentFolder = destination;
-        moved++;
-    }
-    return moved;
-}
 function aetoolkitCepOrganizeProject(preset) {
     try {
-        var allowed = { basic: true, "dms-16x9": true, "dms-9x16": true, "dms-4x5": true, "dms-1x1": true, "xav-2025": true }, snapshot, moved;
+        var allowed = { basic: true, "dms-16x9": true, "dms-9x16": true, "dms-4x5": true, "dms-1x1": true }, snapshot, moved;
         if (!allowed[preset]) throw new Error("Choose an organizer preset.");
         app.beginUndoGroup("AE Toolkit CEP: Organize project");
         try {
             snapshot = aetoolkitCepOrganizerSnapshot();
             aetoolkitCepLiftSelectedItems(snapshot);
             if (preset === "basic") moved = aetoolkitCepOrganizeBasic(snapshot);
-            else if (preset === "xav-2025") moved = aetoolkitCepOrganizeXav(snapshot);
             else moved = aetoolkitCepOrganizeDms(snapshot, preset.substring(4));
         } finally { app.endUndoGroup(); }
         return AEToolkitJSON.stringify({ moved: moved, selectedAtRoot: snapshot.selected.length });

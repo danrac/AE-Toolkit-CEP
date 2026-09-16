@@ -20,7 +20,7 @@ The seven sections use an icon toolbar at the top. Hover an icon for its name; t
 - Sourcing workflows for path-based asset imports and discovery of explicit source-AE-project links in rendered footage
 - Create / Modify workflows for validated composition creation, direct selected-composition size and FPS edits, project-item renaming, and solid-to-comp conforming
 - Native editable Covers and held-frame Checkers, with checker rendering routed through the safe Project output workflow
-- Cleanup, collecting, asset localization, and Basic/DMS/XAV 2025 project organization workflows
+- Cleanup, collecting, asset localization, and Basic/DMS project organization workflows
 - Core Tools for composition timing, fades, sequencing, layer parenting, guide marking, and selected-text replacement
 - Custom composition formats with validated dimensions and safely stored matte/chart guide assets
 
@@ -40,7 +40,7 @@ Covers are built as editable After Effects comps with a background and named tex
 
 Cleanup actions call After Effects’ native consolidate, remove-unused, reduce, and Collect Files operations. Localize copies only selected, file-based footage into the active project’s semantic Assets folder and does not overwrite an existing file. Use Collect Files for sequences and proxies.
 
-The organizer snapshots project items before it creates folders, runs as one undo step, and never removes folders. Basic, DMS aspect-ratio, and XAV 2025 presets are available. Every selected Project-panel item is lifted to the root and excluded from routing; a selected folder’s unselected contents stay together.
+The organizer snapshots project items before it creates folders, runs as one undo step, and never removes folders. Basic and DMS aspect-ratio presets are available. Every selected Project-panel item is lifted to the root and excluded from routing; a selected folder’s unselected contents stay together.
 
 ## Tools
 
@@ -94,3 +94,15 @@ Standalone module action buttons fill their row by default. Buttons grouped in t
 ## Template comp naming
 
 Under Templates → Edit template → Comp naming, add, remove, rename, and reorder fields. Choose Text, Version, or Comp Format for each field. Text fields accept defaults; Version fields use a numeric value, a prefix (default `v`), and 1–6 padding digits (default 2, producing `v01`). Comp Format reads the selected composition format. Save template stores the fields with its folder mappings and rebuilds Create composition’s compact three-column naming inputs. Its live preview uses entered values. Existing templates migrate from their saved field order; templates without naming settings use the default with initials last. Existing comps are not renamed. At least one naming field is required.
+
+## Panel layout and naming presets
+
+Click any main module header to collapse or expand it. Each user’s module states and selected tab are saved in the CEP browser’s local storage, separately from project/template data, and restored when the panel reopens.
+
+Comp Naming now uses a stacked module list. Edit opens preferences with Save/Cancel; drag modules to reorder them (or focus a row and use Alt+Up/Down). Add to Template opens a new module dialog. The naming-preset row provides Default and saved presets; Add saves the current module list under a new name, and Remove deletes a saved preset without changing existing template fields. Save Template applies the list to the project template. Blank text modules appear as placeholders in the template preview.
+
+## Bundled composition formats
+
+The default library includes 16:9 HD, UHD 3840, 9:16 Social, 9:16 TikTok safe, 4:5 Social, 4:5 with 9:16 safe, 1:1 Square, HD letterbox 1.85/2.00/2.10/2.35/2.40/2.41, and HD 10/20. Custom size remains available. Original Toolbox matte/chart guides are bundled in the extension, resolved relative to its installation, and imported when Add Guides is enabled. User-created formats are preserved; missing defaults are added automatically.
+
+Native Toolkit confirmation popups have been removed; results and errors appear in the panel. The organizer offers Basic and DMS presets.

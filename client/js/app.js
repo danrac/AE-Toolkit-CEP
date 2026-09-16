@@ -1,6 +1,6 @@
 (function () {
     var store = window.AEToolkitTemplates, cs = new CSInterface(), state = store.defaultState(), selectedTemplateId = state.templates[0].id, selectedCompPresetId = state.compPresets[0].id, templateDraft, compPresetDraft, sourceDiscovery = null;
-    var folderLabels = { afterEffects: "After Effects", assets: "Assets", toGfx: "To GFX", outputs: "Outputs", styleFrames: "Style frames" };
+    var folderLabels = { afterEffects: "AE Projects", assets: "Assets", toGfx: "Graphic In", outputs: "Graphic Out", styleFrames: "Style Frames" };
     function byId(id) { return document.getElementById(id); }
     function status(message, error) { var target = byId("status"); target.textContent = message; target.style.color = error ? "#ff9d9d" : "#91d0a4"; }
     function callHost(name, argument, callback) { cs.evalScript(name + "(" + JSON.stringify(argument || "") + ")", callback); }
@@ -47,37 +47,56 @@
         });
         renderCompNamePreview();
     }
-    function renderNamingOrder() {
-        var container = byId("naming-order"); clearChildren(container);
-        function preview() { try { byId("naming-preview").textContent = store.formatNaming(store.namingFields(templateDraft), {}, "HD"); } catch (error) { byId("naming-preview").textContent = error.message; } }
-        templateDraft.namingFields.forEach(function (field, index) {
-            var token = document.createElement("div"); token.className = "naming-token";
-            function input(labelText, key, type) {
-                var label = document.createElement("label"), control = document.createElement("input"); label.textContent = labelText; control.type = type || "text"; control.value = field[key];
-                if (key === "digits") { control.min = "1"; control.max = "6"; }
-                control.oninput = function () { field[key] = key === "digits" ? Number(control.value) : control.value; preview(); };
-                label.appendChild(control); token.appendChild(label);
-            }
-            input("Field " + (index + 1), "label");
-            var typeLabel = document.createElement("label"), select = document.createElement("select"); typeLabel.textContent = "Type";
+    function namingPresets() { return [{ id: "default", name: "Default", namingFields: store.namingFields({}) }].concat(state.namingPresets || []); }
+    function renderNamingPresets() {
+        var select = byId("naming-preset"); clearChildren(select);
+        var custom = document.createElement("option"); custom.value = ""; custom.textContent = "Custom"; select.appendChild(custom);
+        var match = "";
+        namingPresets().forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name; select.appendChild(option); if (JSON.stringify(preset.namingFields) === JSON.stringify(templateDraft.namingFields)) match = preset.id; });
+        select.value = match; byId("remove-naming-preset").disabled = !match || match === "default";
+    }
+    function namingDialog(title, populate, commit) {
+        var dialog = byId("naming-dialog"), fields = byId("naming-dialog-fields"); clearChildren(fields); byId("naming-dialog-title").textContent = title; byId("naming-dialog-error").textContent = "";
+        populate(fields);
+        byId("naming-dialog-form").onsubmit = function (event) { event.preventDefault(); try { commit(); dialog.close(); } catch (error) { byId("naming-dialog-error").textContent = error.message; } };
+        byId("naming-dialog-cancel").onclick = function () { dialog.close(); };
+        dialog.showModal();
+    }
+    function editNamingField(index) {
+        var original = templateDraft.namingFields[index], field = copy(original || { id: "field" + Date.now(), label: "", type: "text", value: "", prefix: "v", digits: 2 });
+        namingDialog(original ? "Module preferences" : "Add module", function (container) {
+            function input(labelText, key, type) { var label = document.createElement("label"), control = document.createElement("input"); label.textContent = labelText; control.type = type || "text"; control.value = field[key]; if (key === "digits") { control.min = "1"; control.max = "6"; } control.oninput = function () { field[key] = key === "digits" ? Number(control.value) : control.value; }; label.appendChild(control); container.appendChild(label); return label; }
+            input("Name", "label");
+            var label = document.createElement("label"), select = document.createElement("select"); label.textContent = "Type";
             [["text", "Text"], ["version", "Version"], ["format", "Comp format"]].forEach(function (pair) { var option = document.createElement("option"); option.value = pair[0]; option.textContent = pair[1]; select.appendChild(option); });
-            select.value = field.type; select.onchange = function () { field.type = select.value; if (field.type === "version" && !/^\d+$/.test(field.value)) field.value = "1"; renderNamingOrder(); }; typeLabel.appendChild(select); token.appendChild(typeLabel);
-            if (field.type !== "format") input("Default", "value", field.type === "version" ? "number" : "text");
-            if (field.type === "version") { input("Prefix", "prefix"); input("Digits", "digits", "number"); }
-            var controls = document.createElement("div");
-            [-1, 1, 0].forEach(function (direction) {
-                var button = document.createElement("button"); button.textContent = direction < 0 ? "←" : direction > 0 ? "→" : "×";
-                button.title = direction ? "Move field " + (direction < 0 ? "earlier" : "later") : "Remove field"; button.setAttribute("aria-label", button.title);
-                button.disabled = direction ? index + direction < 0 || index + direction >= templateDraft.namingFields.length : templateDraft.namingFields.length === 1;
-                button.onclick = function () { if (!direction) templateDraft.namingFields.splice(index, 1); else { var other = index + direction; templateDraft.namingFields[index] = templateDraft.namingFields[other]; templateDraft.namingFields[other] = field; } renderNamingOrder(); }; controls.appendChild(button);
-            }); token.appendChild(controls); container.appendChild(token);
-        }); preview();
+            select.value = field.type; label.appendChild(select); container.appendChild(label);
+            var defaultField = input("Default", "value"), prefix = input("Prefix", "prefix"), digits = input("Digits", "digits", "number");
+            function update() { defaultField.hidden = field.type === "format"; prefix.hidden = digits.hidden = field.type !== "version"; defaultField.lastChild.type = field.type === "version" ? "number" : "text"; if (field.type === "version") { defaultField.lastChild.min = "0"; defaultField.lastChild.step = "1"; } }
+            select.onchange = function () { field.type = select.value; if (field.type === "version" && !/^\d+$/.test(field.value)) field.value = "1"; defaultField.lastChild.value = field.value; update(); }; update();
+        }, function () { var fields = copy(templateDraft.namingFields); if (original) fields[index] = field; else fields.push(field); templateDraft.namingFields = store.namingFields({ namingFields: fields }); renderNamingOrder(); });
+    }
+    function renderNamingOrder() {
+        var container = byId("naming-order"); clearChildren(container); renderNamingPresets();
+        function move(from, to) { if (to < 0 || to >= templateDraft.namingFields.length) return; var field = templateDraft.namingFields.splice(from, 1)[0]; templateDraft.namingFields.splice(to, 0, field); renderNamingOrder(); container.children[to].focus(); }
+        templateDraft.namingFields.forEach(function (field, index) {
+            var row = document.createElement("div"), name = document.createElement("span"); row.className = "naming-row"; row.draggable = true; row.tabIndex = 0; row.title = "Drag to reorder; Alt + Up/Down with keyboard"; name.textContent = field.label; row.appendChild(name);
+            row.ondragstart = function (event) { event.dataTransfer.setData("text/plain", String(index)); };
+            row.ondragover = function (event) { event.preventDefault(); };
+            row.ondrop = function (event) { event.preventDefault(); var from = Number(event.dataTransfer.getData("text/plain")); if (isFinite(from) && from >= 0 && from < templateDraft.namingFields.length) move(from, index); };
+            row.onkeydown = function (event) { if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) { event.preventDefault(); move(index, index + (event.key === "ArrowUp" ? -1 : 1)); } };
+            [["Edit", '<path d="m4 16 11-11 4 4-11 11H4zM13 7l4 4"/>'], ["Remove", '<path d="M5 7h14M9 7V4h6v3M7 7l1 14h8l1-14M10 10v7m4-7v7"/>']].forEach(function (action) {
+                var button = document.createElement("button"); button.className = "tool-icon"; button.title = action[0] + " " + field.label; button.setAttribute("aria-label", button.title); button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + action[1] + '</svg>';
+                button.disabled = action[0] === "Remove" && templateDraft.namingFields.length === 1;
+                button.onclick = function () { if (action[0] === "Edit") editNamingField(index); else { templateDraft.namingFields.splice(index, 1); renderNamingOrder(); } }; row.appendChild(button);
+            }); container.appendChild(row);
+        });
+        try { byId("naming-preview").textContent = store.previewNaming(store.namingFields(templateDraft)); } catch (error) { byId("naming-preview").textContent = error.message; }
     }
     function renderTemplateForm() {
         var template = templateDraft || templateById(selectedTemplateId) || { id: "", name: "", folders: {}, customFolders: [] }; byId("template-name").value = template.name; byId("template-name").oninput = function () { templateDraft.name = byId("template-name").value; }; byId("template-form-title").textContent = template.id ? "Edit template" : "New template";
         renderNamingOrder();
         var grid = byId("template-folders"); grid.innerHTML = "";
-        store.FOLDER_KEYS.forEach(function (key) { var label = document.createElement("label"); label.textContent = folderLabels[key]; var input = document.createElement("input"); input.dataset.key = key; input.value = template.folders[key] || ""; input.placeholder = "Relative folder"; input.oninput = function () { templateDraft.folders[key] = input.value; }; label.appendChild(input); grid.appendChild(label); });
+        store.FOLDER_KEYS.forEach(function (key) { var label = document.createElement("label"); label.textContent = folderLabels[key]; if (key === "styleFrames") label.className = "full-row"; var input = document.createElement("input"); input.dataset.key = key; input.value = template.folders[key] || ""; input.placeholder = "Relative folder"; input.oninput = function () { templateDraft.folders[key] = input.value; }; label.appendChild(input); grid.appendChild(label); });
         template.customFolders.forEach(function (entry, index) { var row = document.createElement("div"), labelField = document.createElement("label"), pathField = document.createElement("label"), labelInput = document.createElement("input"), pathInput = document.createElement("input"), remove = document.createElement("button"); row.className = "custom-location"; labelField.textContent = "Custom name"; labelInput.value = entry.label; labelInput.oninput = function () { templateDraft.customFolders[index].label = labelInput.value; }; labelField.appendChild(labelInput); pathField.textContent = "Relative folder"; pathInput.value = entry.path; pathInput.oninput = function () { templateDraft.customFolders[index].path = pathInput.value; }; pathField.appendChild(pathInput); remove.textContent = "Remove"; remove.onclick = function () { templateDraft.customFolders.splice(index, 1); renderTemplateForm(); }; row.appendChild(labelField); row.appendChild(pathField); row.appendChild(remove); grid.appendChild(row); });
     }
     function renderProjects() {
@@ -128,7 +147,19 @@
     }
     function load() { callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets()[0].id; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Ready."); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Using the default template: " + error.message, true); } }); }
     document.querySelectorAll(".tab").forEach(function (tab) { tab.onclick = function () { document.querySelectorAll(".tab, .view").forEach(function (entry) { entry.classList.remove("active"); }); document.querySelectorAll(".tab").forEach(function (button) { button.setAttribute("aria-pressed", button === tab ? "true" : "false"); }); tab.classList.add("active"); document.querySelector("h1").textContent = tab.getAttribute("aria-label"); byId(tab.dataset.view).classList.add("active"); }; });
-    byId("add-naming-field").onclick = function () { var id = "field" + Date.now(), suffix = 0; while (templateDraft.namingFields.some(function (field) { return field.id === id; })) id += (++suffix); templateDraft.namingFields.push({ id: id, label: "Custom", type: "text", value: "", prefix: "v", digits: 2 }); renderNamingOrder(); };
+    byId("add-naming-field").onclick = function () { editNamingField(-1); };
+    byId("naming-preset").onchange = function () { var id = this.value, preset = namingPresets().filter(function (entry) { return entry.id === id; })[0]; if (preset) { templateDraft.namingFields = copy(preset.namingFields); renderNamingOrder(); } };
+    byId("add-naming-preset").onclick = function () {
+        var name;
+        namingDialog("Save naming preset", function (container) { var label = document.createElement("label"); label.textContent = "Preset name"; name = document.createElement("input"); name.required = true; label.appendChild(name); container.appendChild(label); }, function () {
+            var title = name.value.trim(); if (!title) throw new Error("Enter a preset name.");
+            if (namingPresets().some(function (preset) { return preset.name.toLowerCase() === title.toLowerCase(); })) throw new Error("A preset with that name already exists.");
+            var previous = copy(state); state.namingPresets = state.namingPresets || []; state.namingPresets.push({ id: "preset" + Date.now(), name: title, namingFields: store.namingFields(templateDraft) });
+            callHost("aetoolkitCepSaveState", JSON.stringify(state), function (result) { if (result !== "OK") { state = previous; status(result || "Could not save preset.", true); } else status("Naming preset saved."); renderNamingPresets(); });
+        });
+    };
+    byId("remove-naming-preset").onclick = function () { var id = byId("naming-preset").value; if (!id || id === "default") return; var previous = copy(state); state.namingPresets = (state.namingPresets || []).filter(function (preset) { return preset.id !== id; }); callHost("aetoolkitCepSaveState", JSON.stringify(state), function (result) { if (result !== "OK") { state = previous; status(result || "Could not remove preset.", true); } else status("Naming preset removed. Template fields preserved."); renderNamingPresets(); }); };
+
     ["comp-preset", "comp-width", "comp-height"].forEach(function (id) { byId(id).addEventListener("change", renderCompNamePreview); byId(id).addEventListener("input", renderCompNamePreview); });
     byId("new-template").onclick = function () { selectedTemplateId = ""; startTemplateDraft(); renderTemplateForm(); };
     byId("add-custom-folder").onclick = function () { templateDraft.customFolders.push({ label: "", path: "" }); renderTemplateForm(); };
@@ -160,11 +191,11 @@
     byId("conform-solids").onclick = function () { callHost("aetoolkitCepConformSelectedSolids", "", function (result) { try { var summary = JSON.parse(result); status("Conformed " + summary.conformed + " solid layer" + (summary.conformed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("create-cover").onclick = function () { callHost("aetoolkitCepCreateCover", JSON.stringify(coverOptions()), function (result) { try { var cover = JSON.parse(result); status("Created " + cover.name + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("create-checkers").onclick = function () { callHost("aetoolkitCepCreateCheckers", JSON.stringify(checkerOptions()), function (result) { try { var summary = JSON.parse(result); status("Created " + summary.created + " checker" + (summary.created === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
-    byId("consolidate-footage").onclick = function () { if (!window.confirm("Consolidate duplicate footage in this After Effects project?")) return; callHost("aetoolkitCepConsolidateFootage", "", function (result) { try { JSON.parse(result); status("Consolidated footage."); } catch (error) { status(result || error.message, true); } }); };
-    byId("remove-unused").onclick = function () { if (!window.confirm("Remove unused footage from this After Effects project? You can undo this action.")) return; callHost("aetoolkitCepRemoveUnusedFootage", "", function (result) { try { JSON.parse(result); status("Removed unused footage."); } catch (error) { status(result || error.message, true); } }); };
-    byId("reduce-project").onclick = function () { if (!window.confirm("Reduce this project to the selected items and their dependencies? You can undo this action.")) return; callHost("aetoolkitCepReduceProject", "", function (result) { try { var summary = JSON.parse(result); status("Reduced project to " + summary.kept + " selected item" + (summary.kept === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
-    byId("organize-project").onclick = function () { var preset = byId("organizer-preset").value; if (!window.confirm("Organize this project using the selected preset? Selected items will stay at the project root. You can undo this action.")) return; callHost("aetoolkitCepOrganizeProject", preset, function (result) { try { var summary = JSON.parse(result); status("Organized " + summary.moved + " item" + (summary.moved === 1 ? "." : "s.") + " Selected items remain at the root."); } catch (error) { status(result || error.message, true); } }); };
-    byId("localize-assets").onclick = function () { var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id); if (!paths || !paths.assets) { status("Connect an active project with an Assets location first.", true); return; } if (!window.confirm("Copy selected footage into this project’s Assets/Localized folder and relink it?")) return; callHost("aetoolkitCepLocalizeSelectedAssets", paths.assets, function (result) { try { var summary = JSON.parse(result); status(summary.localized ? "Localized " + summary.localized + " asset" + (summary.localized === 1 ? "." : "s.") + (summary.errors.length ? " " + summary.errors.join(" ") : "") : summary.errors.join(" ") || "No assets were localized.", !!summary.errors.length); } catch (error) { status(result || error.message, true); } }); };
+    byId("consolidate-footage").onclick = function () { callHost("aetoolkitCepConsolidateFootage", "", function (result) { try { JSON.parse(result); status("Consolidated footage."); } catch (error) { status(result || error.message, true); } }); };
+    byId("remove-unused").onclick = function () { callHost("aetoolkitCepRemoveUnusedFootage", "", function (result) { try { JSON.parse(result); status("Removed unused footage."); } catch (error) { status(result || error.message, true); } }); };
+    byId("reduce-project").onclick = function () { callHost("aetoolkitCepReduceProject", "", function (result) { try { var summary = JSON.parse(result); status("Reduced project to " + summary.kept + " selected item" + (summary.kept === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
+    byId("organize-project").onclick = function () { var preset = byId("organizer-preset").value; callHost("aetoolkitCepOrganizeProject", preset, function (result) { try { var summary = JSON.parse(result); status("Organized " + summary.moved + " item" + (summary.moved === 1 ? "." : "s.") + " Selected items remain at the root."); } catch (error) { status(result || error.message, true); } }); };
+    byId("localize-assets").onclick = function () { var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id); if (!paths || !paths.assets) { status("Connect an active project with an Assets location first.", true); return; } callHost("aetoolkitCepLocalizeSelectedAssets", paths.assets, function (result) { try { var summary = JSON.parse(result); status(summary.localized ? "Localized " + summary.localized + " asset" + (summary.localized === 1 ? "." : "s.") + (summary.errors.length ? " " + summary.errors.join(" ") : "") : summary.errors.join(" ") || "No assets were localized.", !!summary.errors.length); } catch (error) { status(result || error.message, true); } }); };
     byId("collect-project").onclick = function () { callHost("aetoolkitCepOpenCollectFiles", "", function (result) { showHostResult(result, "Opened the Collect Files dialog."); }); };
     document.querySelectorAll("[data-comp-frame-change]").forEach(function (button) { button.onclick = function () { callHost("aetoolkitCepAdjustSelectedCompFrames", button.dataset.compFrameChange, function (result) { try { var summary = JSON.parse(result); status("Adjusted " + summary.changed + " composition" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); }; });
     byId("set-comp-duration").onclick = function () { callHost("aetoolkitCepSetSelectedCompDuration", byId("tool-comp-duration").value, function (result) { try { var summary = JSON.parse(result); status("Set duration on " + summary.changed + " composition" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
@@ -182,7 +213,7 @@
     byId("replace-text").onclick = function () { callHost("aetoolkitCepReplaceSelectedText", byId("tool-replace-text").value, function (result) { try { var summary = JSON.parse(result); status("Updated " + summary.changed + " text layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("connect-project").onclick = function () { try { var name = byId("project-name").value, root = byId("project-root").value; state = store.assignProject(state, { name: name, root: root, templateId: byId("project-template").value }); var matched = state.projects.filter(function (project) { return project.name === name && project.root === String(root).replace(/\\/g, "/").replace(/\/+$/g, ""); })[0]; state = store.setActiveProject(state, matched.id); save(function () { renderProjects(); renderActiveProject(); status("Project connected."); }); } catch (error) { status(error.message, true); } };
     byId("active-project").onchange = function () { try { state = store.setActiveProject(state, byId("active-project").value); save(function () { renderProjects(); renderActiveProject(); status("Active project changed."); }); } catch (error) { status(error.message, true); } };
-    byId("remove-project").onclick = function () { var project = activeProject(); if (!project || !window.confirm("Remove '" + project.name + "' from AE Toolkit CEP? Its files will not be changed.")) return; try { state = store.removeProject(state, project.id); save(function () { renderProjects(); renderActiveProject(); status("Project removed."); }); } catch (error) { status(error.message, true); } };
+    byId("remove-project").onclick = function () { var project = activeProject(); if (!project) return; try { state = store.removeProject(state, project.id); save(function () { renderProjects(); renderActiveProject(); status("Project removed."); }); } catch (error) { status(error.message, true); } };
     byId("open-project-file").onclick = function () { var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id); if (paths) callHost("aetoolkitCepOpenProjectFromFolder", paths.afterEffects, function (result) { showHostResult(result); }); };
     byId("reveal-project-root").onclick = function () { var project = activeProject(); if (project) callHost("aetoolkitCepRevealFolder", project.root, function (result) { showHostResult(result, "Opened " + project.root); }); };
     byId("choose-render-subfolder").onclick = function () { callHost("aetoolkitCepChooseRenderSubfolder", "", function (result) { if (result && result.indexOf("ERROR:") === 0) status(result, true); else if (result) byId("render-subfolder").value = result; }); };

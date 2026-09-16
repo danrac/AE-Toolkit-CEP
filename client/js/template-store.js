@@ -41,6 +41,13 @@
             return { id: id, label: label, type: type, value: value, prefix: field.prefix === undefined ? "v" : String(field.prefix), digits: digits };
         });
     }
+    function previewNaming(fields) {
+        var examples = {};
+        fields.forEach(function (field) {
+            if (field.type === "text" && !String(field.value || "").trim()) examples[field.id] = "[" + field.label + "]";
+        });
+        return formatNaming(fields, examples, "HD");
+    }
     function formatNaming(fields, values, format) {
         function clean(value) { return String(value || "").trim().replace(/[\\\/:*?"<>|\r\n]+/g, "").replace(/\s+/g, "_"); }
         return fields.map(function (field) {
@@ -55,7 +62,7 @@
         }).filter(function (part) { return !!part; }).join("_") || "Comp";
     }
     function defaultCompPresets() {
-        return [{ id: "hd", name: "HD", width: 1920, height: 1080, assets: {} }, { id: "uhd", name: "UHD", width: 3840, height: 2160, assets: {} }, { id: "square", name: "Square", width: 1080, height: 1080, assets: {} }, { id: "vertical", name: "Vertical", width: 1080, height: 1920, assets: {} }];
+        return [{"id": "hd", "name": "16:9 HD", "width": 1920, "height": 1080, "assets": {"chartOne": "bundled:HD_chart.psd"}}, {"id": "uhd", "name": "UHD 3840", "width": 3840, "height": 2160, "assets": {"chartOne": "bundled:UHD_chart.psd"}}, {"id": "vertical", "name": "9:16 Social", "width": 1080, "height": 1920, "assets": {"matte": "bundled:9x16_matte.png", "chartOne": "bundled:9x16_chart.psd"}}, {"id": "vertical-tiktok", "name": "9:16 TikTok safe", "width": 1080, "height": 1920, "assets": {"matte": "bundled:9x16TT_matte.png", "chartOne": "bundled:9x16_chart.psd"}}, {"id": "social-4x5", "name": "4:5 Social", "width": 1080, "height": 1350, "assets": {"matte": "bundled:4x5_matte.png", "chartOne": "bundled:4x5_chart.psd"}}, {"id": "social-4x5-safe", "name": "4:5 with 9:16 safe", "width": 1080, "height": 1350, "assets": {"matte": "bundled:4x5_9x16_matte.png", "chartOne": "bundled:4x5_chart.psd"}}, {"id": "square", "name": "1:1 Square", "width": 1080, "height": 1080, "assets": {"matte": "bundled:1x1_matte.png", "chartOne": "bundled:1x1_chart.psd"}}, {"id": "hd-185", "name": "HD 1.85 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:185_matte.png", "chartOne": "bundled:185_chart.psd"}}, {"id": "hd-200", "name": "HD 2.00 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:200_matte.png", "chartOne": "bundled:200_chart.psd"}}, {"id": "hd-210", "name": "HD 2.10 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:210_matte.png", "chartOne": "bundled:210_chart.psd"}}, {"id": "hd-235", "name": "HD 2.35 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:235_matte.png", "chartOne": "bundled:235_chart.psd"}}, {"id": "hd-240", "name": "HD 2.40 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:240_matte.png", "chartOne": "bundled:240_chart.psd"}}, {"id": "hd-241", "name": "HD 2.41 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:241_matte.png", "chartOne": "bundled:241_chart.psd"}}, {"id": "hd-1020", "name": "HD 10/20", "width": 1920, "height": 1080, "assets": {"matte": "bundled:HD1020_matte.png", "chartOne": "bundled:HD1020_chart.psd"}}];
     }
     function defaultState() {
         return { version: 2, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "After Effects", assets: "Assets", toGfx: "Incoming", outputs: "Outputs", styleFrames: "Outputs/Style Frames" }, customFolders: [] }], compPresets: defaultCompPresets(), projects: [], activeProjectId: "" };
@@ -131,7 +138,16 @@
         if (!isFinite(height) || Math.floor(height) !== height || height < 1 || height > 30000) throw new Error("Preset height must be between 1 and 30000.");
         return { id: preset.id || idFromName(name), name: name, width: width, height: height, assets: { matte: assets.matte || "", chartOne: assets.chartOne || "", chartTwo: assets.chartTwo || "" } };
     }
-    function compPresets(state) { return state.compPresets && state.compPresets.length ? state.compPresets : defaultCompPresets(); }
+    function compPresets(state) {
+        var saved = state.compPresets || [], defaults = defaultCompPresets(), legacy = { hd: "HD", uhd: "UHD", square: "Square", vertical: "Vertical" };
+        var result = saved.map(function (preset) {
+            var builtIn = defaults.filter(function (entry) { return entry.id === preset.id; })[0];
+            if (builtIn && preset.name === legacy[preset.id] && preset.width === builtIn.width && preset.height === builtIn.height && !Object.keys(preset.assets || {}).some(function (key) { return !!preset.assets[key]; })) return builtIn;
+            return preset;
+        });
+        defaults.forEach(function (preset) { if (!result.some(function (entry) { return entry.id === preset.id; })) result.push(preset); });
+        return result;
+    }
     function upsertCompPreset(state, preset) {
         var next = clone(state), normalized = normalizeCompPreset(preset), presets = compPresets(next), found = false;
         next.compPresets = presets;
@@ -139,5 +155,5 @@
         if (!found) presets.push(normalized);
         return next;
     }
-    return { namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
+    return { previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));
