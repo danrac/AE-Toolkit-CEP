@@ -24,6 +24,36 @@
         });
         return order.slice();
     }
+    function namingFields(template) {
+        var labels = { job: "Job", format: "Format", style: "Style", description: "Description", version: "Version", initials: "Initials" };
+        var fields = template && template.namingFields;
+        if (fields === undefined || fields === null) fields = namingOrder(template).map(function (key) { return { id: key, label: labels[key], type: key === "version" ? "version" : key === "format" ? "format" : "text", value: key === "version" ? "1" : "", prefix: "v", digits: 2 }; });
+        if (!Array.isArray(fields) || !fields.length) throw new Error("Add at least one naming field.");
+        var seen = {};
+        return fields.map(function (field) {
+            var id = String(field.id || ""), label = String(field.label || "").trim(), type = field.type;
+            if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(id) || ["__proto__", "constructor", "prototype"].indexOf(id) >= 0 || seen[id]) throw new Error("Naming field IDs must be unique.");
+            seen[id] = true;
+            if (!label) throw new Error("Each naming field needs a label.");
+            if (["text", "version", "format"].indexOf(type) < 0) throw new Error("Choose a naming field type.");
+            var digits = field.digits === undefined ? 2 : Number(field.digits), value = String(field.value === undefined ? (type === "version" ? "1" : "") : field.value);
+            if (type === "version" && (!/^\d+$/.test(value) || !Number.isInteger(digits) || digits < 1 || digits > 6)) throw new Error("Versions need a whole number and 1–6 digits.");
+            return { id: id, label: label, type: type, value: value, prefix: field.prefix === undefined ? "v" : String(field.prefix), digits: digits };
+        });
+    }
+    function formatNaming(fields, values, format) {
+        function clean(value) { return String(value || "").trim().replace(/[\\\/:*?"<>|\r\n]+/g, "").replace(/\s+/g, "_"); }
+        return fields.map(function (field) {
+            var value = Object.prototype.hasOwnProperty.call(values, field.id) ? values[field.id] : field.value;
+            if (field.type === "format") value = format;
+            if (field.type === "version") {
+                if (!/^\d+$/.test(String(value))) throw new Error(field.label + " must be a whole number.");
+                value = String(Number(value)); while (value.length < field.digits) value = "0" + value;
+                value = field.prefix + value;
+            }
+            return clean(value);
+        }).filter(function (part) { return !!part; }).join("_") || "Comp";
+    }
     function defaultCompPresets() {
         return [{ id: "hd", name: "HD", width: 1920, height: 1080, assets: {} }, { id: "uhd", name: "UHD", width: 3840, height: 2160, assets: {} }, { id: "square", name: "Square", width: 1080, height: 1080, assets: {} }, { id: "vertical", name: "Vertical", width: 1080, height: 1920, assets: {} }];
     }
@@ -46,7 +76,7 @@
             usedIds[id] = true;
             customFolders.push({ id: id, label: label, path: normalizeRelativePath(entry.path) });
         }
-        return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders, customFolders: customFolders, namingOrder: namingOrder(template) };
+        return { id: template.id || idFromName(template.name), name: String(template.name).replace(/^\s+|\s+$/g, ""), folders: folders, customFolders: customFolders, namingFields: namingFields(template) };
     }
     function upsertTemplate(state, template) {
         var next = clone(state), normalized = validateTemplate(template), found = false;
@@ -109,5 +139,5 @@
         if (!found) presets.push(normalized);
         return next;
     }
-    return { namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
+    return { namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));

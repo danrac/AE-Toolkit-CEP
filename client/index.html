@@ -98,12 +98,8 @@
           <label>FPS<input id="comp-fps" type="number" min="1" max="240" step="0.001" value="23.976"></label>
           <label title="Duration in seconds">Dur. (s)<input aria-label="Duration in seconds" id="comp-duration" type="number" min="0.001" max="86400" step="0.001" value="10"></label>
         </div>
-        <div class="field-grid">
-          <label>Job<input id="comp-job" placeholder="Job"></label>
-          <label>Style<input id="comp-style" placeholder="Style"></label>
-          <label>Description<input id="comp-description" placeholder="Description"></label>
-          <label>Initials<input id="comp-initials" maxlength="12" placeholder="AB"></label>
-        </div>
+        <div id="comp-naming-fields" class="field-grid"></div>
+        <output id="comp-name-preview" class="naming-preview" aria-live="polite"></output>
         <label class="inline-toggle"><input id="comp-add-guides" type="checkbox"> Add this format’s stored guide assets</label>
         <button id="create-comp" class="primary">Create composition</button>
       </article>
@@ -283,6 +279,7 @@
         <button id="add-custom-folder" class="quiet add-folder">Add custom location</button>
         <section class="project-operation">
           <h3>Comp naming</h3>
+          <button id="add-naming-field" class="quiet" type="button">Add field</button>
           <div id="naming-order" class="naming-order" aria-label="Composition name field order"></div>
           <output id="naming-preview" class="naming-preview" aria-live="polite"></output>
         </section>

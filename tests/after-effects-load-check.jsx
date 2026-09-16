@@ -6,7 +6,9 @@
   if (aetoolkitCepSafeName('a/b:c') !== 'abc') throw new Error('Name sanitizer failed');
   if (!aetoolkitCepIsAbsolutePath('/Users/example/file.png') || !aetoolkitCepIsAbsolutePath('C:/Jobs/file.png') || aetoolkitCepIsAbsolutePath('file.png')) throw new Error('Absolute-path detection failed');
   var naming = AEToolkitJSON.parse('{"job":"ABA","format":"HD","style":"A","description":"NewCard","initials":"DR","namingOrder":["job","style","description","format","version","initials"]}');
-  if (aetoolkitCepBuildCompName(naming, 1) !== 'ABA_A_NewCard_HD_01_DR') throw new Error('Template naming order failed');
+  if (aetoolkitCepBuildCompName(naming, 1) !== 'ABA_A_NewCard_HD_v01_DR') throw new Error('Template naming order failed');
+  var typed = AEToolkitJSON.parse('{"namingFields":[{"id":"custom","type":"text","value":"Acme"},{"id":"revision","type":"version","value":"1","prefix":"v","digits":2}],"namingValues":{"revision":"3"}}');
+  if (aetoolkitCepBuildCompName(typed, 1) !== 'Acme_v03') throw new Error('Typed naming failed');
   var sample = { mac: '/Volumes/Jobs/A B/é.mov', windows: 'C:\\Jobs\\A B\\clip.mov', values: [true, false, null, 12.5], quote: '"line\nnext' };
   var decoded = AEToolkitJSON.parse(AEToolkitJSON.stringify(sample));
   if (decoded.mac !== sample.mac || decoded.windows !== sample.windows || decoded.quote !== sample.quote || decoded.values[2] !== null) throw new Error('JSON round-trip failed');

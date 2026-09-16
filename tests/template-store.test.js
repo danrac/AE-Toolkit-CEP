@@ -59,7 +59,16 @@ console.log('PASS Mac, Windows, UNC, and trailing traversal paths are rejected i
 const customOrder = ['job', 'style', 'description', 'format', 'version', 'initials'];
 let namedState = store.upsertTemplate(store.defaultState(), { id: 'naming-test', name: 'Naming test', folders: {}, namingOrder: customOrder });
 namedState = JSON.parse(JSON.stringify(namedState));
-assert.deepEqual(store.namingOrder(namedState.templates[1]), customOrder);
+assert.deepEqual(store.namingFields(namedState.templates[1]).map(field => field.id), customOrder);
 assert.deepEqual(store.namingOrder({}), ['job', 'format', 'style', 'description', 'version', 'initials']);
 assert.throws(() => store.namingOrder({ namingOrder: ['job', 'job', 'style', 'description', 'version', 'initials'] }));
 console.log('PASS template naming order persists and validates unique fields');
+
+const typedFields = [{ id: 'client', label: 'Client', type: 'text', value: 'Acme' }, { id: 'revision', label: 'Revision', type: 'version', value: '1', prefix: 'v', digits: 2 }, { id: 'format', label: 'Format', type: 'format', value: '' }];
+const typed = store.validateTemplate({ name: 'Typed', folders: {}, namingFields: typedFields });
+assert.equal(store.formatNaming(typed.namingFields, {}, 'HD'), 'Acme_v01_HD');
+assert.equal(store.formatNaming(typed.namingFields, { revision: '12', client: 'New Client' }, 'Square'), 'New_Client_v12_Square');
+assert.equal(store.namingFields({ namingOrder: customOrder })[4].type, 'version');
+assert.throws(() => store.namingFields({ namingFields: [] }));
+assert.throws(() => store.namingFields({ namingFields: [{ id: 'v', label: 'Version', type: 'version', value: '-1' }] }));
+console.log('PASS typed naming fields migrate, format versions, and validate input');

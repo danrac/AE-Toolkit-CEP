@@ -95,7 +95,7 @@ const editContext = {
 vm.createContext(editContext);
 vm.runInContext(source, editContext);
 const created = JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify({ width: 1920, height: 1080, fps: 23.976, duration: 10, format: 'HD', job: 'Job', style: 'Main', description: 'Title', initials: 'AB' })));
-assert.equal(created.name, 'Job_HD_Main_Title_01_AB');
+assert.equal(created.name, 'Job_HD_Main_Title_v01_AB');
 assert.equal(createdComps[0].frameRate, 23.976);
 const modified = JSON.parse(editContext.aetoolkitCepModifySelectedComps(JSON.stringify({ width: 3840, height: 2160, fps: 25, duration: 10, updateSize: true, updateFps: true, renameBase: 'New Main' })));
 assert.equal(modified.modified, 1);
@@ -309,5 +309,13 @@ assert.equal(context.aetoolkitCepIsAbsolutePath('file.png'), false);
 
 const nameOptions = { job: 'ABA', format: 'HD', style: 'A', description: 'NewCard', initials: 'DR', namingOrder: ['job', 'style', 'description', 'format', 'version', 'initials'] };
 const namedComp = JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify(Object.assign({ width: 1920, height: 1080, fps: 24, duration: 10 }, nameOptions))));
-assert.equal(namedComp.name, 'ABA_A_NewCard_HD_01_DR');
+assert.equal(namedComp.name, 'ABA_A_NewCard_HD_v01_DR');
 console.log('PASS comp creation uses custom template naming order');
+
+const typedName = { width: 1920, height: 1080, fps: 24, duration: 10, format: 'HD', namingFields: [{ id: 'client', label: 'Client', type: 'text', value: 'Acme' }, { id: 'revision', label: 'Revision', type: 'version', value: '1', prefix: 'v', digits: 2 }], namingValues: { revision: '3' } };
+assert.equal(JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify(typedName))).name, 'Acme_v03');
+typedName.namingFields.reverse();
+assert.equal(JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify(typedName))).name, 'v03_Acme');
+typedName.namingFields.pop();
+assert.equal(JSON.parse(editContext.aetoolkitCepCreateComp(JSON.stringify(typedName))).name, 'v03');
+console.log('PASS custom fields, version format, removal and order reach comp creation');

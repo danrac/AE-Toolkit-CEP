@@ -18,7 +18,7 @@
     function copy(value) { return JSON.parse(JSON.stringify(value)); }
     function startTemplateDraft(template) {
         template = template || { id: "", name: "", folders: {}, customFolders: [] };
-        templateDraft = { id: template.id || "", name: template.name || "", folders: copy(template.folders || {}), customFolders: copy(template.customFolders || []), namingOrder: store.namingOrder(template) };
+        templateDraft = { id: template.id || "", name: template.name || "", folders: copy(template.folders || {}), customFolders: copy(template.customFolders || []), namingFields: store.namingFields(template) };
     }
     function renderTemplateSelect() { var select = byId("project-template"); select.innerHTML = ""; state.templates.forEach(function (template) { var option = document.createElement("option"); option.value = template.id; option.textContent = template.name; select.appendChild(option); }); }
     function renderTemplates() {
@@ -26,24 +26,52 @@
         state.templates.forEach(function (template) { var item = document.createElement("button"), title = document.createElement("strong"), detail = document.createElement("small"); item.className = "list-item"; title.textContent = template.name; detail.textContent = template.id; item.appendChild(title); item.appendChild(detail); item.onclick = function () { selectedTemplateId = template.id; startTemplateDraft(template); renderTemplateForm(); }; list.appendChild(item); });
         renderTemplateSelect();
     }
-    function renderNamingOrder() {
-        var labels = { job: "Job", format: "Format", style: "Style", description: "Description", version: "Version", initials: "Initials" };
-        var samples = { job: "ABA", format: "HD", style: "A", description: "NewCard", version: "01", initials: "DR" };
-        var container = byId("naming-order"); clearChildren(container);
-        templateDraft.namingOrder.forEach(function (key, index) {
-            var token = document.createElement("div"), label = document.createElement("span"), controls = document.createElement("div");
-            token.className = "naming-token";
-            label.textContent = (index + 1) + ". " + labels[key]; token.appendChild(label);
-            [-1, 1].forEach(function (direction) {
-                var button = document.createElement("button"); button.textContent = direction < 0 ? "←" : "→";
-                button.title = "Move " + labels[key] + (direction < 0 ? " earlier" : " later"); button.setAttribute("aria-label", button.title);
-                button.disabled = index + direction < 0 || index + direction >= templateDraft.namingOrder.length;
-                button.onclick = function () { var other = index + direction; templateDraft.namingOrder[index] = templateDraft.namingOrder[other]; templateDraft.namingOrder[other] = key; renderNamingOrder(); };
-                controls.appendChild(button);
-            });
-            token.appendChild(controls); container.appendChild(token);
+    var namingValues = {}, namingContext = "";
+    function activeNamingFields() { return store.namingFields(activeProject() && templateById(activeProject().templateId)); }
+    function namingFormat() { var preset = presetFor("comp"); return preset ? preset.name : byId("comp-width").value + "x" + byId("comp-height").value; }
+    function renderCompNamePreview() {
+        try { byId("comp-name-preview").textContent = store.formatNaming(activeNamingFields(), namingValues[namingContext] || {}, namingFormat()); }
+        catch (error) { byId("comp-name-preview").textContent = error.message; }
+    }
+    function renderCompNamingFields() {
+        var project = activeProject(); namingContext = project ? project.id + ":" + project.templateId : "default";
+        var values = namingValues[namingContext] || (namingValues[namingContext] = {}), grid = byId("comp-naming-fields"); clearChildren(grid);
+        activeNamingFields().forEach(function (field) {
+            if (field.type === "format") return;
+            var label = document.createElement("label"), input = document.createElement("input"); label.textContent = field.label;
+            input.type = field.type === "version" ? "number" : "text"; if (field.type === "version") { input.min = "0"; input.step = "1"; }
+            input.value = Object.prototype.hasOwnProperty.call(values, field.id) ? values[field.id] : field.value;
+            input.placeholder = field.label;
+            input.oninput = function () { values[field.id] = input.value; renderCompNamePreview(); };
+            label.appendChild(input); grid.appendChild(label);
         });
-        byId("naming-preview").textContent = templateDraft.namingOrder.map(function (key) { return samples[key]; }).join("_");
+        renderCompNamePreview();
+    }
+    function renderNamingOrder() {
+        var container = byId("naming-order"); clearChildren(container);
+        function preview() { try { byId("naming-preview").textContent = store.formatNaming(store.namingFields(templateDraft), {}, "HD"); } catch (error) { byId("naming-preview").textContent = error.message; } }
+        templateDraft.namingFields.forEach(function (field, index) {
+            var token = document.createElement("div"); token.className = "naming-token";
+            function input(labelText, key, type) {
+                var label = document.createElement("label"), control = document.createElement("input"); label.textContent = labelText; control.type = type || "text"; control.value = field[key];
+                if (key === "digits") { control.min = "1"; control.max = "6"; }
+                control.oninput = function () { field[key] = key === "digits" ? Number(control.value) : control.value; preview(); };
+                label.appendChild(control); token.appendChild(label);
+            }
+            input("Field " + (index + 1), "label");
+            var typeLabel = document.createElement("label"), select = document.createElement("select"); typeLabel.textContent = "Type";
+            [["text", "Text"], ["version", "Version"], ["format", "Comp format"]].forEach(function (pair) { var option = document.createElement("option"); option.value = pair[0]; option.textContent = pair[1]; select.appendChild(option); });
+            select.value = field.type; select.onchange = function () { field.type = select.value; if (field.type === "version" && !/^\d+$/.test(field.value)) field.value = "1"; renderNamingOrder(); }; typeLabel.appendChild(select); token.appendChild(typeLabel);
+            if (field.type !== "format") input("Default", "value", field.type === "version" ? "number" : "text");
+            if (field.type === "version") { input("Prefix", "prefix"); input("Digits", "digits", "number"); }
+            var controls = document.createElement("div");
+            [-1, 1, 0].forEach(function (direction) {
+                var button = document.createElement("button"); button.textContent = direction < 0 ? "←" : direction > 0 ? "→" : "×";
+                button.title = direction ? "Move field " + (direction < 0 ? "earlier" : "later") : "Remove field"; button.setAttribute("aria-label", button.title);
+                button.disabled = direction ? index + direction < 0 || index + direction >= templateDraft.namingFields.length : templateDraft.namingFields.length === 1;
+                button.onclick = function () { if (!direction) templateDraft.namingFields.splice(index, 1); else { var other = index + direction; templateDraft.namingFields[index] = templateDraft.namingFields[other]; templateDraft.namingFields[other] = field; } renderNamingOrder(); }; controls.appendChild(button);
+            }); token.appendChild(controls); container.appendChild(token);
+        }); preview();
     }
     function renderTemplateForm() {
         var template = templateDraft || templateById(selectedTemplateId) || { id: "", name: "", folders: {}, customFolders: [] }; byId("template-name").value = template.name; byId("template-name").oninput = function () { templateDraft.name = byId("template-name").value; }; byId("template-form-title").textContent = template.id ? "Edit template" : "New template";
@@ -62,7 +90,7 @@
     function compPresets() { return store.compPresets(state); }
     function compPresetById(id) { return compPresets().filter(function (preset) { return preset.id === id; })[0]; }
     function presetFor(prefix) { return compPresetById(byId(prefix + "-preset").value); }
-    function compOptions() { var width = byId("comp-width").value, height = byId("comp-height").value, preset = presetFor("comp"); return { namingOrder: store.namingOrder(activeProject() && templateById(activeProject().templateId)), width: width, height: height, fps: byId("comp-fps").value, duration: byId("comp-duration").value, format: preset ? preset.name : width + "x" + height, guideAssets: preset && preset.assets || {}, addGuides: byId("comp-add-guides").checked, job: byId("comp-job").value, style: byId("comp-style").value, description: byId("comp-description").value, initials: byId("comp-initials").value }; }
+    function compOptions() { var width = byId("comp-width").value, height = byId("comp-height").value, preset = presetFor("comp"); return { namingFields: activeNamingFields(), namingValues: namingValues[namingContext] || {}, width: width, height: height, fps: byId("comp-fps").value, duration: byId("comp-duration").value, format: preset ? preset.name : width + "x" + height, guideAssets: preset && preset.assets || {}, addGuides: byId("comp-add-guides").checked }; }
     function coverOptions() { var preset = presetFor("cover"); return { width: byId("cover-width").value, height: byId("cover-height").value, fps: byId("cover-fps").value, duration: byId("cover-duration").value, format: preset ? preset.name : byId("cover-width").value + "x" + byId("cover-height").value, topLine: byId("cover-top-line").value, bottomLine: byId("cover-bottom-line").value, date: byId("cover-date").value, spot: byId("cover-spot").value }; }
     function checkerOptions() { return { width: byId("checker-width").value, height: byId("checker-height").value, frame: byId("checker-frame").value }; }
     function renderFormatSelect(prefix) { var select = byId(prefix + "-preset"), selected = select.value; select.innerHTML = ""; compPresets().forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); }); var custom = document.createElement("option"); custom.value = "custom"; custom.textContent = "Custom"; select.appendChild(custom); select.value = compPresetById(selected) ? selected : compPresets()[0].id; }
@@ -78,6 +106,7 @@
         importButton.disabled = !(sourceDiscovery.records || []).some(function (record) { return record.exists; });
     }
     function renderActiveProject() {
+        renderCompNamingFields();
         var select = byId("active-project"), project = activeProject(), revealActions = byId("reveal-actions"), importActions = byId("import-actions"), ids = ["open-project-file", "reveal-project-root", "remove-project", "choose-render-subfolder"];
         clearChildren(select); state.projects.forEach(function (entry) { var option = document.createElement("option"); option.value = entry.id; option.textContent = entry.name; select.appendChild(option); });
         if (project) { if (state.activeProjectId !== project.id) state.activeProjectId = project.id; select.value = project.id; }
@@ -99,6 +128,8 @@
     }
     function load() { callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets()[0].id; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Ready."); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Using the default template: " + error.message, true); } }); }
     document.querySelectorAll(".tab").forEach(function (tab) { tab.onclick = function () { document.querySelectorAll(".tab, .view").forEach(function (entry) { entry.classList.remove("active"); }); document.querySelectorAll(".tab").forEach(function (button) { button.setAttribute("aria-pressed", button === tab ? "true" : "false"); }); tab.classList.add("active"); document.querySelector("h1").textContent = tab.getAttribute("aria-label"); byId(tab.dataset.view).classList.add("active"); }; });
+    byId("add-naming-field").onclick = function () { var id = "field" + Date.now(), suffix = 0; while (templateDraft.namingFields.some(function (field) { return field.id === id; })) id += (++suffix); templateDraft.namingFields.push({ id: id, label: "Custom", type: "text", value: "", prefix: "v", digits: 2 }); renderNamingOrder(); };
+    ["comp-preset", "comp-width", "comp-height"].forEach(function (id) { byId(id).addEventListener("change", renderCompNamePreview); byId(id).addEventListener("input", renderCompNamePreview); });
     byId("new-template").onclick = function () { selectedTemplateId = ""; startTemplateDraft(); renderTemplateForm(); };
     byId("add-custom-folder").onclick = function () { templateDraft.customFolders.push({ label: "", path: "" }); renderTemplateForm(); };
     byId("save-template").onclick = function () { try { var saved = store.upsertTemplate(state, templateDraft), savedTemplate = saved.templates[saved.templates.length - 1]; for (var i = 0; i < saved.templates.length; i++) if (saved.templates[i].id === templateDraft.id || !templateDraft.id && saved.templates[i].name === templateDraft.name) savedTemplate = saved.templates[i]; state = saved; selectedTemplateId = savedTemplate.id; startTemplateDraft(savedTemplate); save(function () { renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Template saved."); }); } catch (error) { status(error.message, true); } };

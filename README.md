@@ -26,7 +26,7 @@ The seven sections use an icon toolbar at the top. Hover an icon for its name; t
 
 ## Create / Modify
 
-New composition names use `Job_Format_Style_Description_01_Initials`, with initials last. Empty fields are omitted.
+New composition names use `Job_Format_Style_Description_v01_Initials`, with initials last. Empty fields are omitted.
 
 The Create / Modify panel rebuilds the core composition tools without the legacy temporary-null resize workflow. Creating a comp validates its dimensions, frame rate, and duration before creating it. Editing selected comps writes only their width, height, frame rate, or requested name, preserving existing layers, parent relationships, and transforms.
 
@@ -93,4 +93,4 @@ Standalone module action buttons fill their row by default. Buttons grouped in t
 
 ## Template comp naming
 
-Under Templates → Edit template → Comp naming, move Job, Format, Style, Description, Version, and Initials earlier or later using the arrow buttons. The preview updates immediately; Save template stores that order with the folder mappings. Create composition uses the active connected project’s assigned template. Templates without a saved naming order retain the default with initials last. Empty name values are skipped, and existing composition names are not changed.
+Under Templates → Edit template → Comp naming, add, remove, rename, and reorder fields. Choose Text, Version, or Comp Format for each field. Text fields accept defaults; Version fields use a numeric value, a prefix (default `v`), and 1–6 padding digits (default 2, producing `v01`). Comp Format reads the selected composition format. Save template stores the fields with its folder mappings and rebuilds Create composition’s compact three-column naming inputs. Its live preview uses entered values. Existing templates migrate from their saved field order; templates without naming settings use the default with initials last. Existing comps are not renamed. At least one naming field is required.

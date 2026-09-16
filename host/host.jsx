@@ -874,6 +874,27 @@ function aetoolkitCepSafeName(value) {
     return String(value || "").replace(/^\s+|\s+$/g, "").replace(/[\\\/:*?"<>|\r\n]+/g, "").replace(/\s+/g, " ");
 }
 function aetoolkitCepBuildCompName(options, index) {
+    if (options.namingFields) {
+        var fields = options.namingFields, values = options.namingValues || {}, pieces = [], ids = {}, n, field, value, digits;
+        if (!(fields instanceof Array) || !fields.length) throw new Error("Add at least one naming field.");
+        for (n = 0; n < fields.length; n++) {
+            field = fields[n];
+            if (!field.id || ids[field.id]) throw new Error("Naming fields must have unique IDs.");
+            ids[field.id] = true;
+            value = Object.prototype.hasOwnProperty.call(values, field.id) ? values[field.id] : field.value;
+            if (field.type === "format") value = options.format;
+            else if (field.type === "version") {
+                if (!/^\d+$/.test(String(value))) throw new Error("Version must be a whole number.");
+                digits = Number(field.digits);
+                if (digits < 1 || digits > 6 || Math.floor(digits) !== digits || isNaN(digits)) throw new Error("Version digits must be 1–6.");
+                value = String(Number(value)); while (value.length < digits) value = "0" + value;
+                value = String(field.prefix === undefined ? "v" : field.prefix) + value;
+            } else if (field.type !== "text") throw new Error("Unknown naming field type.");
+            value = aetoolkitCepSafeName(value).replace(/\s+/g, "_");
+            if (value) pieces.push(value);
+        }
+        return pieces.length ? pieces.join("_") : "Comp";
+    }
     var defaults = ["job", "format", "style", "description", "version", "initials"];
     var order = options.namingOrder || defaults, parts = [], seen = {}, i, j, key, valid, part;
     if (!(order instanceof Array) || order.length !== defaults.length) throw new Error("Invalid composition naming order.");
@@ -882,7 +903,7 @@ function aetoolkitCepBuildCompName(options, index) {
         for (j = 0; j < defaults.length; j++) if (defaults[j] === key) valid = true;
         if (!valid || seen[key]) throw new Error("Each naming field must appear exactly once.");
         seen[key] = true;
-        part = key === "version" ? aetoolkitCepPadNumber(index || 1, 2) : aetoolkitCepSafeName(options[key]);
+        part = key === "version" ? "v" + aetoolkitCepPadNumber(index || 1, 2) : aetoolkitCepSafeName(options[key]);
         if (part) parts.push(part.replace(/\s+/g, "_"));
     }
     if (parts.length === 1 && !options.initials) parts.unshift("Comp");
