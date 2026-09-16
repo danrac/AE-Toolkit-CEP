@@ -20,7 +20,7 @@ button:hover { background: #334253; }
 .tab.active { background: #2b5d93; color: #fff; }
 .view { display: none; }
 .view.active { display: block; }
-.card { background: #1c242d; border: 1px solid #33404c; border-radius: 4px; padding: 5px; margin: 6px 0; }
+.card { background: #1c242d; border: 1px solid #647d94; border-top: 2px solid #83a8c9; border-radius: 4px; padding: 5px; margin: 6px 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
 label { display: block; color: #b9c8d8; font-size: 11px; font-weight: 650; margin-top: 7px; text-transform: uppercase; }
 input, select, textarea { display: block; width: 100%; margin-top: 5px; border: 1px solid #46596c; border-radius: 4px; padding: 5px; background: #11171d; color: #eef4fb; font: inherit; text-transform: none; }
 textarea { min-height: 64px; resize: vertical; }
