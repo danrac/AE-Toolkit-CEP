@@ -209,7 +209,7 @@ Initially this module shows **New**. Click it to open the editor; choose a Saved
 
 ![Earlier project folder editor; legacy render-subfolder fields are now removed](images/project-preset-editor.png)
 
-Enter a template name and relative folder paths for AE Projects, Assets, Graphic In, Graphic Out, and Style Frames. Add custom locations when needed. Check **Render output** to give that location a dedicated render section; unmarked locations remain available for Reveal/Import only. Save the preset to refresh render destinations automatically. The project root is chosen when adding a project, not stored in these relative folder fields.
+Enter a template name and relative folder paths for AE Projects, Assets, Graphic In, Graphic Out, and Style Frames. Use **Browse** beside any standard or custom folder field to select a subfolder. Paths are stored relative to the current project root; without a current project, choose a reference project root first. Selections outside that root are rejected. Add custom locations when needed. Check **Render output** to give that location a dedicated render section; unmarked locations remain available for Reveal/Import only. Save the preset to refresh render destinations automatically. The project root is chosen when adding a project, not stored in these relative folder fields.
 
 The bordered **Comp naming** section contains a stacked module list. Drag to reorder, or focus a row and use Alt+Up/Down. Edit opens preferences with Save/Cancel; Remove deletes a module. **Add to template** opens a new module dialog.
 

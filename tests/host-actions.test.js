@@ -445,3 +445,10 @@ console.log('PASS custom fields, version format, removal and order reach comp cr
  assert.throws(()=>context.aetoolkitCepParseProjectColor('not a project',false));
  console.log('PASS source-project working-space parser and unsupported format rejection');
 }
+
+assert.equal(context.aetoolkitCepRelativeTemplateFolder('/Jobs/Example','/Jobs/Example/Outputs/Review'),'Outputs/Review');
+assert.equal(context.aetoolkitCepRelativeTemplateFolder('C:\\Jobs\\Example','c:\\jobs\\example\\Outputs'),'Outputs');
+assert.throws(()=>context.aetoolkitCepRelativeTemplateFolder('/Jobs/A','/Jobs/Another/Outputs'));
+assert.throws(()=>context.aetoolkitCepRelativeTemplateFolder('/Jobs/A','/Jobs/A'));
+assert.throws(()=>context.aetoolkitCepRelativeTemplateFolder('/Jobs/A','/Jobs/A/../Outside'));
+console.log('PASS browsed template paths stay relative and inside the project root');

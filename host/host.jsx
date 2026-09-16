@@ -618,6 +618,25 @@ function aetoolkitCepRevealFolder(pathText) {
         return "OK";
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepRelativeTemplateFolder(rootPath, folderPath) {
+    var root = String(rootPath).replace(/\\/g, "/").replace(/\/+$/, ""), folder = String(folderPath).replace(/\\/g, "/").replace(/\/+$/, "");
+    var windows = /^[A-Za-z]:/.test(root) || root.indexOf("//") === 0;
+    var compareRoot = windows ? root.toLowerCase() : root, compareFolder = windows ? folder.toLowerCase() : folder;
+    if (compareFolder.indexOf(compareRoot + "/") !== 0) throw new Error("Choose a folder inside the project root: " + root);
+    var relative = folder.substring(root.length + 1);
+    if (!relative || /(^|\/)\.\.?($|\/)/.test(relative)) throw new Error("Choose a subfolder inside the project root.");
+    return relative;
+}
+function aetoolkitCepChooseTemplateFolder(jsonText) {
+    try {
+        var options = AEToolkitJSON.parse(jsonText || "{}"), root = options.root ? new Folder(options.root) : Folder.selectDialog("Choose a project root to calculate relative preset paths");
+        if (!root) return "";
+        if (!root.exists) throw new Error("Project root is unavailable: " + root.fsName);
+        var selected = root.selectDlg("Choose a template folder inside " + root.fsName);
+        if (!selected) return "";
+        return AEToolkitJSON.stringify({ path: aetoolkitCepRelativeTemplateFolder(root.fsName, selected.fsName) });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
 function aetoolkitCepChooseRenderSubfolder() {
     try {
         var folder = Folder.selectDialog("Choose a render subfolder");

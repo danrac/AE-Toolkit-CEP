@@ -231,3 +231,7 @@ input, select, textarea { font-weight: 400; }
 
 .render-destination { border: 1px solid var(--accent, #ad795d); border-radius: 5px; padding: 8px; }
 .render-destination > button { margin-top: 6px; }
+
+.template-folder-input { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.template-folder-input input { flex: 1; min-width: 0; width: 0; }
+.template-folder-input button { flex: 0 0 auto; margin: 0; }

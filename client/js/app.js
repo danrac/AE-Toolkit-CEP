@@ -121,12 +121,25 @@
         });
         try { byId("naming-preview").textContent = store.previewNaming(store.namingFields(templateDraft)); } catch (error) { byId("naming-preview").textContent = error.message; }
     }
+    function addTemplateFolderBrowse(label, input, update) {
+        var field = document.createElement("span"), button = document.createElement("button");
+        field.className = "template-folder-input"; button.type = "button"; button.textContent = "Browse";
+        button.onclick = function () {
+            var project = activeProject();
+            callHost("aetoolkitCepChooseTemplateFolder", JSON.stringify({root: project ? project.root : ""}), function (result) {
+                if (!result) return;
+                try { var chosen = JSON.parse(result); input.value = chosen.path; update(chosen.path); }
+                catch (error) { status(result || error.message, true); }
+            });
+        };
+        field.appendChild(input); field.appendChild(button); label.appendChild(field);
+    }
     function renderTemplateForm() {
         var template = templateDraft || templateById(selectedTemplateId) || { id: "", name: "", folders: {}, customFolders: [] }; byId("template-name").value = template.name; byId("template-name").oninput = function () { templateDraft.name = byId("template-name").value; }; byId("template-form-title").textContent = "Create project presets";
         renderNamingOrder();
         var grid = byId("template-folders"); grid.innerHTML = "";
-        store.FOLDER_KEYS.forEach(function (key) { var label = document.createElement("label"); label.textContent = folderLabels[key]; if (key === "styleFrames") label.className = "full-row"; var input = document.createElement("input"); input.dataset.key = key; input.value = template.folders[key] || ""; input.placeholder = "Relative folder"; input.oninput = function () { templateDraft.folders[key] = input.value; }; label.appendChild(input); grid.appendChild(label); });
-        template.customFolders.forEach(function (entry, index) { var row = document.createElement("div"), labelField = document.createElement("label"), pathField = document.createElement("label"), labelInput = document.createElement("input"), pathInput = document.createElement("input"), remove = document.createElement("button"); row.className = "custom-location"; labelField.textContent = "Custom name"; labelInput.value = entry.label; labelInput.oninput = function () { templateDraft.customFolders[index].label = labelInput.value; }; labelField.appendChild(labelInput); pathField.textContent = "Relative folder"; pathInput.value = entry.path; pathInput.oninput = function () { templateDraft.customFolders[index].path = pathInput.value; }; pathField.appendChild(pathInput); remove.textContent = "Remove"; remove.onclick = function () { templateDraft.customFolders.splice(index, 1); renderTemplateForm(); }; var renderLabel = document.createElement("label"), renderCheck = document.createElement("input");
+        store.FOLDER_KEYS.forEach(function (key) { var label = document.createElement("label"); label.textContent = folderLabels[key]; if (key === "styleFrames") label.className = "full-row"; var input = document.createElement("input"); input.dataset.key = key; input.value = template.folders[key] || ""; input.placeholder = "Relative folder"; input.oninput = function () { templateDraft.folders[key] = input.value; }; addTemplateFolderBrowse(label, input, function (path) { templateDraft.folders[key] = path; }); grid.appendChild(label); });
+        template.customFolders.forEach(function (entry, index) { var row = document.createElement("div"), labelField = document.createElement("label"), pathField = document.createElement("label"), labelInput = document.createElement("input"), pathInput = document.createElement("input"), remove = document.createElement("button"); row.className = "custom-location"; labelField.textContent = "Custom name"; labelInput.value = entry.label; labelInput.oninput = function () { templateDraft.customFolders[index].label = labelInput.value; }; labelField.appendChild(labelInput); pathField.textContent = "Relative folder"; pathInput.value = entry.path; pathInput.oninput = function () { templateDraft.customFolders[index].path = pathInput.value; }; addTemplateFolderBrowse(pathField, pathInput, function (path) { templateDraft.customFolders[index].path = path; }); remove.textContent = "Remove"; remove.onclick = function () { templateDraft.customFolders.splice(index, 1); renderTemplateForm(); }; var renderLabel = document.createElement("label"), renderCheck = document.createElement("input");
             renderLabel.className = "custom-render-toggle"; renderCheck.type = "checkbox"; renderCheck.checked = entry.renderOutput === true;
             renderCheck.onchange = function () { templateDraft.customFolders[index].renderOutput = renderCheck.checked; };
             renderLabel.appendChild(renderCheck); renderLabel.appendChild(document.createTextNode("Render output"));
