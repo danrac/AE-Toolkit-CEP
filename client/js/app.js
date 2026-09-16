@@ -114,8 +114,8 @@
     function renderProjects() {
         var list = byId("project-list"), project = activeProject(); clearChildren(list);
         if (!project) { var empty = document.createElement("small"); empty.textContent = "Add a project to see its folders."; list.appendChild(empty); return; }
-        var paths = store.resolveProjectPaths(state, project.id), item = document.createElement("div"), title = document.createElement("strong"), root = document.createElement("small"), pathsList = document.createElement("div");
-        item.className = "list-item"; title.textContent = project.name; root.textContent = project.root; pathsList.className = "resolved-paths";
+        var paths = store.resolveProjectPaths(state, project.id), item = document.createElement("div"), pathsList = document.createElement("div");
+        item.className = "list-item"; pathsList.className = "resolved-paths";
         Object.keys(paths).forEach(function (key) {
             if (!paths[key]) return;
             var row = document.createElement("div"), label = document.createElement("strong"), value = document.createElement("span"), actions = document.createElement("div");
@@ -124,7 +124,7 @@
             projectActionButton(actions, "Import", function () { callHost("aetoolkitCepImportFromFolder", paths[key], function (result) { showHostResult(result); }); });
             row.appendChild(label); row.appendChild(value); row.appendChild(actions); pathsList.appendChild(row);
         });
-        item.appendChild(title); item.appendChild(root); item.appendChild(pathsList); list.appendChild(item);
+        item.appendChild(pathsList); list.appendChild(item);
     }
     function clearChildren(target) { while (target.firstChild) target.removeChild(target.firstChild); }
     function projectActionButton(target, label, handler) { var button = document.createElement("button"); button.textContent = label; button.title = label; button.onclick = handler; target.appendChild(button); }

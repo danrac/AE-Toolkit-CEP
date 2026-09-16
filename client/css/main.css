@@ -220,3 +220,6 @@ input, select, textarea { font-weight: 400; }
 
 #project-preset-editor[hidden] { display: none; }
 #close-project-preset { width: 100%; margin-top: 5px; }
+
+.current-project-selector { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 5px; align-items: center; margin-top: 5px; }
+.current-project-selector select { margin: 0; }

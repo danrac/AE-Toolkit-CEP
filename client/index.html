@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.17">
+  <link rel="stylesheet" href="css/main.css?v=0.1.18">
 </head>
 <body>
   <main class="app-shell">
     <header>
       <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-      <span class="badge">0.1.17 Alpha</span>
+      <span class="badge">0.1.18 Alpha</span>
     </header>
 
     <div class="toolkit-workspace" data-dock="top">
@@ -29,29 +29,17 @@
     <h1 id="section-title" class="section-title">Projects</h1>
     <div class="module-scroll">
     <section id="projects" class="view active">
-      <details class="card module-panel" data-panel="connect-project" open>
-        <summary>Add new project</summary>
-
-        <label>Project name<input id="project-name" placeholder="Campaign 2026"></label>
-        <div class="input-action folder-action">
-        <label>Project root<input id="project-root" placeholder="Choose or paste an absolute project folder path"></label>
-        <button id="choose-project-root" class="quiet choose-folder">Choose folder</button>
+      <details class="card connected-projects module-panel" data-panel="connected-projects">
+        <summary>Current project</summary>
+        <div class="current-project-selector">
+          <select id="active-project" aria-label="Current project"></select>
+          <button id="refresh-projects" class="quiet">Refresh</button>
+          <button id="remove-project" class="quiet danger">Remove</button>
         </div>
-        <label>Template<select id="project-template"></select></label>
-        <button id="connect-project" class="primary">Add new project</button>
-      </details>
-      <details class="card module-panel" data-panel="active-project" open>
-        <summary>Select project</summary>
-        <div class="module-actions"><button id="remove-project" class="quiet danger">Remove</button></div>
-        <select id="active-project"></select>
         <div id="active-project-actions" class="project-actions">
           <button id="open-project-file">Open project file</button>
           <button id="reveal-project-root">Reveal project root</button>
         </div>
-      </details>
-      <details class="card connected-projects module-panel" data-panel="connected-projects">
-        <summary>Current project</summary>
-        <div class="connected-projects-actions"><button id="refresh-projects" class="quiet">Refresh</button></div>
         <div id="project-list" class="item-list"></div>
       </details>
       <details class="card module-panel" data-panel="render-to-outputs" open>
@@ -174,15 +162,6 @@
     </section>
 
     <section id="cleanup-collect" class="view">
-      <details class="card module-panel" data-panel="project-maintenance" open>
-        <summary>Project maintenance</summary>
-
-        <div class="action-grid maintenance-grid">
-          <button id="consolidate-footage">Consolidate footage</button>
-          <button id="remove-unused">Remove unused</button>
-          <button id="reduce-project" class="danger">Reduce to selection</button>
-        </div>
-      </details>
       <details class="card module-panel" data-panel="organize-project" open>
         <summary>Organize project</summary>
 
@@ -194,6 +173,11 @@
           <option value="dms-1x1">DMS · 1 × 1</option>
         </select></label>
         <button id="organize-project" class="primary">Organize project</button>
+        <div class="action-grid maintenance-grid">
+          <button id="consolidate-footage">Consolidate footage</button>
+          <button id="remove-unused">Remove unused</button>
+          <button id="reduce-project" class="danger">Reduce to selection</button>
+        </div>
       </details>
       <details class="card module-panel" data-panel="localize-selected-assets" open>
         <summary>Localize selected assets</summary>
@@ -203,7 +187,7 @@
       <details class="card module-panel" data-panel="collect-project" open>
         <summary>Collect project</summary>
 
-        <button id="collect-project" class="primary">Open Collect Files</button>
+        <button id="collect-project" class="primary" title="Collect the project and its source files">Collect</button>
       </details>
     </section>
 
@@ -302,6 +286,17 @@
         <div class="preset-save"><button id="save-template" class="primary">Save project preset</button><button id="close-project-preset" class="quiet">Close</button></div>
         </div>
       </details>
+      <details class="card module-panel" data-panel="connect-project" open>
+        <summary>Add new project</summary>
+
+        <label>Project name<input id="project-name" placeholder="Campaign 2026"></label>
+        <div class="input-action folder-action">
+        <label>Project root<input id="project-root" placeholder="Choose or paste an absolute project folder path"></label>
+        <button id="choose-project-root" class="quiet choose-folder">Choose folder</button>
+        </div>
+        <label>Template<select id="project-template"></select></label>
+        <button id="connect-project" class="primary">Add new project</button>
+      </details>
       <details class="card module-panel" data-panel="aom-presets" open>
         <summary>Load AOM presets</summary>
         <div class="input-action folder-action"><label>AOM file<input id="aom-path" readonly placeholder="Choose an AOM file"></label><button id="choose-aom">Choose</button></div>
@@ -349,9 +344,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.17"></script>
-  <script src="js/template-store.js?v=0.1.17"></script>
-  <script src="js/app.js?v=0.1.17"></script>
-  <script src="js/panel-state.js?v=0.1.17"></script>
+  <script src="js/CSInterface.js?v=0.1.18"></script>
+  <script src="js/template-store.js?v=0.1.18"></script>
+  <script src="js/app.js?v=0.1.18"></script>
+  <script src="js/panel-state.js?v=0.1.18"></script>
 </body>
 </html>
