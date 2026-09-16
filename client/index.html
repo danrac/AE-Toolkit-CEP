@@ -4,15 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.13-dock">
+  <link rel="stylesheet" href="css/main.css?v=0.1.13-frame">
 </head>
 <body>
   <main class="app-shell">
     <header>
-      <div>
-        <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-        <h1>Project Navigator</h1>
-      </div>
+      <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
       <span class="badge">0.1.12 Alpha</span>
     </header>
 
@@ -28,7 +25,9 @@
       <button class="tab" data-view="templates" title="Templates" aria-label="Templates" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></svg></button>
     </nav>
 
-    <div class="module-content">
+    <div class="module-content" role="region" aria-labelledby="section-title">
+    <h1 id="section-title" class="section-title">Projects</h1>
+    <div class="module-scroll">
     <section id="projects" class="view active">
       <details class="card module-panel" data-panel="connect-project" open>
         <summary>Connect project</summary>
@@ -316,6 +315,7 @@
     <p id="status" class="status" aria-live="polite"></p>
     </div>
     </div>
+    </div>
   </main>
   <dialog id="naming-dialog" aria-labelledby="naming-dialog-title">
     <form id="naming-dialog-form">
@@ -325,9 +325,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.13-dock"></script>
-  <script src="js/template-store.js?v=0.1.13-dock"></script>
-  <script src="js/app.js?v=0.1.13-dock"></script>
-  <script src="js/panel-state.js?v=0.1.13-dock"></script>
+  <script src="js/CSInterface.js?v=0.1.13-frame"></script>
+  <script src="js/template-store.js?v=0.1.13-frame"></script>
+  <script src="js/app.js?v=0.1.13-frame"></script>
+  <script src="js/panel-state.js?v=0.1.13-frame"></script>
 </body>
 </html>

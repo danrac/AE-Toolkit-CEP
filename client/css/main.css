@@ -177,3 +177,9 @@ input, select, textarea, button { letter-spacing: normal; }
 input, select, textarea { font-weight: 400; }
 .module-panel > summary, .connected-projects > summary { font-weight: 400; font-size: 13px; letter-spacing: -.01em; }
 .toggle-grid label, .inline-toggle { letter-spacing: normal; }
+
+/* Branding is separate from the titled section containing its modules. */
+.app-shell > header { min-height: 34px; padding: 4px 6px; background: #1c242d; border: 1px solid #344250; border-radius: 5px; }
+.module-content { display: flex; flex-direction: column; overflow: hidden; border: 1px solid #647d94; border-radius: 5px; background: #191f26; }
+.section-title { flex-shrink: 0; padding: 8px; font-size: 14px; font-weight: 500; border-bottom: 1px solid #495b6c; background: #242c35; }
+.module-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 5px 5px; }
