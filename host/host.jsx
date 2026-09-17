@@ -2011,3 +2011,144 @@ function aetoolkitCepParseProjectColor(data, xml) {
     if(cpid==="ffffffffffffffffffffffffffffffff") return "None";
     throw new Error("Project working-space profile not found.");
 }
+
+// Bounds and transform evaluation are shared by both placement tools. A temporary
+// shape layer evaluates AE's native transforms instead of approximating 3D matrices.
+function aetoolkitCepPlacementBounds(layer, time) {
+    var rect;
+    if (!layer.property("ADBE Transform Group").property("ADBE Anchor Point")) return null;
+    if (layer.nullLayer) return {left:0, top:0, width:100, height:100};
+    rect = layer.sourceRectAtTime(time, false);
+    if (!rect || !isFinite(rect.width) || !isFinite(rect.height)) throw new Error("No usable layer bounds");
+    return {left:rect.left, top:rect.top, width:rect.width, height:rect.height};
+}
+function aetoolkitCepPlacementEval(probe, layer, expression, time) {
+    var property = probe.property("ADBE Transform Group").property("ADBE Position"), value, i;
+    property.expression = "var L=thisComp.layer(" + layer.index + ");\n" + expression;
+    value = property.valueAtTime(time, false);
+    if (property.expressionError) throw new Error(property.expressionError);
+    for (i = 0; i < value.length; i++) if (!isFinite(value[i])) throw new Error("Transform cannot be resolved");
+    return value;
+}
+function aetoolkitCepPlacementEditable(property) {
+    var i;
+    if (!property) throw new Error("No position or anchor point");
+    if (property.dimensionsSeparated) {
+        for (i = 0; i < property.value.length; i++) aetoolkitCepPlacementEditable(property.getSeparationFollower(i));
+    } else if (property.expressionEnabled) throw new Error("Expression-driven position or anchor; left unchanged");
+}
+function aetoolkitCepPlacementWrite(property, value, time) {
+    var i;
+    if (property.dimensionsSeparated) {
+        for (i = 0; i < value.length; i++) aetoolkitCepPlacementWrite(property.getSeparationFollower(i), value[i], time);
+    } else if (property.numKeys) property.setValueAtTime(time, value);
+    else property.setValue(value);
+}
+function aetoolkitCepPlacementSnapshot(property, time) {
+    var parts = [], i, index = 0;
+    if (property.dimensionsSeparated) {
+        for (i = 0; i < property.value.length; i++) parts.push(aetoolkitCepPlacementSnapshot(property.getSeparationFollower(i), time));
+        return {parts:parts};
+    }
+    if (property.numKeys) {
+        index = property.nearestKeyIndex(time);
+        if (Math.abs(property.keyTime(index) - time) > 0.000001) index = 0;
+    }
+    return {keys:property.numKeys, index:index, value:index ? property.keyValue(index) : property.value};
+}
+function aetoolkitCepPlacementRestore(property, snapshot, time) {
+    var i, index;
+    if (snapshot.parts) {
+        for (i = 0; i < snapshot.parts.length; i++) aetoolkitCepPlacementRestore(property.getSeparationFollower(i), snapshot.parts[i], time);
+    } else if (!snapshot.keys) property.setValue(snapshot.value);
+    else if (snapshot.index) property.setValueAtKey(snapshot.index, snapshot.value);
+    else if (property.numKeys > snapshot.keys) {
+        index = property.nearestKeyIndex(time);
+        if (Math.abs(property.keyTime(index) - time) < 0.000001) property.removeKey(index);
+    }
+}
+function aetoolkitCepPlacementShift(property, delta) {
+    var i, k, value;
+    if (property.dimensionsSeparated) {
+        for (i = 0; i < delta.length; i++) aetoolkitCepPlacementShift(property.getSeparationFollower(i), delta[i]);
+        return;
+    }
+    for (k = property.numKeys || 0; k >= 0; k--) {
+        if (k === 0 && property.numKeys) break;
+        value = k ? property.keyValue(k) : property.value;
+        if (typeof value === "number") value += delta;
+        else for (i = 0; i < value.length; i++) value[i] += delta[i] || 0;
+        if (k) property.setValueAtKey(k, value); else property.setValue(value);
+    }
+}
+function aetoolkitCepLayerPlacement(json) {
+    var options, comp, selected, probe, opened = false, changed = 0, skipped = [], finalSelection = [], i, layer, transform, anchor, position, rect, oldAnchor, target, delta, value, j, copy, locked, expression, anchorSnapshot, positionSnapshot;
+    try {
+        options = AEToolkitJSON.parse(json);
+        if ((options.action !== "anchor" && options.action !== "repeat") || (options.x !== -1 && options.x !== 0 && options.x !== 1) || (options.y !== -1 && options.y !== 0 && options.y !== 1) || !isFinite(options.gap)) throw new Error("Invalid placement options");
+        comp = app.project.activeItem;
+        if (!(comp instanceof CompItem) || !comp.selectedLayers.length) throw new Error("Select layers in a composition");
+        selected = comp.selectedLayers;
+        app.beginUndoGroup("Toolbox " + (options.action === "anchor" ? "Set anchor" : "Step and repeat")); opened = true;
+        probe = comp.layers.addShape(); probe.name = "Toolbox temporary transform"; probe.threeDLayer = true; probe.enabled = false; probe.selected = false;
+        for (i = 0; i < selected.length; i++) {
+            layer = selected[i]; copy = null; anchorSnapshot = null; positionSnapshot = null; locked = layer.locked;
+            try {
+                if (locked) throw new Error("Locked layer");
+                transform = layer.property("ADBE Transform Group");
+                anchor = transform.property("ADBE Anchor Point"); position = transform.property("ADBE Position");
+                if (options.action === "repeat" && options.x === 0 && options.y === 0) {
+                    copy = layer.duplicate();
+                } else {
+                    aetoolkitCepPlacementEditable(position);
+                    rect = aetoolkitCepPlacementBounds(layer, comp.time);
+                    if (options.action === "repeat") {
+                        if (!rect && !options.gap) throw new Error("No visual bounds; enable Offset to move this layer");
+                        expression = "[0,0,0]";
+                        if (rect) expression = "var r=" + AEToolkitJSON.stringify(rect) + "; var pts=[[r.left,r.top,0],[r.left+r.width,r.top,0],[r.left,r.top+r.height,0],[r.left+r.width,r.top+r.height,0]]; var lo=[1e30,1e30],hi=[-1e30,-1e30]; for(var n=0;n<4;n++){var p=L.toWorld(pts[n]);if(L.hasParent)p=L.parent.fromWorld(p);for(var a=0;a<2;a++){lo[a]=Math.min(lo[a],p[a]);hi[a]=Math.max(hi[a],p[a]);}} [hi[0]-lo[0],hi[1]-lo[1],0]";
+                        value = aetoolkitCepPlacementEval(probe, layer, expression, comp.time);
+                        delta = [options.x * (value[0] + Number(options.gap)), options.y * (value[1] + Number(options.gap)), 0];
+                        copy = layer.duplicate(); aetoolkitCepPlacementShift(copy.property("ADBE Transform Group").property("ADBE Position"), delta);
+                    } else {
+                        if (!rect) throw new Error("This layer type has no anchor point");
+                        aetoolkitCepPlacementEditable(anchor);
+                        oldAnchor = anchor.value; target = oldAnchor.slice(0);
+                        if (options.bounds === "comp") {
+                            value = aetoolkitCepPlacementEval(probe, layer, "var p=[" + (options.x+1)*comp.width/2 + "," + (options.y+1)*comp.height/2 + "]; var q=L.threeDLayer?L.fromCompToSurface(p):L.fromComp(p);[q[0],q[1],0]", comp.time);
+                            target[0] = value[0]; target[1] = value[1]; if (target.length > 2) target[2] = 0;
+                        } else { target[0] = rect.left + (options.x+1)*rect.width/2; target[1] = rect.top + (options.y+1)*rect.height/2; }
+                        delta = [target[0]-oldAnchor[0],target[1]-oldAnchor[1],(target[2]||0)-(oldAnchor[2]||0)];
+                        value = position.value.slice(0);
+                        if (!options.absolute) {
+                            delta = aetoolkitCepPlacementEval(probe, layer, "var v=L.toWorldVec(" + AEToolkitJSON.stringify(delta) + ");if(L.hasParent)v=L.parent.fromWorldVec(v);[v[0],v[1],v.length>2?v[2]:0]", comp.time);
+                            for (j = 0; j < value.length; j++) value[j] += delta[j];
+                        }
+                        anchorSnapshot = aetoolkitCepPlacementSnapshot(anchor, comp.time);
+                        if (!options.absolute) positionSnapshot = aetoolkitCepPlacementSnapshot(position, comp.time);
+                        aetoolkitCepPlacementWrite(anchor, target, comp.time);
+                        if (!options.absolute) aetoolkitCepPlacementWrite(position, value, comp.time);
+                    }
+                }
+                finalSelection.push(copy || layer);
+                changed++;
+            } catch (layerError) {
+                if (copy) copy.remove();
+                try {
+                    if (anchorSnapshot) aetoolkitCepPlacementRestore(anchor, anchorSnapshot, comp.time);
+                    if (positionSnapshot) aetoolkitCepPlacementRestore(position, positionSnapshot, comp.time);
+                } catch (restoreError) { skipped.push(layer.name + ": use Undo to restore the failed edit"); }
+                finalSelection.push(layer);
+                skipped.push(layer.name + ": " + layerError.toString());
+            }
+        }
+        return AEToolkitJSON.stringify({changed:changed, skipped:skipped});
+    } catch (error) { return "ERROR: " + error.toString(); }
+    finally {
+        if (probe) probe.remove();
+        if (selected) {
+            for (i = 0; i < selected.length; i++) selected[i].selected = false;
+            for (i = 0; i < finalSelection.length; i++) finalSelection[i].selected = true;
+        }
+        if (opened) app.endUndoGroup();
+    }
+}

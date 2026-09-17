@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.23">
+  <link rel="stylesheet" href="css/main.css?v=0.1.24">
 </head>
 <body>
   <main class="app-shell">
     <header>
       <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-      <span class="badge">0.1.23 Alpha</span>
+      <span class="badge">0.1.24 Alpha</span>
     </header>
 
     <div class="toolkit-workspace" data-dock="top">
@@ -216,6 +216,34 @@
           <button id="conform-solids" class="tool-icon" title="Conform selected solids to comp" aria-label="Conform selected solids to comp"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 9 5 5m0 4V5h4m6 10 4 4m-4 0h4v-4"/></svg></button>
           <button id="mark-guides" class="tool-icon" title="Mark as guides" aria-label="Mark as guides"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 2v20M2 8h20"/></svg></button>
         </div>
+        <div class="anchor-repeat-tools">
+<section class="layer-placement-card"><h3>Step and repeat</h3><div class="direction-grid" id="repeat-directions">
+<button type="button" data-x="-1" data-y="-1" title="Step and repeat top left" aria-label="Step and repeat top left">↖</button>
+<button type="button" data-x="0" data-y="-1" title="Step and repeat top center" aria-label="Step and repeat top center">↑</button>
+<button type="button" data-x="1" data-y="-1" title="Step and repeat top right" aria-label="Step and repeat top right">↗</button>
+<button type="button" data-x="-1" data-y="0" title="Step and repeat left" aria-label="Step and repeat left">←</button>
+<button type="button" data-x="0" data-y="0" title="Duplicate in place" aria-label="Duplicate in place">Dup</button>
+<button type="button" data-x="1" data-y="0" title="Step and repeat right" aria-label="Step and repeat right">→</button>
+<button type="button" data-x="-1" data-y="1" title="Step and repeat bottom left" aria-label="Step and repeat bottom left">↙</button>
+<button type="button" data-x="0" data-y="1" title="Step and repeat bottom center" aria-label="Step and repeat bottom center">↓</button>
+<button type="button" data-x="1" data-y="1" title="Step and repeat bottom right" aria-label="Step and repeat bottom right">↘</button>
+</div><div class="placement-options">
+<label>Gap<input id="repeat-gap" type="number" value="10" disabled></label><label class="check"><input id="repeat-offset" type="checkbox">Offset</label>
+</div></section>
+<section class="layer-placement-card"><h3>Set anchor</h3><div class="direction-grid" id="anchor-directions">
+<button type="button" data-x="-1" data-y="-1" title="Set anchor top left" aria-label="Set anchor top left">↖</button>
+<button type="button" data-x="0" data-y="-1" title="Set anchor top center" aria-label="Set anchor top center">↑</button>
+<button type="button" data-x="1" data-y="-1" title="Set anchor top right" aria-label="Set anchor top right">↗</button>
+<button type="button" data-x="-1" data-y="0" title="Set anchor left" aria-label="Set anchor left">←</button>
+<button type="button" data-x="0" data-y="0" title="Set anchor center" aria-label="Set anchor center">•</button>
+<button type="button" data-x="1" data-y="0" title="Set anchor right" aria-label="Set anchor right">→</button>
+<button type="button" data-x="-1" data-y="1" title="Set anchor bottom left" aria-label="Set anchor bottom left">↙</button>
+<button type="button" data-x="0" data-y="1" title="Set anchor bottom center" aria-label="Set anchor bottom center">↓</button>
+<button type="button" data-x="1" data-y="1" title="Set anchor bottom right" aria-label="Set anchor bottom right">↘</button>
+</div><div class="placement-options">
+<label>Bounds<select id="anchor-bounds"><option value="layer">Layer</option><option value="comp">Comp</option></select></label><label class="check" title="Change anchor without compensating position"><input id="anchor-absolute" type="checkbox">Abs.</label>
+</div></section>
+</div><p class="hint">Anchor placement preserves appearance at the current frame. Abs. keeps Position unchanged. Repeat uses layer bounds in parent space, plus the optional gap.</p>
       </details>
       <details class="card module-panel" data-panel="select-and-align-layers" open>
         <summary>Select and align layers</summary>
@@ -346,9 +374,9 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.23"></script>
-  <script src="js/template-store.js?v=0.1.23"></script>
-  <script src="js/app.js?v=0.1.23"></script>
-  <script src="js/panel-state.js?v=0.1.23"></script>
+  <script src="js/CSInterface.js?v=0.1.24"></script>
+  <script src="js/template-store.js?v=0.1.24"></script>
+  <script src="js/app.js?v=0.1.24"></script>
+  <script src="js/panel-state.js?v=0.1.24"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.23 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.23-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.23.md)
+**Documented version: 0.1.24 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.24-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.24.md)
 
 ## User guide
 

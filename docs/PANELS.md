@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.23 Alpha 1**. [Home and installation](../README.md)
+For **0.1.24 Alpha 1**. [Home and installation](../README.md)
 
 Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
@@ -164,7 +164,7 @@ Hover icons to see the action names. Layer actions use the active comp and its s
 | Module | Controls and behavior |
 | --- | --- |
 | Composition timing | Change duration by −10, −1, +1, or +10 frames; set duration in seconds; create a no-slate comp from selected footage using the specified slate-frame count. Durations retain a one-frame minimum. |
-| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, unparent, conform selected solids to the active comp, and mark layers as guides. |
+| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, unparent, conform selected solids to the active comp, and mark layers as guides. Set Anchor and Step and Repeat controls sit at the bottom. |
 | Select and align layers | Select by type using Only, Add, or Subtract; reverse selected stacking order; snap to last selected. Types include nulls, solids, shapes, comps, footage, text, cameras, and lights. |
 | Transfer transform | Transfer checked Position, Scale, and Rotation components between selected layers. |
 | Replace selected text | Replace selected text-layer contents; animated source text is written at the current time. |
@@ -246,3 +246,13 @@ The Projects render dropdown matches AOM names against installed AE output-modul
 - **Checker media missing:** mount the library and dependencies; install required fonts/plugins; recapture legacy binary packages if layered media paths are no longer valid.
 
 Automated tests cover the data model, ES3 syntax, host action mocks, checker packaging, revision conflicts, and exclusive locks. Native checker testing included multiple templates, nested placeholders, Job text, and relocated layered PSD media. The exact user reference checker project was unavailable. Windows native import, real network/two-machine locking, and a complete native 0.1.20 CEP verification remain unverified. Browser screenshots demonstrate layout only.
+
+### Set Anchor and Step and Repeat
+
+Both tools operate on selected layers in one Undo group. Locked layers are skipped with a status message.
+
+- **Step and repeat:** arrows duplicate each layer adjacent to its full bounds in parent coordinates (world coordinates when unparented). Offset adds the entered gap. Dup duplicates in place. Position keys and separated dimensions retain their animation and receive the same translation. Cameras and lights can duplicate in place; directional movement requires an Offset because they have no visual bounds.
+- **Set anchor:** choose a corner, edge midpoint, or center of Layer bounds. Comp instead projects the chosen composition point onto the layer's plane. Text and shape bounds include their actual left/top offsets. Normal mode compensates Position for scale, rotation, and parenting at the current frame; Abs. changes only Anchor Point. Animated properties receive a key at the current time, so preservation is at that frame, not a guarantee for the entire animation.
+- Cameras and lights have no anchor point and are skipped by Set Anchor. Expression-driven Anchor Point/Position are left unchanged. Transform expressions on other properties are evaluated by AE. Degenerate transforms may be skipped if AE cannot resolve them.
+
+Automated property/batch tests and the browser layout were checked. Native After Effects transform evaluation still requires verification before release.

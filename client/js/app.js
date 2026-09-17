@@ -316,6 +316,18 @@
     byId("mark-guides").onclick = function () { callHost("aetoolkitCepMarkSelectedGuideLayers", "", function (result) { try { var summary = JSON.parse(result); status("Marked " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + " as guide layers."); } catch (error) { status(result || error.message, true); } }); };
     byId("select-layer-type").onclick = function () { callHost("aetoolkitCepSelectLayersByType", JSON.stringify({ type: byId("tool-select-type").value, mode: byId("tool-select-mode").value }), function (result) { try { var summary = JSON.parse(result); status("Selected " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("flip-layer-order").onclick = function () { callHost("aetoolkitCepReverseSelectedLayerOrder", "", function (result) { try { var summary = JSON.parse(result); status("Reversed " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
+    byId("repeat-offset").onchange = function () { byId("repeat-gap").disabled = !this.checked; };
+    ["repeat", "anchor"].forEach(function (kind) {
+        var buttons = byId(kind + "-directions").querySelectorAll("button");
+        Array.prototype.forEach.call(buttons, function (button) {
+            button.onclick = function () {
+                callHost("aetoolkitCepLayerPlacement", JSON.stringify({ action: kind, x: Number(button.getAttribute("data-x")), y: Number(button.getAttribute("data-y")), gap: byId("repeat-offset").checked ? Number(byId("repeat-gap").value) : 0, bounds: byId("anchor-bounds").value, absolute: byId("anchor-absolute").checked }), function (result) {
+                    try { var summary = JSON.parse(result); status("Updated " + summary.changed + " layer(s)." + (summary.skipped.length ? " Skipped: " + summary.skipped.join("; ") : ""), summary.skipped.length > 0); }
+                    catch (error) { status(result || error.message, true); }
+                });
+            };
+        });
+    });
     byId("conform-solids").onclick = function () { callHost("aetoolkitCepConformSelectedSolids", "", function (result) { try { var summary = JSON.parse(result); status("Conformed " + summary.conformed + " solid layer(s)."); } catch (error) { status(result || error.message, true); } }); };
     byId("snap-to-last").onclick = function () { callHost("aetoolkitCepSnapSelectedLayers", "", function (result) { try { var summary = JSON.parse(result); status("Snapped " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("transfer-transform").onclick = function () { callHost("aetoolkitCepTransferTransform", JSON.stringify({ position: byId("transfer-position").checked, scale: byId("transfer-scale").checked, rotation: byId("transfer-rotation").checked }), function (result) { try { var summary = JSON.parse(result); status("Updated " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
