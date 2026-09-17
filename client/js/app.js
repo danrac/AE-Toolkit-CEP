@@ -206,7 +206,20 @@
     function renderSourceDiscovery() {
         var list = byId("source-project-records"), importButton = byId("source-import-projects"); clearChildren(list);
         if (!sourceDiscovery) { importButton.disabled = true; return; }
-        (sourceDiscovery.records || []).forEach(function (record) { var row = document.createElement("label"), check = document.createElement("input"), detail = document.createElement("div"), name = document.createElement("strong"), path = document.createElement("small"); row.className = "source-record"; check.type = "checkbox"; check.value = record.path; check.checked = record.exists; check.disabled = !record.exists; name.textContent = record.exists ? "Found" : "Missing"; path.textContent = record.path; detail.appendChild(name); detail.appendChild(path); var color = document.createElement("small"); color.textContent = "Project color space: " + (record.colorSpace || "Unavailable without opening the source project"); detail.appendChild(color); row.appendChild(check); row.appendChild(detail); list.appendChild(row); });
+        (sourceDiscovery.records || []).forEach(function (record) {
+            var row = document.createElement("label"), check = document.createElement("input"), detail = document.createElement("div"), name = document.createElement("strong");
+            row.className = "source-record";
+            check.type = "checkbox"; check.value = record.path; check.checked = record.exists; check.disabled = !record.exists;
+            name.className = "source-record-status"; name.textContent = record.exists ? "FOUND" : "MISSING";
+            detail.appendChild(name);
+            [["File Path", record.path], ["Color Space", record.colorSpace || "Unavailable"]].forEach(function (field) {
+                var line = document.createElement("div"), caption = document.createElement("span"), value = document.createElement("span");
+                line.className = "source-record-field"; caption.className = "source-record-caption"; caption.textContent = field[0] + ":";
+                value.className = "source-record-value"; value.textContent = field[1];
+                line.appendChild(caption); line.appendChild(value); detail.appendChild(line);
+            });
+            row.appendChild(check); row.appendChild(detail); list.appendChild(row);
+        });
         (sourceDiscovery.notices || []).forEach(function (notice) { var note = document.createElement("small"); note.textContent = notice; list.appendChild(note); });
         importButton.disabled = !(sourceDiscovery.records || []).some(function (record) { return record.exists; });
     }

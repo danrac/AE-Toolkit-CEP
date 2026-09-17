@@ -57,9 +57,13 @@ textarea { min-height: 64px; resize: vertical; }
 .project-operation { border-top: 1px solid #2c3945; margin-top: 8px; padding-top: 8px; }
 button:disabled { cursor: default; opacity: .45; }
 .item-list:empty::after { content: "Nothing connected yet."; color: #8697a8; display: block; padding: 10px 0 0; }
-.source-record { align-items: start; display: grid; gap: 5px; grid-template-columns: auto 1fr; padding: 9px 0; border-top: 1px solid #2c3945; }
+.source-record { align-items: start; display: grid; gap: 8px; grid-template-columns: auto minmax(0, 1fr); padding: 10px; margin-top: 8px; border: 1px solid #647d94; border-top: 2px solid #ad795d; border-radius: 5px; text-transform: none; letter-spacing: normal; }
 .source-record input { margin: 2px 0 0; width: auto; }
-.source-record small { color: #9aabba; overflow-wrap: anywhere; }
+.source-record-status { display: block; margin-bottom: 7px; }
+.source-record-field { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 6px; margin-top: 5px; }
+.source-record-caption { color: #b9c8d8; }
+.source-record-value { color: #e1e7ef; overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (max-width: 360px) { .source-record-field { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
 .list-item { padding: 10px 0; border-top: 1px solid #2c3945; }
 .list-item:first-child { border-top: 0; }
 .list-item strong, .list-item small { display: block; }
