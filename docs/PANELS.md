@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.26 Alpha 1**. [Home and installation](../README.md)
+For **0.1.27 Alpha 1**. [Home and installation](../README.md)
 
 Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
@@ -164,7 +164,7 @@ Hover icons to see the action names. Layer actions use the active comp and its s
 | Module | Controls and behavior |
 | --- | --- |
 | Composition timing | Change duration by −10, −1, +1, or +10 frames; set duration in seconds; create a no-slate comp from selected footage using the specified slate-frame count. Durations retain a one-frame minimum. |
-| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, parent selected layers to a centered new null, unparent, conform selected solids to the active comp, and toggle selected layers between guide and normal. The Key graph applies cubic Bézier easing presets to adjacent selected keyframe pairs. Compact Set Anchor and Step and Repeat controls sit at the bottom. |
+| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, parent selected layers to a centered new null, unparent, conform selected solids to the active comp, and toggle selected layers between guide and normal. Remembered Key graph and Placement tabs keep the cubic Bézier editor separate from the compact Set Anchor and Step and Repeat controls. |
 | Select and align layers | Select by type using Only, Add, or Subtract; reverse selected stacking order; snap to last selected. Types include nulls, solids, shapes, comps, footage, text, cameras, and lights. |
 | Transfer transform | Transfer checked Position, Scale, and Rotation components between selected layers. |
 | Replace selected text | Replace selected text-layer contents; animated source text is written at the current time. |
@@ -252,7 +252,7 @@ Automated tests cover the data model, ES3 syntax, host action mocks, checker pac
 Both tools operate on selected layers in one Undo group. Locked layers are skipped with a status message.
 
 - **Step and repeat:** arrows duplicate each layer adjacent to its full bounds in parent coordinates (world coordinates when unparented). Offset adds the entered gap. Dup duplicates in place. Position keys and separated dimensions retain their animation and receive the same translation. Cameras and lights can duplicate in place; directional movement requires an Offset because they have no visual bounds.
-- **Set anchor:** choose a corner, edge midpoint, or center of Layer bounds. Comp instead projects the chosen composition point onto the layer's plane. Text and shape bounds include their actual left/top offsets. Normal mode compensates Position for scale, rotation, and parenting at the current frame; Abs. changes only Anchor Point. Animated properties receive a key at the current time, so preservation is at that frame, not a guarantee for the entire animation.
+- **Set anchor:** choose a corner, edge midpoint, or center of Layer bounds. Comp instead projects the chosen composition point onto the layer's plane. Text and shape bounds include their actual left/top offsets. Normal mode shifts every existing Anchor Point key and compensates every Position key at its own time, preserving animation, scale, rotation, and parenting. Abs. shifts only Anchor Point. Separated 2D Position edits are limited to X and Y so After Effects' hidden Z follower is never written.
 - Cameras and lights have no anchor point and are skipped by Set Anchor. Expression-driven Anchor Point/Position are left unchanged. Transform expressions on other properties are evaluated by AE. Degenerate transforms may be skipped if AE cannot resolve them.
 
 Automated property/batch tests and the browser layout were checked. Native After Effects transform evaluation still requires verification before release.

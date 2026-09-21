@@ -74,10 +74,18 @@
     }
     function wireCurveHandle(id, index) {
         var handle = byId(id), dragging = false;
-        handle.onpointerdown = function (event) { dragging = true; if (handle.setPointerCapture) handle.setPointerCapture(event.pointerId); editCurveHandle(index, event); event.preventDefault(); };
-        handle.onpointermove = function (event) { if (dragging) editCurveHandle(index, event); };
-        handle.onpointerup = handle.onpointercancel = function () { dragging = false; };
+        function begin(event) { dragging = true; editCurveHandle(index, event); event.preventDefault(); }
+        function move(event) { if (!dragging) return; editCurveHandle(index, event); event.preventDefault(); }
+        function end() { dragging = false; }
+        handle.addEventListener("mousedown", begin, false); document.addEventListener("mousemove", move, false); document.addEventListener("mouseup", end, false);
+        handle.addEventListener("touchstart", begin, false); document.addEventListener("touchmove", move, false); document.addEventListener("touchend", end, false); document.addEventListener("touchcancel", end, false);
         handle.onkeydown = function (event) { var step = event.shiftKey ? 0.1 : 0.01; if (event.key === "ArrowLeft") activeCurve[index] -= step; else if (event.key === "ArrowRight") activeCurve[index] += step; else if (event.key === "ArrowDown") activeCurve[index + 1] -= step; else if (event.key === "ArrowUp") activeCurve[index + 1] += step; else return; activeCurve[index] = curveNumber(activeCurve[index]); activeCurve[index + 1] = curveNumber(activeCurve[index + 1]); drawCurve(true); event.preventDefault(); };
+    }
+    function setAnimationSubtab(name, remember) {
+        if (name !== "placement") name = "key-graph";
+        Array.prototype.forEach.call(document.querySelectorAll("[data-animation-subtab]"), function (button) { var selected = button.getAttribute("data-animation-subtab") === name; button.setAttribute("aria-selected", selected ? "true" : "false"); button.tabIndex = selected ? 0 : -1; });
+        byId("animation-key-graph-panel").hidden = name !== "key-graph"; byId("animation-placement-panel").hidden = name !== "placement";
+        if (remember) try { window.localStorage.setItem("toolbox2.animation-subtab", name); } catch (ignoreAnimationSubtab) {}
     }
     function startTemplateDraft(template) {
         template = template || { id: "", name: "", folders: {}, customFolders: [] };
@@ -354,6 +362,8 @@
     byId("curve-preset").onchange = function () { var preset = store.curvePresets(state).filter(function (entry) { return entry.id === byId("curve-preset").value; })[0]; if (preset) activeCurve = preset.curve.slice(); byId("remove-curve-preset").disabled = !preset || preset.builtIn === true; drawCurve(false); };
     ["curve-x1", "curve-y1", "curve-x2", "curve-y2"].forEach(function (id, index) { byId(id).onchange = function () { activeCurve[index] = curveNumber(this.value); drawCurve(true); }; });
     wireCurveHandle("curve-handle-one", 0); wireCurveHandle("curve-handle-two", 2);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-animation-subtab]"), function (button) { button.onclick = function () { setAnimationSubtab(button.getAttribute("data-animation-subtab"), true); }; });
+    var initialAnimationSubtab = "key-graph"; try { initialAnimationSubtab = window.localStorage.getItem("toolbox2.animation-subtab") || initialAnimationSubtab; } catch (ignoreAnimationSubtab) {} setAnimationSubtab(initialAnimationSubtab, false);
     byId("apply-curve").onclick = function () { callHost("aetoolkitCepApplyCurvePreset", JSON.stringify({ curve: activeCurve }), function (result) { try { var summary = JSON.parse(result), message = "Applied the curve to " + summary.segments + " keyframe segment" + (summary.segments === 1 ? "" : "s") + " across " + summary.properties + " propert" + (summary.properties === 1 ? "y." : "ies."); if (summary.skipped.length) message += " Skipped: " + summary.skipped.join(", "); status(message, summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
     byId("save-curve-preset").onclick = function () { var dialog = byId("curve-preset-dialog"); byId("curve-preset-name").value = ""; byId("curve-preset-error").textContent = ""; dialog.showModal(); byId("curve-preset-name").focus(); };
     byId("curve-preset-cancel").onclick = function () { byId("curve-preset-dialog").close(); };

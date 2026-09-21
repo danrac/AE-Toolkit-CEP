@@ -373,6 +373,7 @@ const scalarCurveProperty = {
     setTemporalAutoBezierAtKey() {}, setTemporalContinuousAtKey() {}
 };
 normalLayer.selectedProperties = [curveProperty, scalarCurveProperty]; textLayer.selectedProperties = [];
+vm.runInContext('Array.prototype.indexOf = undefined;', toolsContext);
 const curveResult = JSON.parse(toolsContext.aetoolkitCepApplyCurvePreset(JSON.stringify({ curve: [0.25, 0.25, 0.75, 0.75] })));
 assert.deepEqual(curveResult, { segments: 2, properties: 2, skipped: [] });
 assert.equal(curveProperty.ease[1].outgoing[0].speed, 50);

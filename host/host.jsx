@@ -1463,7 +1463,7 @@ function aetoolkitCepCurveProperties(group, result) {
 function aetoolkitCepApplyCurvePreset(jsonText) {
     var opened = false;
     try {
-        var options = AEToolkitJSON.parse(jsonText), curve = options.curve, comp = app.project.activeItem, properties = [], unique = [], skipped = [], segments = 0, changedProperties = 0, beforeSegments, i, j, k, layer, selected, property, keys, firstKey, secondKey, duration, firstValue, secondValue, inEase, outEase, firstOut, secondIn, dimensions, speed, startSlope, endSlope, firstInfluence, secondInfluence, linear;
+        var options = AEToolkitJSON.parse(jsonText), curve = options.curve, comp = app.project.activeItem, properties = [], unique = [], skipped = [], segments = 0, changedProperties = 0, beforeSegments, exists, i, j, k, layer, selected, property, keys, firstKey, secondKey, duration, firstValue, secondValue, inEase, outEase, firstOut, secondIn, dimensions, speed, startSlope, endSlope, firstInfluence, secondInfluence, linear;
         if (!curve || curve.length !== 4) throw new Error("Choose a valid curve.");
         for (i = 0; i < 4; i++) { curve[i] = Number(curve[i]); if (!isFinite(curve[i]) || curve[i] < 0 || curve[i] > 1) throw new Error("Curve values must be between 0 and 1."); }
         if (!(comp instanceof CompItem)) throw new Error("Open a composition and select animated properties.");
@@ -1471,7 +1471,11 @@ function aetoolkitCepApplyCurvePreset(jsonText) {
             layer = comp.selectedLayers[i]; selected = layer.selectedProperties || [];
             for (j = 0; j < selected.length; j++) aetoolkitCepCurveProperties(selected[j], properties);
         }
-        for (i = 0; i < properties.length; i++) if (unique.indexOf(properties[i]) < 0) unique.push(properties[i]);
+        for (i = 0; i < properties.length; i++) {
+            exists = false;
+            for (j = 0; j < unique.length; j++) if (unique[j] === properties[i]) { exists = true; break; }
+            if (!exists) unique.push(properties[i]);
+        }
         if (!unique.length) throw new Error("Select animated properties and at least two adjacent keyframes.");
         linear = curve[0] === 0 && curve[1] === 0 && curve[2] === 1 && curve[3] === 1;
         startSlope = curve[0] > 0.000001 ? curve[1] / curve[0] : (curve[2] > 0.000001 ? curve[3] / curve[2] : 1);
@@ -2163,11 +2167,12 @@ function aetoolkitCepPlacementEval(probe, layer, expression, time) {
     for (i = 0; i < value.length; i++) if (!isFinite(value[i])) throw new Error("Transform cannot be resolved");
     return value;
 }
-function aetoolkitCepPlacementEditable(property) {
-    var i;
+function aetoolkitCepPlacementEditable(property, dimensionCount) {
+    var i, count;
     if (!property) throw new Error("No position or anchor point");
     if (property.dimensionsSeparated) {
-        for (i = 0; i < property.value.length; i++) aetoolkitCepPlacementEditable(property.getSeparationFollower(i));
+        count = dimensionCount || property.value.length;
+        for (i = 0; i < count; i++) aetoolkitCepPlacementEditable(property.getSeparationFollower(i));
     } else if (property.expressionEnabled) throw new Error("Expression-driven position or anchor; left unchanged");
 }
 function aetoolkitCepPlacementWrite(property, value, time) {
@@ -2177,33 +2182,28 @@ function aetoolkitCepPlacementWrite(property, value, time) {
     } else if (property.numKeys) property.setValueAtTime(time, value);
     else property.setValue(value);
 }
-function aetoolkitCepPlacementSnapshot(property, time) {
-    var parts = [], i, index = 0;
+function aetoolkitCepPlacementSnapshot(property, time, dimensionCount) {
+    var parts = [], values = [], i, count;
     if (property.dimensionsSeparated) {
-        for (i = 0; i < property.value.length; i++) parts.push(aetoolkitCepPlacementSnapshot(property.getSeparationFollower(i), time));
+        count = dimensionCount || property.value.length;
+        for (i = 0; i < count; i++) parts.push(aetoolkitCepPlacementSnapshot(property.getSeparationFollower(i), time));
         return {parts:parts};
     }
-    if (property.numKeys) {
-        index = property.nearestKeyIndex(time);
-        if (Math.abs(property.keyTime(index) - time) > 0.000001) index = 0;
-    }
-    return {keys:property.numKeys, index:index, value:index ? property.keyValue(index) : property.value};
+    for (i = 1; i <= property.numKeys; i++) values.push(property.keyValue(i));
+    return {keys:property.numKeys, values:values, value:property.value};
 }
 function aetoolkitCepPlacementRestore(property, snapshot, time) {
-    var i, index;
+    var i;
     if (snapshot.parts) {
         for (i = 0; i < snapshot.parts.length; i++) aetoolkitCepPlacementRestore(property.getSeparationFollower(i), snapshot.parts[i], time);
     } else if (!snapshot.keys) property.setValue(snapshot.value);
-    else if (snapshot.index) property.setValueAtKey(snapshot.index, snapshot.value);
-    else if (property.numKeys > snapshot.keys) {
-        index = property.nearestKeyIndex(time);
-        if (Math.abs(property.keyTime(index) - time) < 0.000001) property.removeKey(index);
-    }
+    else for (i = 1; i <= snapshot.keys && i <= property.numKeys; i++) property.setValueAtKey(i, snapshot.values[i - 1]);
 }
-function aetoolkitCepPlacementShift(property, delta) {
-    var i, k, value;
+function aetoolkitCepPlacementShift(property, delta, dimensionCount) {
+    var i, k, value, count;
     if (property.dimensionsSeparated) {
-        for (i = 0; i < delta.length; i++) aetoolkitCepPlacementShift(property.getSeparationFollower(i), delta[i]);
+        count = dimensionCount || property.value.length;
+        for (i = 0; i < count; i++) aetoolkitCepPlacementShift(property.getSeparationFollower(i), delta[i]);
         return;
     }
     for (k = property.numKeys || 0; k >= 0; k--) {
@@ -2212,6 +2212,31 @@ function aetoolkitCepPlacementShift(property, delta) {
         if (typeof value === "number") value += delta;
         else for (i = 0; i < value.length; i++) value[i] += delta[i] || 0;
         if (k) property.setValueAtKey(k, value); else property.setValue(value);
+    }
+}
+function aetoolkitCepPlacementShiftAnimated(property, probe, layer, delta, time) {
+    var expression = "var v=L.toWorldVec(" + AEToolkitJSON.stringify(delta) + ");if(L.hasParent)v=L.parent.fromWorldVec(v);[v[0],v[1],v.length>2?v[2]:0]", i, k, follower, adjustment, value, count;
+    if (property.dimensionsSeparated) {
+        count = layer.threeDLayer ? 3 : 2;
+        for (i = 0; i < count; i++) {
+            follower = property.getSeparationFollower(i);
+            if (follower.numKeys) {
+                for (k = 1; k <= follower.numKeys; k++) { adjustment = aetoolkitCepPlacementEval(probe, layer, expression, follower.keyTime(k)); follower.setValueAtKey(k, follower.keyValue(k) + (adjustment[i] || 0)); }
+            } else { adjustment = aetoolkitCepPlacementEval(probe, layer, expression, time); follower.setValue(follower.value + (adjustment[i] || 0)); }
+        }
+        return;
+    }
+    if (property.numKeys) {
+        for (k = 1; k <= property.numKeys; k++) {
+            adjustment = aetoolkitCepPlacementEval(probe, layer, expression, property.keyTime(k)); value = property.keyValue(k);
+            if (typeof value === "number") value += adjustment[0] || 0;
+            else for (i = 0; i < value.length; i++) value[i] += adjustment[i] || 0;
+            property.setValueAtKey(k, value);
+        }
+    } else {
+        adjustment = aetoolkitCepPlacementEval(probe, layer, expression, time); value = property.value.slice(0);
+        for (i = 0; i < value.length; i++) value[i] += adjustment[i] || 0;
+        property.setValue(value);
     }
 }
 function aetoolkitCepLayerPlacement(json) {
@@ -2233,7 +2258,7 @@ function aetoolkitCepLayerPlacement(json) {
                 if (options.action === "repeat" && options.x === 0 && options.y === 0) {
                     copy = layer.duplicate();
                 } else {
-                    aetoolkitCepPlacementEditable(position);
+                    aetoolkitCepPlacementEditable(position, layer.threeDLayer ? 3 : 2);
                     rect = aetoolkitCepPlacementBounds(layer, comp.time);
                     if (options.action === "repeat") {
                         if (!rect && !options.gap) throw new Error("No visual bounds; enable Offset to move this layer");
@@ -2241,7 +2266,7 @@ function aetoolkitCepLayerPlacement(json) {
                         if (rect) expression = "var r=" + AEToolkitJSON.stringify(rect) + "; var pts=[[r.left,r.top,0],[r.left+r.width,r.top,0],[r.left,r.top+r.height,0],[r.left+r.width,r.top+r.height,0]]; var lo=[1e30,1e30],hi=[-1e30,-1e30]; for(var n=0;n<4;n++){var p=L.toWorld(pts[n]);if(L.hasParent)p=L.parent.fromWorld(p);for(var a=0;a<2;a++){lo[a]=Math.min(lo[a],p[a]);hi[a]=Math.max(hi[a],p[a]);}} [hi[0]-lo[0],hi[1]-lo[1],0]";
                         value = aetoolkitCepPlacementEval(probe, layer, expression, comp.time);
                         delta = [options.x * (value[0] + Number(options.gap)), options.y * (value[1] + Number(options.gap)), 0];
-                        copy = layer.duplicate(); aetoolkitCepPlacementShift(copy.property("ADBE Transform Group").property("ADBE Position"), delta);
+                        copy = layer.duplicate(); aetoolkitCepPlacementShift(copy.property("ADBE Transform Group").property("ADBE Position"), delta, copy.threeDLayer ? 3 : 2);
                     } else {
                         if (!rect) throw new Error("This layer type has no anchor point");
                         aetoolkitCepPlacementEditable(anchor);
@@ -2251,15 +2276,10 @@ function aetoolkitCepLayerPlacement(json) {
                             target[0] = value[0]; target[1] = value[1]; if (target.length > 2) target[2] = 0;
                         } else { target[0] = rect.left + (options.x+1)*rect.width/2; target[1] = rect.top + (options.y+1)*rect.height/2; }
                         delta = [target[0]-oldAnchor[0],target[1]-oldAnchor[1],(target[2]||0)-(oldAnchor[2]||0)];
-                        value = position.value.slice(0);
-                        if (!options.absolute) {
-                            delta = aetoolkitCepPlacementEval(probe, layer, "var v=L.toWorldVec(" + AEToolkitJSON.stringify(delta) + ");if(L.hasParent)v=L.parent.fromWorldVec(v);[v[0],v[1],v.length>2?v[2]:0]", comp.time);
-                            for (j = 0; j < value.length; j++) value[j] += delta[j];
-                        }
                         anchorSnapshot = aetoolkitCepPlacementSnapshot(anchor, comp.time);
-                        if (!options.absolute) positionSnapshot = aetoolkitCepPlacementSnapshot(position, comp.time);
-                        aetoolkitCepPlacementWrite(anchor, target, comp.time);
-                        if (!options.absolute) aetoolkitCepPlacementWrite(position, value, comp.time);
+                        if (!options.absolute) positionSnapshot = aetoolkitCepPlacementSnapshot(position, comp.time, layer.threeDLayer ? 3 : 2);
+                        aetoolkitCepPlacementShift(anchor, delta);
+                        if (!options.absolute) aetoolkitCepPlacementShiftAnimated(position, probe, layer, delta, comp.time);
                     }
                 }
                 finalSelection.push(copy || layer);

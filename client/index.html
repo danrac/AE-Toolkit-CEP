@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.26">
+  <link rel="stylesheet" href="css/main.css?v=0.1.27">
 </head>
 <body>
   <main class="app-shell">
     <header>
       <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-      <span class="badge">0.1.26 Alpha</span>
+      <span class="badge">0.1.27 Alpha</span>
     </header>
 
     <div class="toolkit-workspace" data-dock="top">
@@ -217,6 +217,11 @@
           <button id="conform-solids" class="tool-icon" title="Conform selected solid layers to the composition size" aria-label="Conform selected solid layers to the composition size"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 9 5 5m0 4V5h4m6 10 4 4m-4 0h4v-4"/></svg></button>
           <button id="mark-guides" class="tool-icon" title="Toggle selected layers between guide and normal layers" aria-label="Toggle selected layers between guide and normal layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 2v20M2 8h20"/><path d="m14 13 2 2 4-5"/></svg></button>
         </div>
+        <div class="animation-subtabs" role="tablist" aria-label="Animation and layer tools">
+          <button id="animation-key-graph-tab" type="button" role="tab" data-animation-subtab="key-graph" aria-controls="animation-key-graph-panel">Key graph</button>
+          <button id="animation-placement-tab" type="button" role="tab" data-animation-subtab="placement" aria-controls="animation-placement-panel">Placement</button>
+        </div>
+        <div id="animation-key-graph-panel" role="tabpanel" aria-labelledby="animation-key-graph-tab">
         <section class="curve-editor" aria-labelledby="curve-editor-title">
           <div class="curve-editor-heading"><h3 id="curve-editor-title">Key graph</h3><small>Selected keyframe pairs</small></div>
           <div class="curve-preset-row"><select id="curve-preset" aria-label="Curve preset"></select><button id="save-curve-preset" title="Save the current curve to Shared resources">Save</button><button id="remove-curve-preset" title="Remove the selected shared curve preset" aria-label="Remove selected curve preset">×</button></div>
@@ -226,8 +231,8 @@
               <path id="curve-tangent-start" class="curve-tangent"/>
               <path id="curve-tangent-end" class="curve-tangent"/>
               <path id="curve-path" class="curve-path"/>
-              <circle id="curve-handle-one" class="curve-handle" r="6" tabindex="0" role="slider" aria-label="Outgoing curve handle"/>
-              <circle id="curve-handle-two" class="curve-handle" r="6" tabindex="0" role="slider" aria-label="Incoming curve handle"/>
+              <circle id="curve-handle-one" class="curve-handle" r="8" tabindex="0" role="slider" aria-label="Outgoing curve handle"/>
+              <circle id="curve-handle-two" class="curve-handle" r="8" tabindex="0" role="slider" aria-label="Incoming curve handle"/>
             </svg>
             <div class="curve-values">
               <label>Out X<input id="curve-x1" type="number" min="0" max="1" step="0.01"></label>
@@ -238,6 +243,8 @@
           </div>
           <button id="apply-curve" class="primary">Apply curve</button>
         </section>
+        </div>
+        <div id="animation-placement-panel" role="tabpanel" aria-labelledby="animation-placement-tab" hidden>
         <div class="anchor-repeat-tools">
 <section class="layer-placement-card"><h3>Step and repeat</h3><div class="direction-grid" id="repeat-directions">
 <button type="button" data-x="-1" data-y="-1" title="Step and repeat top left" aria-label="Step and repeat top left">↖</button>
@@ -266,6 +273,7 @@
 <label>Bounds<select id="anchor-bounds"><option value="layer">Layer</option><option value="comp">Comp</option></select></label><label class="check" title="Change anchor without compensating position"><input id="anchor-absolute" type="checkbox">Abs.</label>
 </div></section>
 </div><p class="hint">Anchor placement preserves appearance at the current frame. Abs. keeps Position unchanged. Repeat uses layer bounds in parent space, plus the optional gap.</p>
+        </div>
       </details>
       <details class="card module-panel" data-panel="select-and-align-layers" open>
         <summary>Select and align layers</summary>
@@ -404,9 +412,9 @@
       <div class="naming-dialog-actions"><button id="curve-preset-cancel" type="button">Cancel</button><button type="submit" class="primary">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.26"></script>
-  <script src="js/template-store.js?v=0.1.26"></script>
-  <script src="js/app.js?v=0.1.26"></script>
-  <script src="js/panel-state.js?v=0.1.26"></script>
+  <script src="js/CSInterface.js?v=0.1.27"></script>
+  <script src="js/template-store.js?v=0.1.27"></script>
+  <script src="js/app.js?v=0.1.27"></script>
+  <script src="js/panel-state.js?v=0.1.27"></script>
 </body>
 </html>
