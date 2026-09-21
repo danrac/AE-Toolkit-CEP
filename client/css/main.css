@@ -77,7 +77,7 @@ button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tool-icon { display: flex; align-items: center; justify-content: center; height: 30px; }
 .tool-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 #tools .action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-#tools .action-grid.animation-actions { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+#tools .action-grid.animation-actions { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 #tools .action-grid.timing-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 #tools .card > .tool-icon { width: 100%; margin-top: 6px; }
 :root { font-size: calc(9px + .48vw); }

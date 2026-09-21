@@ -164,7 +164,7 @@ Hover icons to see the action names. Layer actions use the active comp and its s
 | Module | Controls and behavior |
 | --- | --- |
 | Composition timing | Change duration by −10, −1, +1, or +10 frames; set duration in seconds; create a no-slate comp from selected footage using the specified slate-frame count. Durations retain a one-frame minimum. |
-| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, unparent, conform selected solids to the active comp, and mark layers as guides. Set Anchor and Step and Repeat controls sit at the bottom. |
+| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, parent selected layers to a centered new null, unparent, conform selected solids to the active comp, and toggle selected layers between guide and normal. Set Anchor and Step and Repeat controls sit at the bottom. |
 | Select and align layers | Select by type using Only, Add, or Subtract; reverse selected stacking order; snap to last selected. Types include nulls, solids, shapes, comps, footage, text, cameras, and lights. |
 | Transfer transform | Transfer checked Position, Scale, and Rotation components between selected layers. |
 | Replace selected text | Replace selected text-layer contents; animated source text is written at the current time. |

@@ -306,14 +306,24 @@ assert.equal(videoFootage.parentFolder.parentFolder.name, '4_FOOTAGE');
 console.log('PASS DMS video routing does not depend on a legacy disk folder');
 
 function ToolComp(name) { this.name = name; this.frameRate = 24; this.frameDuration = 1 / 24; this.duration = 10; this.time = 2; this.selectedLayers = []; }
-function ToolLayer(name, index, inPoint, outPoint) { this.name = name; this.index = index; this.inPoint = inPoint; this.outPoint = outPoint; this.startTime = inPoint; this.opacity = { setValueAtTime(time, value) { this.values = this.values || []; this.values.push([time, value]); } }; }
+function ToolLayer(name, index, inPoint, outPoint) { this.name = name; this.index = index; this.inPoint = inPoint; this.outPoint = outPoint; this.startTime = inPoint; this.locked = false; this.selected = true; this.threeDLayer = false; this.guideLayer = false; this.opacity = { setValueAtTime(time, value) { this.values = this.values || []; this.values.push([time, value]); } }; }
 function ToolTextLayer(name, index, inPoint, outPoint) { ToolLayer.call(this, name, index, inPoint, outPoint); const property = { numKeys: 0, setValue(value) { this.value = value; }, setValueAtTime(time, value) { this.valueAtTime = [time, value]; } }; this.property = function () { return { property() { return property; } }; }; this.textProperty = property; }
 ToolTextLayer.prototype = Object.create(ToolLayer.prototype);
 const toolsComp = new ToolComp('Tool comp'), normalLayer = new ToolLayer('Normal', 2, 1, 4), textLayer = new ToolTextLayer('Text', 1, 0, 3);
+let createdParentNull;
+normalLayer.worldPoint = [100, 200, 0]; textLayer.worldPoint = [300, 400, 50]; textLayer.threeDLayer = true;
+toolsComp._layers = [normalLayer, textLayer];
+Object.defineProperty(toolsComp, 'numLayers', { get() { return this._layers.length; } });
+toolsComp.layer = function (index) { return this._layers[index - 1]; };
+toolsComp.layers = {
+    addShape() { return { name: '', threeDLayer: false, enabled: true, selected: true, remove() { this.removed = true; } }; },
+    addNull(duration) { createdParentNull = new ToolLayer('Null 1', 0, 0, duration); createdParentNull.nullLayer = true; createdParentNull.position = { setValue(value) { this.value = value; } }; createdParentNull.remove = function () { this.removed = true; }; toolsComp._layers.unshift(createdParentNull); return createdParentNull; }
+};
 toolsComp.selectedLayers = [normalLayer, textLayer];
 const toolsContext = { JSON: undefined, Math, CompItem: ToolComp, TextDocument: function (text) { this.text = text; }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [toolsComp], activeItem: toolsComp } } };
 vm.createContext(toolsContext);
 vm.runInContext(source, toolsContext);
+toolsContext.aetoolkitCepPlacementEval = function (probe, layer) { return layer.worldPoint; };
 assert.equal(JSON.parse(toolsContext.aetoolkitCepAdjustSelectedCompFrames('10')).changed, 1);
 assert.equal(toolsComp.duration, 10 + 10 / 24);
 assert.equal(JSON.parse(toolsContext.aetoolkitCepSetSelectedCompDuration('0.001')).changed, 1);
@@ -327,11 +337,24 @@ assert.equal(JSON.parse(toolsContext.aetoolkitCepParentSelectedLayers()).changed
 assert.equal(normalLayer.parent, textLayer);
 assert.equal(JSON.parse(toolsContext.aetoolkitCepUnparentSelectedLayers()).changed, 2);
 assert.equal(normalLayer.parent, null);
-assert.equal(JSON.parse(toolsContext.aetoolkitCepMarkSelectedGuideLayers()).changed, 2);
+textLayer.locked = true;
+const nullParentResult = JSON.parse(toolsContext.aetoolkitCepParentSelectedLayersToNewNull());
+assert.equal(nullParentResult.changed, 1);
+assert.deepEqual(nullParentResult.skipped, ['Text']);
+assert.equal(normalLayer.parent, createdParentNull);
+assert.equal(createdParentNull.name, 'Parent Null');
+assert.equal(createdParentNull.threeDLayer, true);
+assert.deepEqual(createdParentNull.position.value, [200, 300, 25]);
+assert.equal(createdParentNull.selected, true);
+textLayer.locked = false;
+normalLayer.guideLayer = false; textLayer.guideLayer = true;
+const guideResult = JSON.parse(toolsContext.aetoolkitCepToggleSelectedGuideLayers());
+assert.deepEqual({ changed: guideResult.changed, guides: guideResult.guides, normal: guideResult.normal }, { changed: 2, guides: 1, normal: 1 });
 assert.equal(normalLayer.guideLayer, true);
+assert.equal(textLayer.guideLayer, false);
 assert.equal(JSON.parse(toolsContext.aetoolkitCepReplaceSelectedText('Updated')).changed, 1);
 assert.equal(textLayer.textProperty.value.text, 'Updated');
-console.log('PASS host tools preserve frame limits and update only selected layers');
+console.log('PASS host tools preserve frame limits, create centered parent nulls, and toggle guide layers');
 
 function TransformProperty(value, keyed) { this.value = value; this.numKeys = keyed ? 1 : 0; this.isTimeVarying = !!keyed; }
 TransformProperty.prototype.setValue = function (value) { this.value = value; this.setDirect = true; };

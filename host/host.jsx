@@ -1449,6 +1449,54 @@ function aetoolkitCepParentSelectedLayers() {
         return AEToolkitJSON.stringify({ changed: context.layers.length - 1 });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepUniqueLayerName(comp, base) {
+    var attempt = base, suffix = 2, i, found;
+    do {
+        found = false;
+        for (i = 1; i <= comp.numLayers; i++) if (comp.layer(i).name === attempt) { found = true; break; }
+        if (found) attempt = base + " " + suffix++;
+    } while (found);
+    return attempt;
+}
+function aetoolkitCepParentSelectedLayersToNewNull() {
+    var opened = false, probe = null, parent = null;
+    try {
+        var context = aetoolkitCepActiveCompLayers(1), layers = [], threeD = false, center = [0, 0, 0], sampled = 0, changed = 0, skipped = [], i, layer, point;
+        for (i = 0; i < context.layers.length; i++) { layers.push(context.layers[i]); if (context.layers[i].threeDLayer) threeD = true; }
+        app.beginUndoGroup("AE Toolkit CEP: Parent selected layers to new null"); opened = true;
+        probe = context.comp.layers.addShape();
+        probe.name = "Toolbox temporary transform";
+        probe.threeDLayer = true;
+        probe.enabled = false;
+        probe.selected = false;
+        for (i = 0; i < layers.length; i++) {
+            try {
+                point = aetoolkitCepPlacementEval(probe, layers[i], "var p=L.hasParent?L.parent.toWorld(L.position):L.position;[p[0],p[1],p.length>2?p[2]:0]", context.comp.time);
+                center[0] += point[0]; center[1] += point[1]; center[2] += point[2] || 0; sampled++;
+            } catch (sampleError) {}
+        }
+        probe.remove(); probe = null;
+        if (!sampled) { center[0] = context.comp.width / 2; center[1] = context.comp.height / 2; sampled = 1; }
+        center[0] /= sampled; center[1] /= sampled; center[2] /= sampled;
+        parent = context.comp.layers.addNull(context.comp.duration);
+        parent.name = aetoolkitCepUniqueLayerName(context.comp, "Parent Null");
+        parent.threeDLayer = threeD;
+        parent.position.setValue(threeD ? center : [center[0], center[1]]);
+        for (i = 0; i < layers.length; i++) {
+            layer = layers[i];
+            try {
+                if (layer.locked) throw new Error("locked");
+                layer.parent = parent;
+                layer.selected = false;
+                changed++;
+            } catch (layerError) { skipped.push(layer.name); }
+        }
+        if (!changed) { parent.remove(); parent = null; throw new Error("No selected layers could be parented. Unlock the layers and try again."); }
+        parent.selected = true;
+        return AEToolkitJSON.stringify({ changed: changed, name: parent.name, skipped: skipped });
+    } catch (error) { return "ERROR: " + error.toString(); }
+    finally { if (probe) probe.remove(); if (opened) app.endUndoGroup(); }
+}
 function aetoolkitCepUnparentSelectedLayers() {
     try {
         var context = aetoolkitCepActiveCompLayers(1), i;
@@ -1458,15 +1506,27 @@ function aetoolkitCepUnparentSelectedLayers() {
         return AEToolkitJSON.stringify({ changed: context.layers.length });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
-function aetoolkitCepMarkSelectedGuideLayers() {
+function aetoolkitCepToggleSelectedGuideLayers() {
     try {
-        var context = aetoolkitCepActiveCompLayers(1), i;
-        app.beginUndoGroup("AE Toolkit CEP: Mark guide layers");
-        try { for (i = 0; i < context.layers.length; i++) context.layers[i].guideLayer = true; }
+        var context = aetoolkitCepActiveCompLayers(1), changed = 0, guides = 0, normal = 0, skipped = [], i, layer;
+        app.beginUndoGroup("AE Toolkit CEP: Toggle guide layers");
+        try {
+            for (i = 0; i < context.layers.length; i++) {
+                layer = context.layers[i];
+                try {
+                    layer.guideLayer = !layer.guideLayer;
+                    if (layer.guideLayer) guides++; else normal++;
+                    changed++;
+                } catch (layerError) { skipped.push(layer.name); }
+            }
+        }
         finally { app.endUndoGroup(); }
-        return AEToolkitJSON.stringify({ changed: context.layers.length });
+        if (!changed) throw new Error("The selected layers cannot be toggled as guide layers.");
+        return AEToolkitJSON.stringify({ changed: changed, guides: guides, normal: normal, skipped: skipped });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+// Kept for compatibility with older panels that still call the previous host method.
+function aetoolkitCepMarkSelectedGuideLayers() { return aetoolkitCepToggleSelectedGuideLayers(); }
 function aetoolkitCepReplaceSelectedText(text) {
     try {
         var context = aetoolkitCepActiveCompLayers(1), replacement = new TextDocument(String(text || " ")), changed = 0, i, property;
