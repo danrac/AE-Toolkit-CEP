@@ -1440,6 +1440,79 @@ function aetoolkitCepSequenceSelectedLayers() {
         return AEToolkitJSON.stringify({ changed: layers.length });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepCurveValueDelta(first, second, dimension, dimensions) {
+    var i, delta, total = 0;
+    if (typeof first === "number" && typeof second === "number") return Math.abs(second - first);
+    if (!first || !second || first.length === undefined || second.length === undefined) throw new Error("Unsupported keyframe value");
+    if (dimensions === 1) {
+        for (i = 0; i < first.length && i < second.length; i++) { delta = Number(second[i]) - Number(first[i]); if (!isFinite(delta)) throw new Error("Unsupported keyframe value"); total += delta * delta; }
+        return Math.sqrt(total);
+    }
+    delta = Number(second[dimension]) - Number(first[dimension]);
+    if (!isFinite(delta)) throw new Error("Unsupported keyframe value");
+    return Math.abs(delta);
+}
+function aetoolkitCepCurveProperties(group, result) {
+    var i, child;
+    if (!group) return;
+    try {
+        if (group.numKeys !== undefined && group.selectedKeys !== undefined && group.keyTime) { result.push(group); return; }
+    } catch (propertyError) {}
+    try { for (i = 1; i <= group.numProperties; i++) { child = group.property(i); aetoolkitCepCurveProperties(child, result); } } catch (groupError) {}
+}
+function aetoolkitCepApplyCurvePreset(jsonText) {
+    var opened = false;
+    try {
+        var options = AEToolkitJSON.parse(jsonText), curve = options.curve, comp = app.project.activeItem, properties = [], unique = [], skipped = [], segments = 0, changedProperties = 0, beforeSegments, i, j, k, layer, selected, property, keys, firstKey, secondKey, duration, firstValue, secondValue, inEase, outEase, firstOut, secondIn, dimensions, speed, startSlope, endSlope, firstInfluence, secondInfluence, linear;
+        if (!curve || curve.length !== 4) throw new Error("Choose a valid curve.");
+        for (i = 0; i < 4; i++) { curve[i] = Number(curve[i]); if (!isFinite(curve[i]) || curve[i] < 0 || curve[i] > 1) throw new Error("Curve values must be between 0 and 1."); }
+        if (!(comp instanceof CompItem)) throw new Error("Open a composition and select animated properties.");
+        for (i = 0; i < comp.selectedLayers.length; i++) {
+            layer = comp.selectedLayers[i]; selected = layer.selectedProperties || [];
+            for (j = 0; j < selected.length; j++) aetoolkitCepCurveProperties(selected[j], properties);
+        }
+        for (i = 0; i < properties.length; i++) if (unique.indexOf(properties[i]) < 0) unique.push(properties[i]);
+        if (!unique.length) throw new Error("Select animated properties and at least two adjacent keyframes.");
+        linear = curve[0] === 0 && curve[1] === 0 && curve[2] === 1 && curve[3] === 1;
+        startSlope = curve[0] > 0.000001 ? curve[1] / curve[0] : (curve[2] > 0.000001 ? curve[3] / curve[2] : 1);
+        endSlope = 1 - curve[2] > 0.000001 ? (1 - curve[3]) / (1 - curve[2]) : (1 - curve[0] > 0.000001 ? (1 - curve[1]) / (1 - curve[0]) : 1);
+        firstInfluence = Math.max(0.1, Math.min(100, curve[0] * 100)); secondInfluence = Math.max(0.1, Math.min(100, (1 - curve[2]) * 100));
+        app.beginUndoGroup("Toolbox: Apply key graph curve"); opened = true;
+        for (i = 0; i < unique.length; i++) {
+            property = unique[i]; beforeSegments = segments;
+            try {
+                keys = property.selectedKeys || [];
+                if (keys.length < 2) throw new Error("Select at least two keys on " + property.name);
+                for (j = 0; j < keys.length - 1; j++) {
+                    firstKey = keys[j]; secondKey = keys[j + 1];
+                    if (secondKey !== firstKey + 1) continue;
+                    if (linear) {
+                        property.setInterpolationTypeAtKey(firstKey, property.keyInInterpolationType(firstKey), KeyframeInterpolationType.LINEAR);
+                        property.setInterpolationTypeAtKey(secondKey, KeyframeInterpolationType.LINEAR, property.keyOutInterpolationType(secondKey));
+                    } else {
+                        duration = property.keyTime(secondKey) - property.keyTime(firstKey); if (duration <= 0) continue;
+                        firstValue = property.keyValue(firstKey); secondValue = property.keyValue(secondKey);
+                        inEase = property.keyInTemporalEase(firstKey); outEase = property.keyOutTemporalEase(firstKey); dimensions = Math.max(inEase.length, outEase.length, 1); firstOut = [];
+                        for (k = 0; k < dimensions; k++) { speed = aetoolkitCepCurveValueDelta(firstValue, secondValue, k, dimensions) / duration; firstOut.push(new KeyframeEase(speed * startSlope, firstInfluence)); }
+                        property.setInterpolationTypeAtKey(firstKey, property.keyInInterpolationType(firstKey), KeyframeInterpolationType.BEZIER);
+                        property.setTemporalEaseAtKey(firstKey, inEase, firstOut);
+                        inEase = property.keyInTemporalEase(secondKey); outEase = property.keyOutTemporalEase(secondKey); dimensions = Math.max(inEase.length, outEase.length, 1); secondIn = [];
+                        for (k = 0; k < dimensions; k++) { speed = aetoolkitCepCurveValueDelta(firstValue, secondValue, k, dimensions) / duration; secondIn.push(new KeyframeEase(speed * endSlope, secondInfluence)); }
+                        property.setInterpolationTypeAtKey(secondKey, KeyframeInterpolationType.BEZIER, property.keyOutInterpolationType(secondKey));
+                        property.setTemporalEaseAtKey(secondKey, secondIn, outEase);
+                        try { property.setTemporalAutoBezierAtKey(firstKey, false); property.setTemporalAutoBezierAtKey(secondKey, false); } catch (autoError) {}
+                        try { property.setTemporalContinuousAtKey(firstKey, false); property.setTemporalContinuousAtKey(secondKey, false); } catch (continuousError) {}
+                    }
+                    segments++;
+                }
+                if (segments > beforeSegments) changedProperties++; else skipped.push(property.name || "Property");
+            } catch (propertyError) { skipped.push(property.name || "Property"); }
+        }
+        if (!segments) throw new Error("Select at least two adjacent keyframes on an animated property.");
+        return AEToolkitJSON.stringify({ segments: segments, properties: changedProperties, skipped: skipped });
+    } catch (error) { return "ERROR: " + error.toString(); }
+    finally { if (opened) app.endUndoGroup(); }
+}
 function aetoolkitCepParentSelectedLayers() {
     try {
         var context = aetoolkitCepActiveCompLayers(2), parent = context.layers[context.layers.length - 1], i;

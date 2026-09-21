@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.25">
+  <link rel="stylesheet" href="css/main.css?v=0.1.26">
 </head>
 <body>
   <main class="app-shell">
     <header>
       <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-      <span class="badge">0.1.25 Alpha</span>
+      <span class="badge">0.1.26 Alpha</span>
     </header>
 
     <div class="toolkit-workspace" data-dock="top">
@@ -208,15 +208,36 @@
 
         <label>Fade frames<input id="tool-fade-frames" type="number" min="1" max="9999" value="10"></label>
         <div class="action-grid maintenance-grid animation-actions">
-          <button id="fade-in" class="tool-icon" title="Fade in" aria-label="Fade in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19 21 5v14z"/></svg></button>
-          <button id="fade-out" class="tool-icon" title="Fade out" aria-label="Fade out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5 21 19H3z"/></svg></button>
-          <button id="sequence-layers" class="tool-icon" title="Sequence layers" aria-label="Sequence layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h6v4H3zM9 10h6v4H9zM15 15h6v4h-6z"/></svg></button>
-          <button id="parent-layers" class="tool-icon" title="Parent to last selected" aria-label="Parent to last selected"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v5H9zM12 8v5M5 13h14M5 13v3m14-3v3M2 16h6v5H2zM16 16h6v5h-6z"/></svg></button>
+          <button id="fade-in" class="tool-icon" title="Fade in selected layers" aria-label="Fade in selected layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19 21 5v14z"/></svg></button>
+          <button id="fade-out" class="tool-icon" title="Fade out selected layers" aria-label="Fade out selected layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5 21 19H3z"/></svg></button>
+          <button id="sequence-layers" class="tool-icon" title="Sequence selected layers from the current time" aria-label="Sequence selected layers from the current time"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h6v4H3zM9 10h6v4H9zM15 15h6v4h-6z"/></svg></button>
+          <button id="parent-layers" class="tool-icon" title="Parent selected layers to the last selected layer" aria-label="Parent selected layers to the last selected layer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v5H9zM12 8v5M5 13h14M5 13v3m14-3v3M2 16h6v5H2zM16 16h6v5h-6z"/></svg></button>
           <button id="parent-layers-to-null" class="tool-icon" title="Parent selected layers to a new null" aria-label="Parent selected layers to a new null"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v5H9zM12 1v9M9 5h6M12 10v4M5 14h14M5 14v3m14-3v3M2 17h6v4H2zM16 17h6v4h-6z"/></svg></button>
-          <button id="unparent-layers" class="tool-icon" title="Unparent selected" aria-label="Unparent selected"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v5H9zM2 16h6v5H2zM16 16h6v5h-6zM9 11l6 4m0-4-6 4"/></svg></button>
-          <button id="conform-solids" class="tool-icon" title="Conform selected solids to comp" aria-label="Conform selected solids to comp"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 9 5 5m0 4V5h4m6 10 4 4m-4 0h4v-4"/></svg></button>
-          <button id="mark-guides" class="tool-icon" title="Toggle guide layer" aria-label="Toggle guide layer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 2v20M2 8h20"/><path d="m14 13 2 2 4-5"/></svg></button>
+          <button id="unparent-layers" class="tool-icon" title="Remove parents from selected layers" aria-label="Remove parents from selected layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v5H9zM2 16h6v5H2zM16 16h6v5h-6zM9 11l6 4m0-4-6 4"/></svg></button>
+          <button id="conform-solids" class="tool-icon" title="Conform selected solid layers to the composition size" aria-label="Conform selected solid layers to the composition size"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 9 5 5m0 4V5h4m6 10 4 4m-4 0h4v-4"/></svg></button>
+          <button id="mark-guides" class="tool-icon" title="Toggle selected layers between guide and normal layers" aria-label="Toggle selected layers between guide and normal layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 2v20M2 8h20"/><path d="m14 13 2 2 4-5"/></svg></button>
         </div>
+        <section class="curve-editor" aria-labelledby="curve-editor-title">
+          <div class="curve-editor-heading"><h3 id="curve-editor-title">Key graph</h3><small>Selected keyframe pairs</small></div>
+          <div class="curve-preset-row"><select id="curve-preset" aria-label="Curve preset"></select><button id="save-curve-preset" title="Save the current curve to Shared resources">Save</button><button id="remove-curve-preset" title="Remove the selected shared curve preset" aria-label="Remove selected curve preset">×</button></div>
+          <div class="curve-workspace">
+            <svg id="curve-graph" class="curve-graph" viewBox="0 0 240 120" role="img" aria-label="Cubic Bézier easing curve editor">
+              <path class="curve-grid" d="M12 12V108M66 12V108M120 12V108M174 12V108M228 12V108M12 12H228M12 36H228M12 60H228M12 84H228M12 108H228"/>
+              <path id="curve-tangent-start" class="curve-tangent"/>
+              <path id="curve-tangent-end" class="curve-tangent"/>
+              <path id="curve-path" class="curve-path"/>
+              <circle id="curve-handle-one" class="curve-handle" r="6" tabindex="0" role="slider" aria-label="Outgoing curve handle"/>
+              <circle id="curve-handle-two" class="curve-handle" r="6" tabindex="0" role="slider" aria-label="Incoming curve handle"/>
+            </svg>
+            <div class="curve-values">
+              <label>Out X<input id="curve-x1" type="number" min="0" max="1" step="0.01"></label>
+              <label>Out Y<input id="curve-y1" type="number" min="0" max="1" step="0.01"></label>
+              <label>In X<input id="curve-x2" type="number" min="0" max="1" step="0.01"></label>
+              <label>In Y<input id="curve-y2" type="number" min="0" max="1" step="0.01"></label>
+            </div>
+          </div>
+          <button id="apply-curve" class="primary">Apply curve</button>
+        </section>
         <div class="anchor-repeat-tools">
 <section class="layer-placement-card"><h3>Step and repeat</h3><div class="direction-grid" id="repeat-directions">
 <button type="button" data-x="-1" data-y="-1" title="Step and repeat top left" aria-label="Step and repeat top left">↖</button>
@@ -375,9 +396,17 @@
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.25"></script>
-  <script src="js/template-store.js?v=0.1.25"></script>
-  <script src="js/app.js?v=0.1.25"></script>
-  <script src="js/panel-state.js?v=0.1.25"></script>
+  <dialog id="curve-preset-dialog" class="toolkit-dialog" aria-labelledby="curve-preset-dialog-title">
+    <form id="curve-preset-form">
+      <h2 id="curve-preset-dialog-title">Save curve preset</h2>
+      <label>Preset name<input id="curve-preset-name" required maxlength="80" placeholder="Smooth settle"></label>
+      <p id="curve-preset-error" role="alert"></p>
+      <div class="naming-dialog-actions"><button id="curve-preset-cancel" type="button">Cancel</button><button type="submit" class="primary">Save</button></div>
+    </form>
+  </dialog>
+  <script src="js/CSInterface.js?v=0.1.26"></script>
+  <script src="js/template-store.js?v=0.1.26"></script>
+  <script src="js/app.js?v=0.1.26"></script>
+  <script src="js/panel-state.js?v=0.1.26"></script>
 </body>
 </html>

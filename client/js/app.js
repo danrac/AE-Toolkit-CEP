@@ -43,6 +43,42 @@
         return folderLabels[key] || key;
     }
     function copy(value) { return JSON.parse(JSON.stringify(value)); }
+    var activeCurve = [0.42, 0, 0.58, 1];
+    function curveNumber(value) { value = Number(value); return isFinite(value) ? Math.max(0, Math.min(1, value)) : 0; }
+    function curvePoint(x, y) { return { x: 12 + x * 216, y: 108 - y * 96 }; }
+    function drawCurve(markCustom) {
+        var first = curvePoint(activeCurve[0], activeCurve[1]), second = curvePoint(activeCurve[2], activeCurve[3]);
+        byId("curve-path").setAttribute("d", "M12 108 C" + first.x + " " + first.y + " " + second.x + " " + second.y + " 228 12");
+        byId("curve-tangent-start").setAttribute("d", "M12 108 L" + first.x + " " + first.y);
+        byId("curve-tangent-end").setAttribute("d", "M228 12 L" + second.x + " " + second.y);
+        byId("curve-handle-one").setAttribute("cx", first.x); byId("curve-handle-one").setAttribute("cy", first.y);
+        byId("curve-handle-two").setAttribute("cx", second.x); byId("curve-handle-two").setAttribute("cy", second.y);
+        ["curve-x1", "curve-y1", "curve-x2", "curve-y2"].forEach(function (id, index) { byId(id).value = activeCurve[index].toFixed(2); });
+        if (markCustom) byId("curve-preset").value = "";
+    }
+    function renderCurvePresets(selectedId) {
+        var select = byId("curve-preset"), presets = store.curvePresets(state), selected = selectedId === undefined ? select.value : selectedId; clearChildren(select);
+        var custom = document.createElement("option"); custom.value = ""; custom.textContent = "Custom curve"; select.appendChild(custom);
+        presets.forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name + (preset.builtIn ? "" : " · Shared"); select.appendChild(option); });
+        select.value = presets.some(function (entry) { return entry.id === selected; }) ? selected : "ease-in-out";
+        var preset = presets.filter(function (entry) { return entry.id === select.value; })[0]; if (preset) activeCurve = preset.curve.slice();
+        byId("remove-curve-preset").disabled = !preset || preset.builtIn === true; drawCurve(false);
+    }
+    function editCurveHandle(index, event) {
+        var graph = byId("curve-graph"), clientX = event.clientX, clientY = event.clientY, point, local;
+        if (event.touches && event.touches.length) { clientX = event.touches[0].clientX; clientY = event.touches[0].clientY; }
+        point = graph.createSVGPoint(); point.x = clientX; point.y = clientY; local = point.matrixTransform(graph.getScreenCTM().inverse());
+        activeCurve[index] = curveNumber((local.x - 12) / 216);
+        activeCurve[index + 1] = curveNumber((108 - local.y) / 96);
+        drawCurve(true);
+    }
+    function wireCurveHandle(id, index) {
+        var handle = byId(id), dragging = false;
+        handle.onpointerdown = function (event) { dragging = true; if (handle.setPointerCapture) handle.setPointerCapture(event.pointerId); editCurveHandle(index, event); event.preventDefault(); };
+        handle.onpointermove = function (event) { if (dragging) editCurveHandle(index, event); };
+        handle.onpointerup = handle.onpointercancel = function () { dragging = false; };
+        handle.onkeydown = function (event) { var step = event.shiftKey ? 0.1 : 0.01; if (event.key === "ArrowLeft") activeCurve[index] -= step; else if (event.key === "ArrowRight") activeCurve[index] += step; else if (event.key === "ArrowDown") activeCurve[index + 1] -= step; else if (event.key === "ArrowUp") activeCurve[index + 1] += step; else return; activeCurve[index] = curveNumber(activeCurve[index]); activeCurve[index + 1] = curveNumber(activeCurve[index + 1]); drawCurve(true); event.preventDefault(); };
+    }
     function startTemplateDraft(template) {
         template = template || { id: "", name: "", folders: {}, customFolders: [] };
         templateDraft = { id: template.id || "", name: template.name || "", folders: copy(template.folders || {}), renderFolders: store.renderFolders(template), customFolders: copy(template.customFolders || []), namingFields: store.namingFields(template) };
@@ -239,7 +275,7 @@
         renderDestinationButtons();
 
     }
-    function load() { libraryReady = false; callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); libraryReady = true; if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets().length ? compPresets()[0].id : ""; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Ready."); refreshCheckerLibrary(); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); status("Library could not be loaded. Saving is disabled: " + error.message, true); } }); }
+    function load() { libraryReady = false; callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); libraryReady = true; if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.curvePresets) state.curvePresets = []; if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets().length ? compPresets()[0].id : ""; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); renderCurvePresets("ease-in-out"); status("Ready."); refreshCheckerLibrary(); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); renderCurvePresets("ease-in-out"); status("Library could not be loaded. Saving is disabled: " + error.message, true); } }); }
     document.querySelectorAll(".tab").forEach(function (tab) { tab.onclick = function () { document.querySelectorAll(".tab, .view").forEach(function (entry) { entry.classList.remove("active"); }); document.querySelectorAll(".tab").forEach(function (button) { button.setAttribute("aria-pressed", button === tab ? "true" : "false"); }); tab.classList.add("active"); document.querySelector("h1").textContent = tab.getAttribute("aria-label"); byId(tab.dataset.view).classList.add("active"); }; });
     byId("add-naming-field").onclick = function () { editNamingField(-1); };
     byId("naming-preset").onchange = function () { var id = this.value, preset = namingPresets().filter(function (entry) { return entry.id === id; })[0]; if (preset) { templateDraft.namingFields = copy(preset.namingFields); renderNamingOrder(); } };
@@ -315,6 +351,14 @@
     byId("parent-layers-to-null").onclick = function () { callHost("aetoolkitCepParentSelectedLayersToNewNull", "", function (result) { try { var summary = JSON.parse(result); status("Parented " + summary.changed + " layer" + (summary.changed === 1 ? "" : "s") + " to " + summary.name + (summary.skipped.length ? ". Skipped: " + summary.skipped.join(", ") : "."), summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
     byId("unparent-layers").onclick = function () { callHost("aetoolkitCepUnparentSelectedLayers", "", function (result) { try { var summary = JSON.parse(result); status("Unparented " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("mark-guides").onclick = function () { callHost("aetoolkitCepToggleSelectedGuideLayers", "", function (result) { try { var summary = JSON.parse(result), message = "Toggled " + summary.changed + " guide layer" + (summary.changed === 1 ? "" : "s") + ": " + summary.guides + " guide, " + summary.normal + " normal."; if (summary.skipped.length) message += " Skipped: " + summary.skipped.join(", "); status(message, summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
+    byId("curve-preset").onchange = function () { var preset = store.curvePresets(state).filter(function (entry) { return entry.id === byId("curve-preset").value; })[0]; if (preset) activeCurve = preset.curve.slice(); byId("remove-curve-preset").disabled = !preset || preset.builtIn === true; drawCurve(false); };
+    ["curve-x1", "curve-y1", "curve-x2", "curve-y2"].forEach(function (id, index) { byId(id).onchange = function () { activeCurve[index] = curveNumber(this.value); drawCurve(true); }; });
+    wireCurveHandle("curve-handle-one", 0); wireCurveHandle("curve-handle-two", 2);
+    byId("apply-curve").onclick = function () { callHost("aetoolkitCepApplyCurvePreset", JSON.stringify({ curve: activeCurve }), function (result) { try { var summary = JSON.parse(result), message = "Applied the curve to " + summary.segments + " keyframe segment" + (summary.segments === 1 ? "" : "s") + " across " + summary.properties + " propert" + (summary.properties === 1 ? "y." : "ies."); if (summary.skipped.length) message += " Skipped: " + summary.skipped.join(", "); status(message, summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
+    byId("save-curve-preset").onclick = function () { var dialog = byId("curve-preset-dialog"); byId("curve-preset-name").value = ""; byId("curve-preset-error").textContent = ""; dialog.showModal(); byId("curve-preset-name").focus(); };
+    byId("curve-preset-cancel").onclick = function () { byId("curve-preset-dialog").close(); };
+    byId("curve-preset-form").onsubmit = function (event) { event.preventDefault(); try { var name = byId("curve-preset-name").value.trim(); state = store.upsertCurvePreset(state, { name: name, curve: activeCurve }); var id = store.normalizeCurvePreset({ name: name, curve: activeCurve }).id; save(function () { byId("curve-preset-dialog").close(); renderCurvePresets(id); status("Saved “" + name + "” to Shared resources."); }); } catch (error) { byId("curve-preset-error").textContent = error.message; } };
+    byId("remove-curve-preset").onclick = function () { try { var selected = byId("curve-preset").value, preset = store.curvePresets(state).filter(function (entry) { return entry.id === selected; })[0]; state = store.removeCurvePreset(state, selected); save(function () { renderCurvePresets("ease-in-out"); status("Removed “" + preset.name + "” from Shared resources."); }); } catch (error) { status(error.message, true); } };
     byId("select-layer-type").onclick = function () { callHost("aetoolkitCepSelectLayersByType", JSON.stringify({ type: byId("tool-select-type").value, mode: byId("tool-select-mode").value }), function (result) { try { var summary = JSON.parse(result); status("Selected " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("flip-layer-order").onclick = function () { callHost("aetoolkitCepReverseSelectedLayerOrder", "", function (result) { try { var summary = JSON.parse(result); status("Reversed " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("repeat-offset").onchange = function () { byId("repeat-gap").disabled = !this.checked; };

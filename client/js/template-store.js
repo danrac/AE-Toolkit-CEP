@@ -66,7 +66,42 @@
         return [{"id": "hd", "name": "16:9 HD", "width": 1920, "height": 1080, "assets": {"chartOne": "bundled:HD_chart.psd"}, "formatCode": "HD"}, {"id": "uhd", "name": "UHD 3840", "width": 3840, "height": 2160, "assets": {"chartOne": "bundled:UHD_chart.psd"}, "formatCode": "UHD"}, {"id": "vertical", "name": "9:16 Social", "width": 1080, "height": 1920, "assets": {"matte": "bundled:9x16_matte.png", "chartOne": "bundled:9x16_chart.psd"}, "formatCode": "9x16"}, {"id": "vertical-tiktok", "name": "9:16 TikTok safe", "width": 1080, "height": 1920, "assets": {"matte": "bundled:9x16TT_matte.png", "chartOne": "bundled:9x16_chart.psd"}, "formatCode": "9x16"}, {"id": "social-4x5", "name": "4:5 Social", "width": 1080, "height": 1350, "assets": {"matte": "bundled:4x5_matte.png", "chartOne": "bundled:4x5_chart.psd"}, "formatCode": "4x5"}, {"id": "social-4x5-safe", "name": "4:5 with 9:16 safe", "width": 1080, "height": 1350, "assets": {"matte": "bundled:4x5_9x16_matte.png", "chartOne": "bundled:4x5_chart.psd"}, "formatCode": "4x5"}, {"id": "square", "name": "1:1 Square", "width": 1080, "height": 1080, "assets": {"matte": "bundled:1x1_matte.png", "chartOne": "bundled:1x1_chart.psd"}, "formatCode": "1x1"}, {"id": "hd-185", "name": "HD 1.85 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:185_matte.png", "chartOne": "bundled:185_chart.psd"}, "formatCode": "HD185"}, {"id": "hd-200", "name": "HD 2.00 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:200_matte.png", "chartOne": "bundled:200_chart.psd"}, "formatCode": "HD200"}, {"id": "hd-210", "name": "HD 2.10 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:210_matte.png", "chartOne": "bundled:210_chart.psd"}, "formatCode": "HD210"}, {"id": "hd-235", "name": "HD 2.35 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:235_matte.png", "chartOne": "bundled:235_chart.psd"}, "formatCode": "HD235"}, {"id": "hd-240", "name": "HD 2.40 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:240_matte.png", "chartOne": "bundled:240_chart.psd"}, "formatCode": "HD240"}, {"id": "hd-241", "name": "HD 2.41 letterbox", "width": 1920, "height": 1080, "assets": {"matte": "bundled:241_matte.png", "chartOne": "bundled:241_chart.psd"}, "formatCode": "HD241"}, {"id": "hd-1020", "name": "HD 10/20", "width": 1920, "height": 1080, "assets": {"matte": "bundled:HD1020_matte.png", "chartOne": "bundled:HD1020_chart.psd"}, "formatCode": "HD1020"}];
     }
     function defaultState() {
-        return { version: 2, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "After Effects", assets: "Assets", toGfx: "Incoming", outputs: "Outputs", styleFrames: "Outputs/Style Frames" }, customFolders: [] }], compPresets: defaultCompPresets(), projects: [], activeProjectId: "" };
+        return { version: 2, templates: [{ id: "default-motion", name: "Default Motion Project", folders: { afterEffects: "After Effects", assets: "Assets", toGfx: "Incoming", outputs: "Outputs", styleFrames: "Outputs/Style Frames" }, customFolders: [] }], compPresets: defaultCompPresets(), curvePresets: [], projects: [], activeProjectId: "" };
+    }
+    function defaultCurvePresets() {
+        return [
+            { id: "linear", name: "Linear", curve: [0, 0, 1, 1], builtIn: true },
+            { id: "ease-in", name: "Ease in", curve: [0.42, 0, 1, 1], builtIn: true },
+            { id: "ease-out", name: "Ease out", curve: [0, 0, 0.58, 1], builtIn: true },
+            { id: "ease-in-out", name: "Ease in out", curve: [0.42, 0, 0.58, 1], builtIn: true }
+        ];
+    }
+    function normalizeCurvePreset(preset) {
+        var name = String(preset && preset.name || "").replace(/^\s+|\s+$/g, ""), values = preset && preset.curve;
+        if (!name) throw new Error("Curve preset name is required.");
+        if (!Array.isArray(values) || values.length !== 4) throw new Error("Curve presets need four control values.");
+        values = values.map(function (value) { value = Number(value); if (!isFinite(value) || value < 0 || value > 1) throw new Error("Curve values must be between 0 and 1."); return Math.round(value * 1000) / 1000; });
+        return { id: preset.id || idFromName(name), name: name, curve: values };
+    }
+    function curvePresets(state) {
+        var result = defaultCurvePresets(), saved = state && state.curvePresets || [];
+        saved.forEach(function (preset) { var normalized = normalizeCurvePreset(preset); if (!result.some(function (entry) { return entry.id === normalized.id; })) result.push(normalized); });
+        return result;
+    }
+    function upsertCurvePreset(state, preset) {
+        var next = clone(state), normalized = normalizeCurvePreset(preset), saved = next.curvePresets || [], found = false;
+        if (defaultCurvePresets().some(function (entry) { return entry.id === normalized.id; })) throw new Error("Choose a name that does not replace a built-in curve.");
+        for (var i = 0; i < saved.length; i++) if (saved[i].id === normalized.id) { saved[i] = normalized; found = true; }
+        if (!found) saved.push(normalized);
+        next.curvePresets = saved;
+        return next;
+    }
+    function removeCurvePreset(state, id) {
+        if (defaultCurvePresets().some(function (entry) { return entry.id === id; })) throw new Error("Built-in curves cannot be removed.");
+        var next = clone(state), found = false;
+        next.curvePresets = (next.curvePresets || []).filter(function (entry) { if (entry.id === id) { found = true; return false; } return true; });
+        if (!found) throw new Error("Curve preset not found.");
+        return next;
     }
     function renderFolders(template) {
         var defaults = { offline: "Offline", online: "Online", checker: "Checkers" }, supplied = template && template.renderFolders || {}, result = {};
@@ -189,5 +224,5 @@
         next.removedCompPresets = (next.removedCompPresets || []).concat([id]);
         return next;
     }
-    return { renderDestinations: renderDestinations, renderFolders: renderFolders, resolveRenderPaths: resolveRenderPaths, removeCompPreset: removeCompPreset, compFormatCode: compFormatCode, previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
+    return { renderDestinations: renderDestinations, renderFolders: renderFolders, resolveRenderPaths: resolveRenderPaths, removeCompPreset: removeCompPreset, compFormatCode: compFormatCode, previewNaming: previewNaming, namingFields: namingFields, formatNaming: formatNaming, namingOrder: namingOrder, FOLDER_KEYS: FOLDER_KEYS, defaultState: defaultState, defaultCompPresets: defaultCompPresets, compPresets: compPresets, normalizeCompPreset: normalizeCompPreset, upsertCompPreset: upsertCompPreset, defaultCurvePresets: defaultCurvePresets, curvePresets: curvePresets, normalizeCurvePreset: normalizeCurvePreset, upsertCurvePreset: upsertCurvePreset, removeCurvePreset: removeCurvePreset, validateTemplate: validateTemplate, upsertTemplate: upsertTemplate, assignProject: assignProject, setActiveProject: setActiveProject, removeProject: removeProject, resolveProjectPaths: resolveProjectPaths };
 }));

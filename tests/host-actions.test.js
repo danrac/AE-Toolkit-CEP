@@ -320,7 +320,7 @@ toolsComp.layers = {
     addNull(duration) { createdParentNull = new ToolLayer('Null 1', 0, 0, duration); createdParentNull.nullLayer = true; createdParentNull.position = { setValue(value) { this.value = value; } }; createdParentNull.remove = function () { this.removed = true; }; toolsComp._layers.unshift(createdParentNull); return createdParentNull; }
 };
 toolsComp.selectedLayers = [normalLayer, textLayer];
-const toolsContext = { JSON: undefined, Math, CompItem: ToolComp, TextDocument: function (text) { this.text = text; }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [toolsComp], activeItem: toolsComp } } };
+const toolsContext = { JSON: undefined, Math, CompItem: ToolComp, TextDocument: function (text) { this.text = text; }, KeyframeEase: function (speed, influence) { this.speed = speed; this.influence = influence; }, KeyframeInterpolationType: { LINEAR: 'linear', BEZIER: 'bezier' }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [toolsComp], activeItem: toolsComp } } };
 vm.createContext(toolsContext);
 vm.runInContext(source, toolsContext);
 toolsContext.aetoolkitCepPlacementEval = function (probe, layer) { return layer.worldPoint; };
@@ -354,6 +354,32 @@ assert.equal(normalLayer.guideLayer, true);
 assert.equal(textLayer.guideLayer, false);
 assert.equal(JSON.parse(toolsContext.aetoolkitCepReplaceSelectedText('Updated')).changed, 1);
 assert.equal(textLayer.textProperty.value.text, 'Updated');
+const curveProperty = {
+    name: 'Position', numKeys: 2, selectedKeys: [1, 2],
+    keyTime(index) { return index === 1 ? 0 : 2; }, keyValue(index) { return index === 1 ? [0, 0] : [100, 0]; },
+    keyInTemporalEase() { return [new toolsContext.KeyframeEase(0, 33)]; }, keyOutTemporalEase() { return [new toolsContext.KeyframeEase(0, 33)]; },
+    keyInInterpolationType() { return 'bezier'; }, keyOutInterpolationType() { return 'bezier'; },
+    setInterpolationTypeAtKey(index, incoming, outgoing) { this.interpolation = this.interpolation || {}; this.interpolation[index] = [incoming, outgoing]; },
+    setTemporalEaseAtKey(index, incoming, outgoing) { this.ease = this.ease || {}; this.ease[index] = { incoming, outgoing }; },
+    setTemporalAutoBezierAtKey() {}, setTemporalContinuousAtKey() {}
+};
+const scalarCurveProperty = {
+    name: 'Opacity', numKeys: 2, selectedKeys: [1, 2],
+    keyTime(index) { return index === 1 ? 0 : 2; }, keyValue(index) { return index === 1 ? 0 : 100; },
+    keyInTemporalEase() { return [new toolsContext.KeyframeEase(0, 33)]; }, keyOutTemporalEase() { return [new toolsContext.KeyframeEase(0, 33)]; },
+    keyInInterpolationType() { return 'linear'; }, keyOutInterpolationType() { return 'linear'; },
+    setInterpolationTypeAtKey(index, incoming, outgoing) { this.interpolation = this.interpolation || {}; this.interpolation[index] = [incoming, outgoing]; },
+    setTemporalEaseAtKey(index, incoming, outgoing) { this.ease = this.ease || {}; this.ease[index] = { incoming, outgoing }; },
+    setTemporalAutoBezierAtKey() {}, setTemporalContinuousAtKey() {}
+};
+normalLayer.selectedProperties = [curveProperty, scalarCurveProperty]; textLayer.selectedProperties = [];
+const curveResult = JSON.parse(toolsContext.aetoolkitCepApplyCurvePreset(JSON.stringify({ curve: [0.25, 0.25, 0.75, 0.75] })));
+assert.deepEqual(curveResult, { segments: 2, properties: 2, skipped: [] });
+assert.equal(curveProperty.ease[1].outgoing[0].speed, 50);
+assert.equal(curveProperty.ease[1].outgoing[0].influence, 25);
+assert.equal(curveProperty.ease[2].incoming[0].speed, 50);
+assert.equal(curveProperty.ease[2].incoming[0].influence, 25);
+assert.equal(scalarCurveProperty.ease[1].outgoing[0].speed, 50);
 console.log('PASS host tools preserve frame limits, create centered parent nulls, and toggle guide layers');
 
 function TransformProperty(value, keyed) { this.value = value; this.numKeys = keyed ? 1 : 0; this.isTimeVarying = !!keyed; }

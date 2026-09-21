@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.25 Alpha 1**. [Home and installation](../README.md)
+For **0.1.26 Alpha 1**. [Home and installation](../README.md)
 
 Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
@@ -164,7 +164,7 @@ Hover icons to see the action names. Layer actions use the active comp and its s
 | Module | Controls and behavior |
 | --- | --- |
 | Composition timing | Change duration by −10, −1, +1, or +10 frames; set duration in seconds; create a no-slate comp from selected footage using the specified slate-frame count. Durations retain a one-frame minimum. |
-| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, parent selected layers to a centered new null, unparent, conform selected solids to the active comp, and toggle selected layers between guide and normal. Set Anchor and Step and Repeat controls sit at the bottom. |
+| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, parent selected layers to a centered new null, unparent, conform selected solids to the active comp, and toggle selected layers between guide and normal. The Key graph applies cubic Bézier easing presets to adjacent selected keyframe pairs. Compact Set Anchor and Step and Repeat controls sit at the bottom. |
 | Select and align layers | Select by type using Only, Add, or Subtract; reverse selected stacking order; snap to last selected. Types include nulls, solids, shapes, comps, footage, text, cameras, and lights. |
 | Transfer transform | Transfer checked Position, Scale, and Rotation components between selected layers. |
 | Replace selected text | Replace selected text-layer contents; animated source text is written at the current time. |
@@ -183,7 +183,7 @@ This is the library setting for the whole Toolkit. **Shared templates → Browse
 
 | Stored in the chosen library | Remains workstation-specific |
 | --- | --- |
-| Connected project records; project presets and folder mappings; naming presets; composition formats; checker packages and copied assets | Library mount choice; toolbar/tab/collapse state; selected AOM file and output-preset preferences; installed AE output-module settings |
+| Connected project records; project presets and folder mappings; naming presets; composition formats; curve presets; checker packages and copied assets | Library mount choice; toolbar/tab/collapse state; selected AOM file and output-preset preferences; installed AE output-module settings |
 
 With no shared folder selected, the default library uses AE's OS-resolved user-data location. Selecting an existing shared folder loads that folder's records. It does **not** merge or migrate local records automatically. Returning to local restores the retained local library. A new empty shared library starts with defaults and no connected projects.
 

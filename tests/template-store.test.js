@@ -41,6 +41,19 @@ test('Connected projects retain one active project and can be removed safely', (
     assert.equal(state.projects.length, 1);
 });
 
+test('Curve presets validate, persist, and keep built-ins protected', () => {
+    let state = store.defaultState();
+    assert.equal(store.curvePresets(state).length, 4);
+    state = store.upsertCurvePreset(state, { name: 'Studio smooth', curve: [0.2, 0.1, 0.7, 1] });
+    state = JSON.parse(JSON.stringify(state));
+    const saved = store.curvePresets(state).find(preset => preset.id === 'studio-smooth');
+    assert.deepEqual(saved.curve, [0.2, 0.1, 0.7, 1]);
+    state = store.removeCurvePreset(state, saved.id);
+    assert.equal(store.curvePresets(state).some(preset => preset.id === saved.id), false);
+    assert.throws(() => store.removeCurvePreset(state, 'linear'));
+    assert.throws(() => store.normalizeCurvePreset({ name: 'Bad', curve: [0, -1, 1, 1] }));
+});
+
 console.log(`${passed} tests passed.`);
 
 const presetState = store.defaultState();

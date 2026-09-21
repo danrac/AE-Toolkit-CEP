@@ -2,7 +2,7 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.25 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.25-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.25.md)
+**Documented version: 0.1.26 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.26-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.26.md)
 
 ## User guide
 
@@ -43,6 +43,7 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Change each connected project’s template from its named button in Current project; paths and render destinations refresh automatically.
 - Modify composition has its own format selector, guide replacement, and Conform solids option.
 - Custom checkers capture native templates with their media; the graphic placeholder and Job text are replaced when generating checkers.
+- Animation and layers includes a compact cubic Bézier key graph. Built-in and shared curve presets apply to adjacent selected keyframe pairs.
 - Version 0.1.20 fixes the Node-enabled CEP startup regression and reads supported working spaces from unopened AEP/AEPX files.
 
 ## Compatibility and limits

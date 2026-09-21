@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.danrac.aetoolkit.cep" ExtensionBundleVersion="0.1.25" ExtensionBundleName="Toolbox 2">
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.danrac.aetoolkit.cep" ExtensionBundleVersion="0.1.26" ExtensionBundleName="Toolbox 2">
   <ExtensionList>
-    <Extension Id="com.danrac.aetoolkit.cep.panel" Version="0.1.25" />
+    <Extension Id="com.danrac.aetoolkit.cep.panel" Version="0.1.26" />
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
