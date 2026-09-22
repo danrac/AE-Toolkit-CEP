@@ -352,6 +352,46 @@ const guideResult = JSON.parse(toolsContext.aetoolkitCepToggleSelectedGuideLayer
 assert.deepEqual({ changed: guideResult.changed, guides: guideResult.guides, normal: guideResult.normal }, { changed: 2, guides: 1, normal: 1 });
 assert.equal(normalLayer.guideLayer, true);
 assert.equal(textLayer.guideLayer, false);
+function AnimationProperty(value, keys) { this.value = value; this.keys = keys || []; this.expressionEnabled = false; }
+Object.defineProperty(AnimationProperty.prototype, 'numKeys', { get() { return this.keys.length; } });
+AnimationProperty.prototype.keyTime = function (index) { return index === 1 ? 1 : 3; };
+AnimationProperty.prototype.keyValue = function (index) { const value = this.keys[index - 1]; return value && value.slice ? value.slice() : value; };
+AnimationProperty.prototype.setValueAtTime = function (time, value) { this.keys.push(value && value.slice ? value.slice() : value); };
+AnimationProperty.prototype.nearestKeyIndex = function () { return this.numKeys; };
+AnimationProperty.prototype.setInterpolationTypeAtKey = function () {};
+AnimationProperty.prototype.setTemporalEaseAtKey = function () {};
+AnimationProperty.prototype.setTemporalAutoBezierAtKey = function () {};
+AnimationProperty.prototype.setTemporalContinuousAtKey = function () {};
+AnimationProperty.prototype.removeKey = function (index) { this.keys.splice(index - 1, 1); };
+AnimationProperty.prototype.setValue = function (value) { this.value = value && value.slice ? value.slice() : value; };
+function AnimationLayer(name) {
+    this.name = name; this.index = 1; this.selected = true; this.locked = false; this.threeDLayer = false; this.startTime = 0; this.inPoint = 0; this.outPoint = 10; this.parent = null;
+    this._properties = { 'ADBE Position': new AnimationProperty([100, 200], [[100, 200], [300, 400]]), 'ADBE Scale': new AnimationProperty([100, 100], [[100, 100], [125, 125]]), 'ADBE Rotate Z': new AnimationProperty(0, [0, 45]) };
+}
+AnimationLayer.prototype.property = function (name) { if (name !== 'ADBE Transform Group') return null; const layer = this; return { property(matchName) { return layer._properties[matchName] || null; } }; };
+AnimationLayer.prototype.moveBefore = function () { this.movedBefore = true; };
+const animationLayer = new AnimationLayer('Animated layer'); let animationNull;
+toolsComp._layers = [animationLayer]; toolsComp.selectedLayers = [animationLayer];
+toolsComp.layers.addNull = function () {
+    animationNull = new AnimationLayer('Null 1');
+    animationNull._properties = { 'ADBE Position': new AnimationProperty([0, 0], []), 'ADBE Scale': new AnimationProperty([100, 100], []), 'ADBE Rotate Z': new AnimationProperty(0, []) };
+    animationNull.nullLayer = true; toolsComp._layers.unshift(animationNull); return animationNull;
+};
+const movedAnimation = JSON.parse(toolsContext.aetoolkitCepMoveAnimationKeysToParentNull());
+assert.equal(movedAnimation.changed, 1);
+assert.deepEqual(movedAnimation.skipped, []);
+assert.equal(animationLayer.parent, animationNull);
+assert.equal(animationNull.name, 'Animation Null');
+assert.deepEqual(animationNull._properties['ADBE Position'].keys, [[100, 200], [300, 400]]);
+assert.deepEqual(animationNull._properties['ADBE Scale'].keys, [[100, 100], [125, 125]]);
+assert.deepEqual(animationNull._properties['ADBE Rotate Z'].keys, [0, 45]);
+assert.deepEqual(animationLayer._properties['ADBE Position'].keys, []);
+assert.deepEqual(animationLayer._properties['ADBE Scale'].keys, []);
+assert.deepEqual(animationLayer._properties['ADBE Rotate Z'].keys, []);
+assert.deepEqual(animationLayer._properties['ADBE Position'].value, [0, 0]);
+assert.deepEqual(animationLayer._properties['ADBE Scale'].value, [100, 100]);
+assert.equal(animationLayer._properties['ADBE Rotate Z'].value, 0);
+toolsComp.selectedLayers = [normalLayer, textLayer];
 assert.equal(JSON.parse(toolsContext.aetoolkitCepReplaceSelectedText('Updated')).changed, 1);
 assert.equal(textLayer.textProperty.value.text, 'Updated');
 const curveProperty = {

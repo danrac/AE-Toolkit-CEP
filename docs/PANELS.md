@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.27 Alpha 1**. [Home and installation](../README.md)
+For **0.1.28 Alpha 1**. [Home and installation](../README.md)
 
 Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
@@ -159,12 +159,12 @@ Copies selected file-based footage into the current project's Assets location wi
 
 ![Timing, animation, layer, transform, and text tools](images/tools.png)
 
-Hover icons to see the action names. Layer actions use the active comp and its selection; composition actions use selected comps where indicated.
+Hover icons to see the action names. Layer actions use the active comp and its selection; composition actions use selected comps where indicated. Tooltips are rendered by the panel so they remain available in the CEP host.
 
 | Module | Controls and behavior |
 | --- | --- |
 | Composition timing | Change duration by −10, −1, +1, or +10 frames; set duration in seconds; create a no-slate comp from selected footage using the specified slate-frame count. Durations retain a one-frame minimum. |
-| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, parent selected layers to a centered new null, unparent, conform selected solids to the active comp, and toggle selected layers between guide and normal. Remembered Key graph and Placement tabs keep the cubic Bézier editor separate from the compact Set Anchor and Step and Repeat controls. |
+| Animation and layers | Fade in/out over the entered frame count, sequence layers, parent to last selected, parent selected layers to a centered new null, move keyed Position/Scale/Rotation/Orientation channels to animation parent nulls, unparent, conform selected solids to the active comp, and toggle selected layers between guide and normal. Remembered Key graph and Placement tabs keep the cubic Bézier editor separate from the compact Set Anchor and Step and Repeat controls. |
 | Select and align layers | Select by type using Only, Add, or Subtract; reverse selected stacking order; snap to last selected. Types include nulls, solids, shapes, comps, footage, text, cameras, and lights. |
 | Transfer transform | Transfer checked Position, Scale, and Rotation components between selected layers. |
 | Replace selected text | Replace selected text-layer contents; animated source text is written at the current time. |

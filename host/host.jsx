@@ -1574,6 +1574,109 @@ function aetoolkitCepParentSelectedLayersToNewNull() {
     } catch (error) { return "ERROR: " + error.toString(); }
     finally { if (probe) probe.remove(); if (opened) app.endUndoGroup(); }
 }
+function aetoolkitCepAnimationValueCopy(value) {
+    var copy = value, i;
+    if (value && value.length !== undefined) { copy = []; for (i = 0; i < value.length; i++) copy.push(value[i]); }
+    return copy;
+}
+function aetoolkitCepAnimationKeyed(property) {
+    var i, follower, count;
+    if (!property) return false;
+    if (property.dimensionsSeparated) {
+        count = property.value && property.value.length ? property.value.length : 2;
+        for (i = 0; i < count; i++) { follower = property.getSeparationFollower(i); if (follower && follower.numKeys) return true; }
+        return false;
+    }
+    return !!property.numKeys;
+}
+function aetoolkitCepAnimationCopyKeys(source, target) {
+    var i, index, value, inEase, outEase;
+    if (!source || !target || !source.numKeys) return false;
+    for (i = 1; i <= source.numKeys; i++) {
+        value = aetoolkitCepAnimationValueCopy(source.keyValue(i));
+        target.setValueAtTime(source.keyTime(i), value);
+        index = target.nearestKeyIndex ? target.nearestKeyIndex(source.keyTime(i)) : target.numKeys;
+        try { target.setInterpolationTypeAtKey(index, source.keyInInterpolationType(i), source.keyOutInterpolationType(i)); } catch (interpolationError) {}
+        try { inEase = source.keyInTemporalEase(i); outEase = source.keyOutTemporalEase(i); target.setTemporalEaseAtKey(index, inEase, outEase); } catch (easeError) {}
+        try { target.setTemporalAutoBezierAtKey(index, source.keyTemporalAutoBezier(i)); } catch (autoError) {}
+        try { target.setTemporalContinuousAtKey(index, source.keyTemporalContinuous(i)); } catch (continuousError) {}
+    }
+    return true;
+}
+function aetoolkitCepAnimationMoveProperty(source, target, neutral, dimensionCount) {
+    var sourceParts, targetParts, i, count, moved = false, value;
+    if (!source || !target) return false;
+    if (source.expressionEnabled) throw new Error("Expression-driven transform");
+    if (source.dimensionsSeparated) {
+        try { target.dimensionsSeparated = true; } catch (separationError) {}
+        count = dimensionCount || 2; sourceParts = []; targetParts = [];
+        for (i = 0; i < count; i++) { sourceParts[i] = source.getSeparationFollower(i); targetParts[i] = target.getSeparationFollower(i); }
+        for (i = 0; i < count; i++) if (aetoolkitCepAnimationKeyed(sourceParts[i])) {
+            if (!aetoolkitCepAnimationCopyKeys(sourceParts[i], targetParts[i])) throw new Error("Could not copy separated transform keys");
+            while (sourceParts[i].numKeys) sourceParts[i].removeKey(sourceParts[i].numKeys);
+            sourceParts[i].setValue(neutral[i] || 0); moved = true;
+        }
+        return moved;
+    }
+    if (!aetoolkitCepAnimationKeyed(source)) return false;
+    if (!aetoolkitCepAnimationCopyKeys(source, target)) throw new Error("Could not copy transform keys");
+    while (source.numKeys) source.removeKey(source.numKeys);
+    value = neutral && neutral.length !== undefined ? aetoolkitCepAnimationValueCopy(neutral) : neutral;
+    source.setValue(value);
+    return true;
+}
+function aetoolkitCepMoveAnimationKeysToParentNull() {
+    var opened = false, context, i, j, layer, parent, oldParent, properties, moved, changed = 0, skipped = [], threeD, transform, parentTransform, property, target, neutral, dimensionCount;
+    try {
+        context = aetoolkitCepActiveCompLayers(1);
+        app.beginUndoGroup("AE Toolkit CEP: Move animation keys to parent null"); opened = true;
+        for (i = 0; i < context.layers.length; i++) {
+            layer = context.layers[i]; parent = null; moved = 0;
+            try {
+                if (layer.locked) throw new Error("locked");
+                oldParent = layer.parent;
+                threeD = !!layer.threeDLayer; dimensionCount = threeD ? 3 : 2;
+                transform = layer.property("ADBE Transform Group");
+                if (!transform) throw new Error("no transform group");
+                properties = [
+                    {name:"ADBE Position", neutral:threeD ? [0, 0, 0] : [0, 0], separated:true},
+                    {name:"ADBE Scale", neutral:threeD ? [100, 100, 100] : [100, 100]},
+                    {name:"ADBE Orientation", neutral:[0, 0, 0]},
+                    {name:"ADBE Rotate X", neutral:0},
+                    {name:"ADBE Rotate Y", neutral:0},
+                    {name:"ADBE Rotate Z", neutral:0}
+                ];
+                for (j = 0; j < properties.length; j++) {
+                    property = transform.property(properties[j].name);
+                    if (property && aetoolkitCepAnimationKeyed(property)) moved++;
+                }
+                if (!moved) throw new Error("no transform keyframes");
+                parent = context.comp.layers.addNull(context.comp.duration);
+                parent.name = aetoolkitCepUniqueLayerName(context.comp, "Animation Null");
+                parent.threeDLayer = threeD;
+                parent.startTime = layer.startTime; parent.inPoint = layer.inPoint; parent.outPoint = layer.outPoint;
+                parent.moveBefore(layer);
+                if (oldParent) parent.parent = oldParent;
+                parentTransform = parent.property("ADBE Transform Group");
+                parentTransform.property("ADBE Position").setValue(threeD ? [0, 0, 0] : [0, 0]);
+                layer.parent = parent;
+                for (j = 0; j < properties.length; j++) {
+                    property = transform.property(properties[j].name); target = parentTransform.property(properties[j].name);
+                    if (!property || !target || !aetoolkitCepAnimationKeyed(property)) continue;
+                    neutral = properties[j].neutral;
+                    if (aetoolkitCepAnimationMoveProperty(property, target, neutral, properties[j].separated ? dimensionCount : 0)) moved++;
+                }
+                layer.selected = false; parent.selected = true; changed++;
+            } catch (layerError) {
+                if (parent) try { parent.remove(); } catch (removeError) {}
+                skipped.push(layer.name + ": " + (layerError.message || layerError.toString()));
+            }
+        }
+        if (!changed) throw new Error("No selected layers had movable transform keyframes.");
+        return AEToolkitJSON.stringify({changed:changed, skipped:skipped});
+    } catch (error) { return "ERROR: " + error.toString(); }
+    finally { if (opened) app.endUndoGroup(); }
+}
 function aetoolkitCepUnparentSelectedLayers() {
     try {
         var context = aetoolkitCepActiveCompLayers(1), i;

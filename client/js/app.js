@@ -4,6 +4,59 @@
     try { checkerLibraryRoot = window.localStorage.getItem("toolbox2.template-library") || ""; } catch (ignoreLibraryPreference) {}
     var folderLabels = { afterEffects: "AE Projects", assets: "Assets", toGfx: "Graphic In", outputs: "Graphic Out", styleFrames: "Style Frames" };
     function byId(id) { return document.getElementById(id); }
+    var tooltipTimer = 0, tooltipNode = null, tooltipOwner = null;
+    function tooltipTarget(node) {
+        var text;
+        while (node && node !== document) {
+            if (node.nodeType === 1) {
+                text = node.getAttribute("data-tooltip") || node.getAttribute("title");
+                if (text) {
+                    if (!node.getAttribute("data-tooltip")) { node.setAttribute("data-tooltip", text); node.removeAttribute("title"); }
+                    return node;
+                }
+            }
+            node = node.parentNode;
+        }
+        return null;
+    }
+    function tooltipInside(node, ancestor) {
+        while (node) { if (node === ancestor) return true; node = node.parentNode; }
+        return false;
+    }
+    function hideTooltip() {
+        if (tooltipTimer) { window.clearTimeout(tooltipTimer); tooltipTimer = 0; }
+        if (tooltipNode && tooltipNode.parentNode) tooltipNode.parentNode.removeChild(tooltipNode);
+        tooltipNode = null; tooltipOwner = null;
+    }
+    function showTooltip(target, immediate) {
+        var text = target.getAttribute("data-tooltip"), rect, left, top;
+        hideTooltip(); tooltipOwner = target;
+        tooltipTimer = window.setTimeout(function () {
+            tooltipTimer = 0; rect = target.getBoundingClientRect(); tooltipNode = document.createElement("div");
+            tooltipNode.className = "ui-tooltip"; tooltipNode.textContent = text; document.body.appendChild(tooltipNode);
+            left = rect.left + (rect.width / 2) - (tooltipNode.offsetWidth / 2);
+            left = Math.max(4, Math.min(window.innerWidth - tooltipNode.offsetWidth - 4, left));
+            top = rect.bottom + 7;
+            if (top + tooltipNode.offsetHeight > window.innerHeight - 4) top = Math.max(4, rect.top - tooltipNode.offsetHeight - 7);
+            tooltipNode.style.left = left + "px"; tooltipNode.style.top = top + "px";
+        }, immediate ? 0 : 280);
+    }
+    document.addEventListener("mouseover", function (event) {
+        var target = tooltipTarget(event.target);
+        if (target && target !== tooltipOwner) showTooltip(target, false);
+    }, true);
+    document.addEventListener("mouseout", function (event) {
+        var target = tooltipTarget(event.target), next = event.relatedTarget;
+        if (target && !tooltipInside(next, target)) hideTooltip();
+    }, true);
+    document.addEventListener("focusin", function (event) {
+        var target = tooltipTarget(event.target);
+        if (target) showTooltip(target, true);
+    }, true);
+    document.addEventListener("focusout", function (event) {
+        var target = tooltipTarget(event.target);
+        if (target) hideTooltip();
+    }, true);
     function status(message, error) { var target = byId("status"); target.textContent = message; target.style.color = error ? "#ff9d9d" : "#91d0a4"; ["format-dialog", "custom-format-dialog"].forEach(function (id) { var dialog = byId(id); if (dialog && dialog.open) byId(id === "format-dialog" ? "format-dialog-status" : "custom-format-status").textContent = message; }); }
     function callHost(name, argument, callback) {
         if (name === "aetoolkitCepSaveState" && !libraryReady) { callback("ERROR: Library unavailable. Refresh or choose a library before saving."); return; }
@@ -357,6 +410,7 @@
     byId("sequence-layers").onclick = function () { callHost("aetoolkitCepSequenceSelectedLayers", "", function (result) { try { var summary = JSON.parse(result); status("Sequenced " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("parent-layers").onclick = function () { callHost("aetoolkitCepParentSelectedLayers", "", function (result) { try { var summary = JSON.parse(result); status("Parented " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("parent-layers-to-null").onclick = function () { callHost("aetoolkitCepParentSelectedLayersToNewNull", "", function (result) { try { var summary = JSON.parse(result); status("Parented " + summary.changed + " layer" + (summary.changed === 1 ? "" : "s") + " to " + summary.name + (summary.skipped.length ? ". Skipped: " + summary.skipped.join(", ") : "."), summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
+    byId("move-animation-to-null").onclick = function () { callHost("aetoolkitCepMoveAnimationKeysToParentNull", "", function (result) { try { var summary = JSON.parse(result); status("Moved animation on " + summary.changed + " layer" + (summary.changed === 1 ? "" : "s") + " to parent null" + (summary.skipped.length ? ". Skipped: " + summary.skipped.join("; ") : "."), summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
     byId("unparent-layers").onclick = function () { callHost("aetoolkitCepUnparentSelectedLayers", "", function (result) { try { var summary = JSON.parse(result); status("Unparented " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("mark-guides").onclick = function () { callHost("aetoolkitCepToggleSelectedGuideLayers", "", function (result) { try { var summary = JSON.parse(result), message = "Toggled " + summary.changed + " guide layer" + (summary.changed === 1 ? "" : "s") + ": " + summary.guides + " guide, " + summary.normal + " normal."; if (summary.skipped.length) message += " Skipped: " + summary.skipped.join(", "); status(message, summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
     byId("curve-preset").onchange = function () { var preset = store.curvePresets(state).filter(function (entry) { return entry.id === byId("curve-preset").value; })[0]; if (preset) activeCurve = preset.curve.slice(); byId("remove-curve-preset").disabled = !preset || preset.builtIn === true; drawCurve(false); };

@@ -74,10 +74,11 @@ button:disabled { cursor: default; opacity: .45; }
 input:not([type="checkbox"]), select, button { min-width: 0; min-height: 28px; }
 label, .field-grid > *, .folder-grid > *, .project-actions > * { min-width: 0; }
 button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ui-tooltip { position: fixed; z-index: 10000; max-width: 230px; padding: 5px 7px; border: 1px solid var(--accent); border-radius: 4px; background: #11171d; color: #eef4fb; box-shadow: 0 2px 8px rgba(0,0,0,.55); font-size: 10px; line-height: 1.25; text-align: left; white-space: normal; pointer-events: none; }
 .tool-icon { display: flex; align-items: center; justify-content: center; height: 30px; }
 .tool-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 #tools .action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-#tools .action-grid.animation-actions { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+#tools .action-grid.animation-actions { grid-template-columns: repeat(9, minmax(0, 1fr)); }
 #tools .action-grid.timing-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 #tools .card > .tool-icon { width: 100%; margin-top: 6px; }
 :root { font-size: calc(9px + .48vw); }
