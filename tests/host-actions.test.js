@@ -307,6 +307,14 @@ console.log('PASS DMS video routing does not depend on a legacy disk folder');
 
 function ToolComp(name) { this.name = name; this.frameRate = 24; this.frameDuration = 1 / 24; this.duration = 10; this.time = 2; this.selectedLayers = []; }
 function ToolLayer(name, index, inPoint, outPoint) { this.name = name; this.index = index; this.inPoint = inPoint; this.outPoint = outPoint; this.startTime = inPoint; this.locked = false; this.selected = true; this.threeDLayer = false; this.guideLayer = false; this.opacity = { setValueAtTime(time, value) { this.values = this.values || []; this.values.push([time, value]); } }; }
+function ToolMarkers() { this.keys = []; }
+Object.defineProperty(ToolMarkers.prototype, 'numKeys', { get() { return this.keys.length; } });
+ToolMarkers.prototype.keyTime = function (index) { return this.keys[index - 1].time; };
+ToolMarkers.prototype.keyValue = function (index) { return this.keys[index - 1].value; };
+ToolMarkers.prototype.setValueAtTime = function (time, value) { this.keys.push({ time, value }); this.keys.sort((first, second) => first.time - second.time); };
+function FadeLayer(name, index, inPoint, outPoint) { ToolLayer.call(this, name, index, inPoint, outPoint); this.markers = new ToolMarkers(); this.opacity = { expression: '', values: [], setValueAtTime(time, value) { this.values.push([time, value]); } }; }
+FadeLayer.prototype = Object.create(ToolLayer.prototype);
+FadeLayer.prototype.property = function (name) { if (name === 'ADBE Marker' || name === 'Marker') return this.markers; return null; };
 function ToolTextLayer(name, index, inPoint, outPoint) { ToolLayer.call(this, name, index, inPoint, outPoint); const property = { numKeys: 0, setValue(value) { this.value = value; }, setValueAtTime(time, value) { this.valueAtTime = [time, value]; } }; this.property = function () { return { property() { return property; } }; }; this.textProperty = property; }
 ToolTextLayer.prototype = Object.create(ToolLayer.prototype);
 const toolsComp = new ToolComp('Tool comp'), normalLayer = new ToolLayer('Normal', 2, 1, 4), textLayer = new ToolTextLayer('Text', 1, 0, 3);
@@ -320,7 +328,7 @@ toolsComp.layers = {
     addNull(duration) { createdParentNull = new ToolLayer('Null 1', 0, 0, duration); createdParentNull.nullLayer = true; createdParentNull.position = { setValue(value) { this.value = value; } }; createdParentNull.remove = function () { this.removed = true; }; toolsComp._layers.unshift(createdParentNull); return createdParentNull; }
 };
 toolsComp.selectedLayers = [normalLayer, textLayer];
-const toolsContext = { JSON: undefined, Math, CompItem: ToolComp, TextDocument: function (text) { this.text = text; }, KeyframeEase: function (speed, influence) { this.speed = speed; this.influence = influence; }, KeyframeInterpolationType: { LINEAR: 'linear', BEZIER: 'bezier' }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [toolsComp], activeItem: toolsComp } } };
+const toolsContext = { JSON: undefined, Math, CompItem: ToolComp, MarkerValue: function (comment) { this.comment = comment; }, TextDocument: function (text) { this.text = text; }, KeyframeEase: function (speed, influence) { this.speed = speed; this.influence = influence; }, KeyframeInterpolationType: { LINEAR: 'linear', BEZIER: 'bezier' }, app: { beginUndoGroup() {}, endUndoGroup() {}, project: { selection: [toolsComp], activeItem: toolsComp } } };
 vm.createContext(toolsContext);
 vm.runInContext(source, toolsContext);
 toolsContext.aetoolkitCepPlacementEval = function (probe, layer) { return layer.worldPoint; };
@@ -328,8 +336,21 @@ assert.equal(JSON.parse(toolsContext.aetoolkitCepAdjustSelectedCompFrames('10'))
 assert.equal(toolsComp.duration, 10 + 10 / 24);
 assert.equal(JSON.parse(toolsContext.aetoolkitCepSetSelectedCompDuration('0.001')).changed, 1);
 assert.equal(toolsComp.duration, 1 / 24);
-assert.equal(JSON.parse(toolsContext.aetoolkitCepFadeSelectedLayers(JSON.stringify({ direction: 'in', frames: 10 }))).changed, 2);
-assert.deepEqual(normalLayer.opacity.values, [[1, 0], [1 + 10 / 24, 100]]);
+const fadeLayer = new FadeLayer('Fade', 3, 1, 4);
+toolsComp.selectedLayers = [fadeLayer];
+const fadeInResult = JSON.parse(toolsContext.aetoolkitCepFadeSelectedLayers(JSON.stringify({ direction: 'in' })));
+assert.equal(fadeInResult.changed, 1);
+assert.equal(fadeInResult.markerDriven, true);
+assert.deepEqual(fadeLayer.markers.keys.map(function (entry) { return [entry.value.comment, entry.time]; }), [['fadeIn_start', 1], ['fadeIn_end', 1 + 10 / 24]]);
+assert.deepEqual(fadeLayer.opacity.values, [[1, 0], [1 + 10 / 24, 100]]);
+assert.ok(fadeLayer.opacity.expression.indexOf('fadeIn_start') !== -1);
+assert.equal(JSON.parse(toolsContext.aetoolkitCepFadeSelectedLayers(JSON.stringify({ direction: 'in' }))).changed, 1);
+assert.equal(fadeLayer.markers.numKeys, 2);
+const fadeOutResult = JSON.parse(toolsContext.aetoolkitCepFadeSelectedLayers(JSON.stringify({ direction: 'out' })));
+assert.equal(fadeOutResult.changed, 1);
+assert.deepEqual(fadeLayer.markers.keys.map(function (entry) { return entry.value.comment; }), ['fadeIn_start', 'fadeIn_end', 'fadeOut_start', 'fadeOut_end']);
+assert.ok(fadeLayer.opacity.expression.indexOf('fadeOut_end') !== -1);
+toolsComp.selectedLayers = [normalLayer, textLayer];
 assert.equal(JSON.parse(toolsContext.aetoolkitCepSequenceSelectedLayers()).changed, 2);
 assert.equal(textLayer.startTime, 2);
 assert.equal(normalLayer.startTime, 5);
@@ -366,7 +387,7 @@ AnimationProperty.prototype.removeKey = function (index) { this.keys.splice(inde
 AnimationProperty.prototype.setValue = function (value) { this.value = value && value.slice ? value.slice() : value; };
 function AnimationLayer(name) {
     this.name = name; this.index = 1; this.selected = true; this.locked = false; this.threeDLayer = false; this.startTime = 0; this.inPoint = 0; this.outPoint = 10; this.parent = null;
-    this._properties = { 'ADBE Position': new AnimationProperty([100, 200], [[100, 200], [300, 400]]), 'ADBE Scale': new AnimationProperty([100, 100], [[100, 100], [125, 125]]), 'ADBE Rotate Z': new AnimationProperty(0, [0, 45]) };
+    this._properties = { 'ADBE Position': new AnimationProperty([100, 200], [[100, 200], [300, 400]]), 'ADBE Scale': new AnimationProperty([100, 100], [[100, 100], [125, 125]]), 'ADBE Rotate Z': new AnimationProperty(0, [0, 45]), 'ADBE Opacity': new AnimationProperty(100, [100, 50]) };
 }
 AnimationLayer.prototype.property = function (name) { if (name !== 'ADBE Transform Group') return null; const layer = this; return { property(matchName) { return layer._properties[matchName] || null; } }; };
 AnimationLayer.prototype.moveBefore = function () { this.movedBefore = true; };
@@ -391,6 +412,8 @@ assert.deepEqual(animationLayer._properties['ADBE Rotate Z'].keys, []);
 assert.deepEqual(animationLayer._properties['ADBE Position'].value, [0, 0]);
 assert.deepEqual(animationLayer._properties['ADBE Scale'].value, [100, 100]);
 assert.equal(animationLayer._properties['ADBE Rotate Z'].value, 0);
+assert.deepEqual(animationLayer._properties['ADBE Opacity'].keys, [100, 50]);
+assert.equal(animationNull._properties['ADBE Opacity'], undefined);
 toolsComp.selectedLayers = [normalLayer, textLayer];
 assert.equal(JSON.parse(toolsContext.aetoolkitCepReplaceSelectedText('Updated')).changed, 1);
 assert.equal(textLayer.textProperty.value.text, 'Updated');

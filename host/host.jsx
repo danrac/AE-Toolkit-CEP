@@ -1408,19 +1408,47 @@ function aetoolkitCepSetSelectedCompDuration(value) {
         return AEToolkitJSON.stringify({ changed: changed });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepFadeMarkerProperty(layer) {
+    return layer.property("ADBE Marker") || layer.property("Marker");
+}
+function aetoolkitCepFadeMarkerTime(layer, comment, defaultTime) {
+    var markers = aetoolkitCepFadeMarkerProperty(layer), i, value;
+    if (!markers) throw new Error("Layer markers are unavailable.");
+    for (i = 1; i <= markers.numKeys; i++) {
+        value = markers.keyValue(i);
+        if (value && value.comment === comment) return markers.keyTime(i);
+    }
+    markers.setValueAtTime(defaultTime, new MarkerValue(comment));
+    return defaultTime;
+}
+function aetoolkitCepFadeExpression() {
+    return 'var markers = thisLayer.marker; if (!markers.numKeys) value; else { var fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd; try { fadeInStart = markers.key("fadeIn_start").time; } catch(e) { fadeInStart = -1; } try { fadeInEnd = markers.key("fadeIn_end").time; } catch(e) { fadeInEnd = -1; } try { fadeOutStart = markers.key("fadeOut_start").time; } catch(e) { fadeOutStart = thisLayer.outPoint + 1; } try { fadeOutEnd = markers.key("fadeOut_end").time; } catch(e) { fadeOutEnd = thisLayer.outPoint + 1; } if (time < fadeInStart) 0; else if (time < fadeInEnd) linear(time, fadeInStart, fadeInEnd, 0, 100); else if (time < fadeOutStart) 100; else if (time < fadeOutEnd) linear(time, fadeOutStart, fadeOutEnd, 100, 0); else 0; }';
+}
 function aetoolkitCepFadeSelectedLayers(jsonText) {
     try {
-        var options = AEToolkitJSON.parse(jsonText), direction = options.direction, frames = aetoolkitCepNumber(options.frames, "Fade frames", 1, 9999, true), context = aetoolkitCepActiveCompLayers(1), duration = frames / context.comp.frameRate, i, layer, start, end;
+        var options = jsonText ? AEToolkitJSON.parse(jsonText) : {}, direction = options.direction, context = aetoolkitCepActiveCompLayers(1), frameRate = context.comp.frameRate || 24, duration = 10 / frameRate, changed = 0, skipped = [], i, layer, start, end;
         if (direction !== "in" && direction !== "out") throw new Error("Choose a fade direction.");
         app.beginUndoGroup("AE Toolkit CEP: Fade selected layers");
         try {
             for (i = 0; i < context.layers.length; i++) {
                 layer = context.layers[i];
-                if (direction === "in") { start = layer.inPoint; end = Math.min(layer.outPoint, start + duration); layer.opacity.setValueAtTime(start, 0); layer.opacity.setValueAtTime(end, 100); }
-                else { end = layer.outPoint; start = Math.max(layer.inPoint, end - duration); layer.opacity.setValueAtTime(start, 100); layer.opacity.setValueAtTime(end, 0); }
+                try {
+                    if (direction === "in") {
+                        start = aetoolkitCepFadeMarkerTime(layer, "fadeIn_start", layer.inPoint);
+                        end = aetoolkitCepFadeMarkerTime(layer, "fadeIn_end", Math.min(layer.outPoint, layer.inPoint + duration));
+                    } else {
+                        end = aetoolkitCepFadeMarkerTime(layer, "fadeOut_end", layer.outPoint);
+                        start = aetoolkitCepFadeMarkerTime(layer, "fadeOut_start", Math.max(layer.inPoint, layer.outPoint - duration));
+                    }
+                    if (end <= start) throw new Error("The layer is too short for a fade marker pair.");
+                    layer.opacity.setValueAtTime(start, direction === "in" ? 0 : 100);
+                    layer.opacity.setValueAtTime(end, direction === "in" ? 100 : 0);
+                    layer.opacity.expression = aetoolkitCepFadeExpression();
+                    changed++;
+                } catch (layerError) { skipped.push(layer.name + ": " + layerError.toString()); }
             }
         } finally { app.endUndoGroup(); }
-        return AEToolkitJSON.stringify({ changed: context.layers.length });
+        return AEToolkitJSON.stringify({ changed: changed, skipped: skipped, markerDriven: true });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
 function aetoolkitCepSequenceSelectedLayers() {
@@ -1625,6 +1653,16 @@ function aetoolkitCepAnimationMoveProperty(source, target, neutral, dimensionCou
     source.setValue(value);
     return true;
 }
+function aetoolkitCepTransformAnimationProperties(threeD) {
+    return [
+        {name:"ADBE Position", neutral:threeD ? [0, 0, 0] : [0, 0], separated:true},
+        {name:"ADBE Scale", neutral:threeD ? [100, 100, 100] : [100, 100]},
+        {name:"ADBE Orientation", neutral:[0, 0, 0]},
+        {name:"ADBE Rotate X", neutral:0},
+        {name:"ADBE Rotate Y", neutral:0},
+        {name:"ADBE Rotate Z", neutral:0}
+    ];
+}
 function aetoolkitCepMoveAnimationKeysToParentNull() {
     var opened = false, context, i, j, layer, parent, oldParent, properties, moved, changed = 0, skipped = [], threeD, transform, parentTransform, property, target, neutral, dimensionCount;
     try {
@@ -1638,14 +1676,7 @@ function aetoolkitCepMoveAnimationKeysToParentNull() {
                 threeD = !!layer.threeDLayer; dimensionCount = threeD ? 3 : 2;
                 transform = layer.property("ADBE Transform Group");
                 if (!transform) throw new Error("no transform group");
-                properties = [
-                    {name:"ADBE Position", neutral:threeD ? [0, 0, 0] : [0, 0], separated:true},
-                    {name:"ADBE Scale", neutral:threeD ? [100, 100, 100] : [100, 100]},
-                    {name:"ADBE Orientation", neutral:[0, 0, 0]},
-                    {name:"ADBE Rotate X", neutral:0},
-                    {name:"ADBE Rotate Y", neutral:0},
-                    {name:"ADBE Rotate Z", neutral:0}
-                ];
+                properties = aetoolkitCepTransformAnimationProperties(threeD);
                 for (j = 0; j < properties.length; j++) {
                     property = transform.property(properties[j].name);
                     if (property && aetoolkitCepAnimationKeyed(property)) moved++;
