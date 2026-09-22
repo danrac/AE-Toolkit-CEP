@@ -2,7 +2,7 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.29 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.29-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.29.md)
+**Documented version: 0.1.30 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.30-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.30.md)
 
 ## User guide
 
@@ -43,6 +43,7 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Change each connected project’s template from its named button in Current project; paths and render destinations refresh automatically.
 - Modify composition has its own format selector, guide replacement, and Conform solids option.
 - Custom checkers capture native templates with their media; the graphic placeholder and Job text are replaced when generating checkers.
+- Comp Cleanup analyzes the active composition and nested precomps, explains KEEP/SAFE TO REMOVE/AMBIGUOUS classifications, and removes only reviewed safe layers in one undo step.
 - Animation and layers separates the cubic Bézier Key graph and Placement tools into remembered tabs. Keyframed Step and Repeat and Set Anchor operations preserve the existing animation.
 - Fade in/out uses named layer markers plus an opacity expression. Reuse the fade buttons to create the markers, then drag `fadeIn_start`/`fadeIn_end` or `fadeOut_start`/`fadeOut_end` in the timeline to adjust timing without a duration field.
 - Version 0.1.20 fixes the Node-enabled CEP startup regression and reads supported working spaces from unopened AEP/AEPX files.
@@ -62,7 +63,7 @@ npm run release:check
 npm run package:stage
 ```
 
-Tests cover strict ExtendScript ES3 syntax, the data model, host actions, custom checkers, shared-library revisions, and exclusive save locks. Browser preview captures are UI documentation, not native integration tests.
+Tests cover strict ExtendScript ES3 syntax, the data model, host actions, comp-cleanup dependency classification, custom checkers, shared-library revisions, and exclusive save locks. Browser preview captures are UI documentation, not native integration tests.
 
 Before releasing host changes, run `tests/after-effects-load-check.jsx` through **File → Scripts → Run Script File** in After Effects and inspect the reported `ae-toolkit-cep-host-check.txt` result. The host bundles JSON-js privately as `AEToolkitJSON`, so it does not depend on a native JSON object or another panel.
 

@@ -1,6 +1,6 @@
 (function () {
     var store = window.AEToolkitTemplates, cs = new CSInterface(), state = store.defaultState(), selectedTemplateId = state.templates[0].id, selectedCompPresetId = state.compPresets[0].id, templateDraft, compPresetDraft, sourceDiscovery = null;
-    var customCheckerPresets = [], checkerLibraryRoot = "", libraryReady = false;
+    var customCheckerPresets = [], checkerLibraryRoot = "", libraryReady = false, compCleanupPlan = null;
     try { checkerLibraryRoot = window.localStorage.getItem("toolbox2.template-library") || ""; } catch (ignoreLibraryPreference) {}
     var folderLabels = { afterEffects: "AE Projects", assets: "Assets", toGfx: "Graphic In", outputs: "Graphic Out", styleFrames: "Style Frames" };
     function byId(id) { return document.getElementById(id); }
@@ -258,6 +258,28 @@
         item.appendChild(pathsList); list.appendChild(item);
     }
     function clearChildren(target) { while (target.firstChild) target.removeChild(target.firstChild); }
+    function cleanupClassificationClass(classification) { return classification === "SAFE_TO_REMOVE" ? "cleanup-safe" : classification === "KEEP" ? "cleanup-keep" : "cleanup-ambiguous"; }
+    function renderCompCleanup(plan) {
+        var overview = byId("comp-cleanup-overview"), results = byId("comp-cleanup-results"), execute = byId("execute-comp-cleanup");
+        clearChildren(overview); clearChildren(results);
+        var title = document.createElement("strong"), line = document.createElement("span");
+        title.textContent = "Active comp: " + plan.rootComposition.name; overview.appendChild(title);
+        line.textContent = plan.compositionsAnalyzed + " composition" + (plan.compositionsAnalyzed === 1 ? "" : "s") + ", " + plan.layersAnalyzed + " layer" + (plan.layersAnalyzed === 1 ? "" : "s") + " analyzed."; overview.appendChild(line);
+        line = document.createElement("span"); line.textContent = plan.safeToRemove + " safe to remove · " + plan.protectedByDependencies + " protected · " + plan.ambiguous + " ambiguous."; overview.appendChild(line);
+        if (!plan.propertyTypeAvailable) { line = document.createElement("span"); line.className = "cleanup-ambiguous"; line.textContent = "After Effects did not expose layer-reference property types; uncertain dependencies are preserved."; overview.appendChild(line); }
+        if (plan.diagnostics && plan.diagnostics.length) { line = document.createElement("span"); line.className = "cleanup-ambiguous"; line.textContent = "Diagnostics: " + plan.diagnostics.join(" · "); overview.appendChild(line); }
+        (plan.compositions || []).forEach(function (comp) {
+            var section = document.createElement("section"), heading = document.createElement("strong"); section.className = "cleanup-comp"; heading.textContent = comp.name + (comp.sharedExternal ? " · shared precomp" : ""); section.appendChild(heading);
+            if (comp.unsafeForDeletion) { var warning = document.createElement("small"); warning.className = "cleanup-ambiguous"; warning.textContent = "Dependency inspection is incomplete; unmarked layers are protected."; section.appendChild(warning); }
+            (comp.layers || []).forEach(function (layer) {
+                var row = document.createElement("div"), name = document.createElement("strong"), statusNode = document.createElement("span"), reasons = document.createElement("small"); row.className = "cleanup-layer";
+                name.textContent = layer.name + " · " + layer.type; statusNode.className = cleanupClassificationClass(layer.classification); statusNode.textContent = layer.classification === "SAFE_TO_REMOVE" ? "SAFE TO REMOVE" : layer.classification;
+                reasons.textContent = (layer.reasons || []).join(" "); row.appendChild(name); row.appendChild(statusNode); row.appendChild(reasons); section.appendChild(row);
+            });
+            results.appendChild(section);
+        });
+        execute.disabled = !(plan.safeToRemove > 0);
+    }
     function projectActionButton(target, label, handler) { var button = document.createElement("button"); button.textContent = label; button.title = label; button.onclick = handler; target.appendChild(button); }
     function showHostResult(result, successMessage) { if (result === "CANCELLED") status("No changes made."); else if (result && result.indexOf("ERROR:") === 0) status(result, true); else status(successMessage || result || "Done."); }
     function compPresets() { return store.compPresets(state).concat(customCheckerPresets.filter(function (entry) { return (state.removedCompPresets || []).indexOf(entry.id) === -1; })); }
@@ -400,6 +422,27 @@
     byId("remove-unused").onclick = function () { callHost("aetoolkitCepRemoveUnusedFootage", "", function (result) { try { JSON.parse(result); status("Removed unused footage."); } catch (error) { status(result || error.message, true); } }); };
     byId("reduce-project").onclick = function () { callHost("aetoolkitCepReduceProject", "", function (result) { try { var summary = JSON.parse(result); status("Reduced project to " + summary.kept + " selected item" + (summary.kept === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("organize-project").onclick = function () { var preset = byId("organizer-preset").value; callHost("aetoolkitCepOrganizeProject", preset, function (result) { try { var summary = JSON.parse(result); status("Organized " + summary.moved + " item" + (summary.moved === 1 ? "." : "s.") + " Selected items remain at the root."); } catch (error) { status(result || error.message, true); } }); };
+    byId("analyze-comp-cleanup").onclick = function () {
+        var button = byId("analyze-comp-cleanup"); button.disabled = true; byId("comp-cleanup-status").textContent = "Analyzing the active composition and nested precomps…";
+        callHost("aetoolkitCepAnalyzeCompositionCleanup", "", function (result) {
+            button.disabled = false;
+            try {
+                if (!result || result.indexOf("ERROR:") === 0) throw new Error(result || "No analysis was returned.");
+                compCleanupPlan = JSON.parse(result); if (!compCleanupPlan || !compCleanupPlan.rootComposition) throw new Error("Invalid cleanup analysis.");
+                renderCompCleanup(compCleanupPlan); byId("comp-cleanup-status").textContent = "Review the analysis before removing anything."; byId("comp-cleanup-dialog-status").textContent = "Only SAFE TO REMOVE layers can be changed."; byId("comp-cleanup-dialog").showModal();
+            } catch (error) { byId("comp-cleanup-status").textContent = result || error.message; status(result || error.message, true); }
+        });
+    };
+    byId("cancel-comp-cleanup").onclick = function () { byId("comp-cleanup-dialog").close(); };
+    byId("comp-cleanup-dialog").addEventListener("cancel", function () { compCleanupPlan = null; });
+    byId("execute-comp-cleanup").onclick = function () {
+        if (!compCleanupPlan || !compCleanupPlan.safeToRemove) return;
+        var button = byId("execute-comp-cleanup"); button.disabled = true; byId("comp-cleanup-dialog-status").textContent = "Removing only the reviewed safe layers…";
+        callHost("aetoolkitCepExecuteCompositionCleanup", "", function (result) {
+            try { var summary = JSON.parse(result); byId("comp-cleanup-dialog").close(); byId("comp-cleanup-status").textContent = "Removed " + summary.removed + " safe layer" + (summary.removed === 1 ? "." : "s.") + (summary.skipped && summary.skipped.length ? " Skipped: " + summary.skipped.join("; ") : ""); status(byId("comp-cleanup-status").textContent, !!(summary.skipped && summary.skipped.length)); }
+            catch (error) { button.disabled = false; byId("comp-cleanup-dialog-status").textContent = result || error.message; status(result || error.message, true); }
+        });
+    };
     byId("localize-assets").onclick = function () { var project = activeProject(), paths = project && store.resolveProjectPaths(state, project.id); if (!paths || !paths.assets) { status("Connect an active project with an Assets location first.", true); return; } callHost("aetoolkitCepLocalizeSelectedAssets", paths.assets, function (result) { try { var summary = JSON.parse(result); status(summary.localized ? "Localized " + summary.localized + " asset" + (summary.localized === 1 ? "." : "s.") + (summary.errors.length ? " " + summary.errors.join(" ") : "") : summary.errors.join(" ") || "No assets were localized.", !!summary.errors.length); } catch (error) { status(result || error.message, true); } }); };
     byId("collect-project").onclick = function () { callHost("aetoolkitCepOpenCollectFiles", "", function (result) { showHostResult(result, "Opened the Collect Files dialog."); }); };
     document.querySelectorAll("[data-comp-frame-change]").forEach(function (button) { button.onclick = function () { callHost("aetoolkitCepAdjustSelectedCompFrames", button.dataset.compFrameChange, function (result) { try { var summary = JSON.parse(result); status("Adjusted " + summary.changed + " composition" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); }; });

@@ -1372,6 +1372,192 @@ function aetoolkitCepOrganizeProject(preset) {
         return AEToolkitJSON.stringify({ moved: moved, selectedAtRoot: snapshot.selected.length });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+
+/*
+ * Comp Cleanup is deliberately conservative. The graph is built from the
+ * public Layer/Property API only; unsupported inspection becomes AMBIGUOUS.
+ * Layer references are discovered by PropertyValueType.LAYER_INDEX, so the
+ * analyzer does not depend on localized effect names or a fixed effect list.
+ */
+function aetoolkitCepCleanupIsComp(item) {
+    try { if (typeof CompItem !== "undefined" && item instanceof CompItem) return true; } catch (compTypeError) {}
+    return !!(item && item.layer && item.numLayers !== undefined);
+}
+function aetoolkitCepCleanupId(value, fallback) {
+    try { if (value !== undefined && value !== null && String(value) !== "") return String(value); } catch (idError) {}
+    return String(fallback);
+}
+function aetoolkitCepCleanupLayerType(layer) {
+    var source = null;
+    try { if (layer.cameraLayer) return "camera"; } catch (cameraError) {}
+    try { if (layer.lightLayer) return "light"; } catch (lightError) {}
+    try { if (layer.nullLayer) return "null"; } catch (nullError) {}
+    try { if (layer.adjustmentLayer) return "adjustment"; } catch (adjustmentError) {}
+    try { if (layer.source) source = layer.source; } catch (sourceError) {}
+    if (aetoolkitCepCleanupIsComp(source)) return "precomp";
+    try { if (typeof TextLayer !== "undefined" && layer instanceof TextLayer) return "text"; } catch (textError) {}
+    try { if (typeof ShapeLayer !== "undefined" && layer instanceof ShapeLayer) return "shape"; } catch (shapeError) {}
+    try { if (source && typeof SolidSource !== "undefined" && source.mainSource instanceof SolidSource) return "solid"; } catch (solidError) {}
+    try { if (source && source.mainSource && source.mainSource.isStill) return "still"; } catch (stillError) {}
+    return "layer";
+}
+function aetoolkitCepCleanupCompRecord(graph, comp) {
+    var id, existing = null, record, i, layer, layerId, layerRecord;
+    if (!graph.compByRef) graph.compByRef = [];
+    for (i = 0; i < graph.compByRef.length; i++) if (graph.compByRef[i].ref === comp) return graph.compByRef[i].record;
+    id = aetoolkitCepCleanupId(comp && comp.id, "comp-" + graph.compositions.length); existing = graph.compById[id];
+    if (existing) return existing;
+    record = { id: id, name: String(comp.name || id), ref: comp, layers: [], byIndex: {}, consumers: [], sharedExternal: false, unsafeForDeletion: false, root: false };
+    graph.compById[id] = record; graph.compositions.push(record); graph.compByRef.push({ ref: comp, record: record });
+    for (i = 1; i <= Number(comp.numLayers || 0); i++) {
+        try {
+            layer = comp.layer(i); layerId = null;
+            try { layerId = layer.id; } catch (layerIdError) {}
+            layerRecord = { key: id + "#" + aetoolkitCepCleanupId(layerId, "index-" + i), id: layerId === null || layerId === undefined ? "" : String(layerId), index: i, name: String(layer.name || ("Layer " + i)), type: aetoolkitCepCleanupLayerType(layer), ref: layer, source: null, sourceComp: null, enabled: layer.enabled !== false, videoEnabled: layer.videoEnabled !== false, shy: false, solo: false, guide: false, adjustment: false, locked: false, parent: null, matte: null, effectDependencies: [], reasons: [], edges: [], incoming: [], required: false, expressionState: "none", inspectionFailed: false, marked: false, classification: "AMBIGUOUS" };
+            try { layerRecord.source = layer.source || null; } catch (layerSourceError) {}
+            if (aetoolkitCepCleanupIsComp(layerRecord.source)) layerRecord.sourceComp = aetoolkitCepCleanupCompRecord(graph, layerRecord.source);
+            try { layerRecord.guide = !!layer.guideLayer; } catch (guideError) {}
+            try { layerRecord.adjustment = !!layer.adjustmentLayer; } catch (layerAdjustmentError) {}
+            try { layerRecord.locked = !!layer.locked; } catch (lockedError) {}
+            try { layerRecord.shy = !!layer.shy; } catch (shyError) {}
+            try { layerRecord.solo = !!layer.solo; } catch (soloError) {}
+            try { layerRecord.parent = layer.parent || null; } catch (parentError) {}
+            record.layers.push(layerRecord); record.byIndex[i] = layerRecord;
+        } catch (layerError) { graph.diagnostics.push(record.name + ": could not inspect layer " + i + ": " + layerError.toString()); record.unsafeForDeletion = true; }
+    }
+    return record;
+}
+function aetoolkitCepCleanupAddReason(record, reason) {
+    var i;
+    if (!record || !reason) return;
+    for (i = 0; i < record.reasons.length; i++) if (record.reasons[i] === reason) return;
+    record.reasons.push(reason);
+}
+function aetoolkitCepCleanupLayerRecord(compRecord, layer) {
+    var i, id;
+    if (!compRecord || !layer) return null;
+    try { id = layer.id; } catch (idError) { id = null; }
+    if (id !== null && id !== undefined) for (i = 0; i < compRecord.layers.length; i++) if (String(compRecord.layers[i].id) === String(id)) return compRecord.layers[i];
+    try { return compRecord.byIndex[layer.index] || null; } catch (indexError) { return null; }
+}
+function aetoolkitCepCleanupAddEdge(graph, from, target, kind, reason) {
+    var edge, i;
+    if (!from || !target) return;
+    edge = { from: from.key, to: target.key, kind: kind, reason: reason };
+    for (i = 0; i < from.edges.length; i++) if (from.edges[i].to === edge.to && from.edges[i].kind === edge.kind) return;
+    from.edges.push(edge); target.incoming.push(edge); if (kind === "effect-layer") from.effectDependencies.push({ target: target.key, reason: reason }); from.required = true; aetoolkitCepCleanupAddReason(from, reason); aetoolkitCepCleanupAddReason(target, reason);
+}
+function aetoolkitCepCleanupLayerIndexType(property) {
+    var expected = null, actual = null;
+    try { actual = property.propertyValueType; } catch (valueTypeError) { return false; }
+    try { if (typeof PropertyValueType !== "undefined") expected = PropertyValueType.LAYER_INDEX; } catch (propertyTypeError) {}
+    if (expected !== null && actual === expected) return true;
+    try { return String(actual).toUpperCase() === "LAYER_INDEX"; } catch (stringTypeError) { return false; }
+}
+function aetoolkitCepCleanupFindCompByName(graph, name) {
+    var i;
+    for (i = 0; i < graph.compositions.length; i++) if (graph.compositions[i].name === name) return graph.compositions[i];
+    return null;
+}
+function aetoolkitCepCleanupExpressionLayer(graph, compRecord, layerRecord, compName, layerName, kind, expression) {
+    var text = String(expression || ""), match, targetComp, target, indexMatch, namedMatch, expressionPath, resolved = false, hasReference = false;
+    if (!text) return;
+    try {
+        namedMatch = /thisComp\s*\.\s*layer\s*\(\s*["']([^"']+)["']\s*\)/g;
+        while ((match = namedMatch.exec(text)) !== null) { target = aetoolkitCepCleanupLayerRecord(compRecord, compRecord.ref.layer(match[1])); if (target) { expressionPath = layerRecord.name + " expression -> thisComp.layer(\"" + match[1] + "\")"; aetoolkitCepCleanupAddEdge(graph, layerRecord, target, "expression", expressionPath); resolved = true; } else { compRecord.unsafeForDeletion = true; layerRecord.expressionState = "ambiguous"; aetoolkitCepCleanupAddReason(layerRecord, "Expression references an unresolved layer named " + match[1]); } hasReference = true; }
+        indexMatch = /thisComp\s*\.\s*layer\s*\(\s*(\d+)\s*\)/g;
+        while ((match = indexMatch.exec(text)) !== null) { target = compRecord.byIndex[Number(match[1])]; compRecord.unsafeForDeletion = true; layerRecord.expressionState = "ambiguous"; if (target) { aetoolkitCepCleanupAddEdge(graph, layerRecord, target, "expression-index", layerRecord.name + " expression references layer index " + match[1]); } aetoolkitCepCleanupAddReason(layerRecord, "Expression uses a layer index; cleanup is conservatively disabled for this composition."); hasReference = true; }
+        namedMatch = /comp\s*\(\s*["']([^"']+)["']\s*\)\s*\.\s*layer\s*\(\s*["']([^"']+)["']\s*\)/g;
+        while ((match = namedMatch.exec(text)) !== null) { targetComp = aetoolkitCepCleanupFindCompByName(graph, match[1]); if (targetComp) { target = aetoolkitCepCleanupLayerRecord(targetComp, targetComp.ref.layer(match[2])); if (target) { aetoolkitCepCleanupAddEdge(graph, layerRecord, target, "expression", layerRecord.name + " expression references " + match[1] + ".layer(\"" + match[2] + "\")"); resolved = true; } } if (!targetComp || !target) { compRecord.unsafeForDeletion = true; layerRecord.expressionState = "ambiguous"; aetoolkitCepCleanupAddReason(layerRecord, "Expression references an unresolved composition or layer."); } hasReference = true; }
+        if (/\bcomp\s*\(/.test(text) && !resolved) { compRecord.unsafeForDeletion = true; layerRecord.expressionState = "ambiguous"; aetoolkitCepCleanupAddReason(layerRecord, "Expression references a composition dynamically or by an unresolved name."); hasReference = true; }
+        if (/\bfootage\s*\(/.test(text)) { compRecord.unsafeForDeletion = true; layerRecord.expressionState = "ambiguous"; aetoolkitCepCleanupAddReason(layerRecord, "Expression references project footage; the dependency cannot be proven from the layer API."); hasReference = true; }
+        if (/\b(?:thisComp|thisLayer|parent)\b/.test(text)) { if (layerRecord.expressionState !== "ambiguous") layerRecord.expressionState = "resolved"; hasReference = true; }
+        if (hasReference && layerRecord.expressionState === "none") layerRecord.expressionState = "ambiguous";
+        if (layerRecord.expressionState === "ambiguous") layerRecord.inspectionFailed = true;
+    } catch (expressionError) { compRecord.unsafeForDeletion = true; layerRecord.expressionState = "ambiguous"; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "Expression analysis failed; the layer was preserved."); graph.diagnostics.push(compName + "/" + layerName + ": expression inspection failed: " + expressionError.toString()); }
+}
+function aetoolkitCepCleanupWalkProperty(graph, compRecord, layerRecord, property, path) {
+    var value, target, count, i, child, childName, expression;
+    try {
+        if (aetoolkitCepCleanupLayerIndexType(property)) { value = property.value; if (Number(value) > 0) { target = compRecord.byIndex[Number(value)]; if (target) aetoolkitCepCleanupAddEdge(graph, layerRecord, target, "effect-layer", layerRecord.name + " -> " + path + " references layer " + target.name); else { compRecord.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "An effect references an unresolved layer index at " + path); } } }
+    } catch (layerReferenceError) { compRecord.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "Could not resolve a layer-reference property at " + path); graph.diagnostics.push(compRecord.name + "/" + layerRecord.name + ": " + path + " inspection failed: " + layerReferenceError.toString()); }
+    try { if (property.expressionEnabled && property.expression) aetoolkitCepCleanupExpressionLayer(graph, compRecord, layerRecord, compRecord.name, layerRecord.name, path, property.expression); } catch (expressionError) { compRecord.unsafeForDeletion = true; layerRecord.expressionState = "ambiguous"; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "Expression inspection failed at " + path); }
+    try { count = Number(property.numProperties || 0); for (i = 1; i <= count; i++) { child = property.property(i); childName = "property " + i; try { childName = child.name || child.matchName || childName; } catch (childNameError) {} aetoolkitCepCleanupWalkProperty(graph, compRecord, layerRecord, child, path + " > " + childName); } } catch (childrenError) { compRecord.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "Could not inspect the complete property hierarchy at " + path); graph.diagnostics.push(compRecord.name + "/" + layerRecord.name + ": property hierarchy inspection failed: " + childrenError.toString()); }
+}
+function aetoolkitCepCleanupTrackMatte(layer, comp) {
+    var matte = null, noMatte = null;
+    try { matte = layer.trackMatteLayer || null; } catch (modernMatteError) {}
+    if (!matte) {
+        try { if (typeof TrackMatteType !== "undefined") noMatte = TrackMatteType.NO_TRACK_MATTE; } catch (matteTypeError) {}
+        try { if (layer.trackMatteType !== undefined && (noMatte === null || layer.trackMatteType !== noMatte) && layer.index > 1 && comp) matte = comp.layer(layer.index - 1); } catch (legacyMatteError) {}
+    }
+    return matte;
+}
+function aetoolkitCepCleanupMark(graph, record, reason) {
+    var i, edge, target;
+    if (!record) return;
+    record.marked = true; record.required = true; record.classification = "KEEP"; aetoolkitCepCleanupAddReason(record, reason);
+    for (i = 0; i < record.edges.length; i++) { edge = record.edges[i]; target = graph.layerByKey[edge.to]; if (target && !target.marked) aetoolkitCepCleanupMark(graph, target, edge.reason); }
+}
+function aetoolkitCepCleanupCollectGraph(rootComp) {
+    var graph = { root: null, compositions: [], compById: {}, compByRef: [], layerByKey: {}, diagnostics: [], hierarchy: {}, propertyTypeAvailable: false }, project = app.project, i, j, item, compRecord, queue, current, layerRecord, sourceRecord, consumers, rootId, noMatte, effectGroup, propCount, parentRecord, matte, edge;
+    if (!aetoolkitCepCleanupIsComp(rootComp)) throw new Error("Open a composition before analyzing cleanup.");
+    try { if (typeof PropertyValueType !== "undefined" && PropertyValueType.LAYER_INDEX !== undefined) graph.propertyTypeAvailable = true; } catch (propertyTypeError) {}
+    for (i = 1; i <= Number(project.numItems || 0); i++) { item = project.item(i); if (aetoolkitCepCleanupIsComp(item)) aetoolkitCepCleanupCompRecord(graph, item); }
+    compRecord = aetoolkitCepCleanupCompRecord(graph, rootComp); rootId = compRecord.id; graph.root = compRecord; compRecord.root = true;
+    for (i = 0; i < graph.compositions.length; i++) for (j = 0; j < graph.compositions[i].layers.length; j++) { layerRecord = graph.compositions[i].layers[j]; graph.layerByKey[layerRecord.key] = layerRecord; }
+    for (i = 0; i < graph.compositions.length; i++) for (j = 0; j < graph.compositions[i].layers.length; j++) { layerRecord = graph.compositions[i].layers[j]; if (layerRecord.sourceComp) { sourceRecord = layerRecord.sourceComp; sourceRecord.consumers.push({ comp: graph.compositions[i], layer: layerRecord }); } }
+    queue = [compRecord]; graph.hierarchy[rootId] = true;
+    while (queue.length) { current = queue.shift(); for (i = 0; i < current.layers.length; i++) if (current.layers[i].sourceComp && !graph.hierarchy[current.layers[i].sourceComp.id]) { graph.hierarchy[current.layers[i].sourceComp.id] = true; queue.push(current.layers[i].sourceComp); } }
+    if (!graph.propertyTypeAvailable) for (i = 0; i < graph.compositions.length; i++) if (graph.hierarchy[graph.compositions[i].id]) { graph.compositions[i].unsafeForDeletion = true; graph.diagnostics.push(graph.compositions[i].name + ": PropertyValueType.LAYER_INDEX is unavailable; cleanup is analysis-only."); }
+    for (i = 0; i < graph.compositions.length; i++) { current = graph.compositions[i]; if (!graph.hierarchy[current.id]) continue; for (j = 0; j < current.consumers.length; j++) if (!graph.hierarchy[current.consumers[j].comp.id]) { current.sharedExternal = true; current.unsafeForDeletion = true; break; } }
+    for (i = 0; i < graph.compositions.length; i++) {
+        current = graph.compositions[i]; if (!graph.hierarchy[current.id]) continue;
+        for (j = 0; j < current.layers.length; j++) {
+            layerRecord = current.layers[j];
+            if (layerRecord.parent) { parentRecord = aetoolkitCepCleanupLayerRecord(current, layerRecord.parent); if (parentRecord) aetoolkitCepCleanupAddEdge(graph, layerRecord, parentRecord, "parent", layerRecord.name + " is parented to " + parentRecord.name); else { current.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "Parent relationship could not be resolved."); } }
+            matte = aetoolkitCepCleanupTrackMatte(layerRecord.ref, current.ref); if (matte) { parentRecord = aetoolkitCepCleanupLayerRecord(current, matte); if (parentRecord) { layerRecord.matte = parentRecord.key; aetoolkitCepCleanupAddEdge(graph, layerRecord, parentRecord, "track-matte", parentRecord.name + " is a track matte for " + layerRecord.name); } else { current.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "Track matte relationship could not be resolved."); } }
+            try { effectGroup = layerRecord.ref.property("ADBE Effect Parade"); propCount = effectGroup ? Number(effectGroup.numProperties || 0) : 0; for (var k = 1; k <= propCount; k++) { var effectProperty = effectGroup.property(k); try { if (effectProperty && effectProperty.numProperties === undefined && effectProperty.propertyValueType === undefined) { current.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "An effect exposes opaque data that After Effects did not make inspectable."); } } catch (opaqueEffectError) { current.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "An effect's property metadata could not be inspected."); } aetoolkitCepCleanupWalkProperty(graph, current, layerRecord, effectProperty, "Effect " + k); } } catch (effectError) { current.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "Effect hierarchy could not be inspected."); graph.diagnostics.push(current.name + "/" + layerRecord.name + ": effect inspection failed: " + effectError.toString()); }
+            try { aetoolkitCepCleanupWalkProperty(graph, current, layerRecord, layerRecord.ref, "Layer properties"); } catch (layerPropertyError) { current.unsafeForDeletion = true; layerRecord.inspectionFailed = true; aetoolkitCepCleanupAddReason(layerRecord, "Layer property hierarchy could not be inspected."); }
+            if (layerRecord.expressionState === "ambiguous") { current.unsafeForDeletion = true; layerRecord.classification = "AMBIGUOUS"; }
+            if (layerRecord.guide) { layerRecord.required = true; aetoolkitCepCleanupAddReason(layerRecord, "Guide layer preserved conservatively."); }
+            if (layerRecord.adjustment) { layerRecord.required = true; aetoolkitCepCleanupAddReason(layerRecord, "Adjustment layer can affect layers below it."); }
+            if (layerRecord.type === "camera" || layerRecord.type === "light") { layerRecord.required = true; aetoolkitCepCleanupAddReason(layerRecord, "Camera/light scene dependency preserved conservatively."); }
+            if (layerRecord.type === "null" && layerRecord.enabled) { layerRecord.classification = "AMBIGUOUS"; aetoolkitCepCleanupAddReason(layerRecord, "Enabled null may drive transforms or expressions."); }
+            if (layerRecord.edges.length) {
+                var nonParentDependency = false;
+                for (var edgeIndex = 0; edgeIndex < layerRecord.edges.length; edgeIndex++) if (layerRecord.edges[edgeIndex].kind !== "parent") { nonParentDependency = true; break; }
+                if (nonParentDependency || (layerRecord.enabled && layerRecord.videoEnabled)) layerRecord.required = true;
+                else layerRecord.required = false;
+            }
+        }
+    }
+    for (i = 0; i < graph.compositions.length; i++) { current = graph.compositions[i]; if (!graph.hierarchy[current.id]) continue; for (j = 0; j < current.layers.length; j++) { layerRecord = current.layers[j]; if (layerRecord.enabled && layerRecord.type !== "null" && layerRecord.type !== "camera" && layerRecord.type !== "light") aetoolkitCepCleanupMark(graph, layerRecord, "Enabled layer can contribute to the composition output."); else if (layerRecord.type === "camera" || layerRecord.type === "light" || layerRecord.guide || layerRecord.adjustment || layerRecord.required) aetoolkitCepCleanupMark(graph, layerRecord, layerRecord.reasons.length ? layerRecord.reasons[0] : "Layer is required by the composition."); } }
+    for (i = 0; i < graph.compositions.length; i++) { current = graph.compositions[i]; if (!graph.hierarchy[current.id]) continue; if (current.sharedExternal) for (j = 0; j < current.layers.length; j++) { layerRecord = current.layers[j]; if (!layerRecord.marked) { layerRecord.classification = "AMBIGUOUS"; aetoolkitCepCleanupAddReason(layerRecord, "Shared precomp has consumers outside the analyzed composition hierarchy."); } }
+        for (j = 0; j < current.layers.length; j++) { layerRecord = current.layers[j]; if (layerRecord.marked) continue; if (current.unsafeForDeletion || layerRecord.inspectionFailed || layerRecord.expressionState === "ambiguous") { layerRecord.classification = "AMBIGUOUS"; if (!layerRecord.reasons.length) aetoolkitCepCleanupAddReason(layerRecord, "The composition contains an unresolved dependency."); } else if (layerRecord.locked) { layerRecord.classification = "AMBIGUOUS"; aetoolkitCepCleanupAddReason(layerRecord, "Layer is locked and cannot be removed safely."); } else if (!layerRecord.enabled || !layerRecord.videoEnabled) { layerRecord.classification = "SAFE_TO_REMOVE"; aetoolkitCepCleanupAddReason(layerRecord, "Video disabled; no incoming dependencies, expressions, matte, or parent relationship discovered."); } else { layerRecord.classification = "AMBIGUOUS"; aetoolkitCepCleanupAddReason(layerRecord, "The layer could not be proven removable from the available AE layer API."); } }
+    }
+    return graph;
+}
+function aetoolkitCepCleanupSummary(graph) {
+    var summary = { rootComposition: { id: graph.root.id, name: graph.root.name }, compositionsAnalyzed: 0, layersAnalyzed: 0, safeToRemove: 0, protectedByDependencies: 0, ambiguous: 0, potentialLayersRemovable: 0, compositions: [], diagnostics: graph.diagnostics.slice(0, 80), propertyTypeAvailable: graph.propertyTypeAvailable }, i, j, comp, layer, copy;
+    for (i = 0; i < graph.compositions.length; i++) { comp = graph.compositions[i]; if (!graph.hierarchy[comp.id]) continue; summary.compositionsAnalyzed++; copy = { id: comp.id, name: comp.name, sharedExternal: comp.sharedExternal, unsafeForDeletion: comp.unsafeForDeletion, layers: [] }; for (j = 0; j < comp.layers.length; j++) { layer = comp.layers[j]; summary.layersAnalyzed++; if (layer.classification === "SAFE_TO_REMOVE") { summary.safeToRemove++; summary.potentialLayersRemovable++; } else if (layer.classification === "KEEP") summary.protectedByDependencies++; else summary.ambiguous++; copy.layers.push({ key: layer.key, id: layer.id, index: layer.index, name: layer.name, type: layer.type, enabled: layer.enabled, videoEnabled: layer.videoEnabled, shy: layer.shy, solo: layer.solo, classification: layer.classification, reasons: layer.reasons.slice(0), sourceComp: layer.sourceComp ? layer.sourceComp.name : "" }); } summary.compositions.push(copy); }
+    return summary;
+}
+function aetoolkitCepAnalyzeCompositionCleanup() {
+    try { return AEToolkitJSON.stringify(aetoolkitCepCleanupSummary(aetoolkitCepCleanupCollectGraph(app.project.activeItem))); } catch (error) { return "ERROR: " + error.toString(); }
+}
+function aetoolkitCepExecuteCompositionCleanup() {
+    var graph, candidates = [], i, j, comp, layer, removed = 0, skipped = [], candidate;
+    try {
+        graph = aetoolkitCepCleanupCollectGraph(app.project.activeItem);
+        for (i = 0; i < graph.compositions.length; i++) { comp = graph.compositions[i]; if (!graph.hierarchy[comp.id] || comp.sharedExternal || comp.unsafeForDeletion) continue; for (j = 0; j < comp.layers.length; j++) { layer = comp.layers[j]; if (layer.classification === "SAFE_TO_REMOVE") candidates.push({ comp: comp, layer: layer }); } }
+        candidates.sort(function (first, second) { if (first.comp.id === second.comp.id) return second.layer.index - first.layer.index; return first.comp.id < second.comp.id ? -1 : 1; });
+        if (!candidates.length) throw new Error("No layers are currently safe to remove.");
+        app.beginUndoGroup("Toolbox - Comp Cleanup");
+        try { for (i = 0; i < candidates.length; i++) { candidate = candidates[i]; try { if (candidate.layer.ref.locked) { skipped.push(candidate.comp.name + "/" + candidate.layer.name + ": locked"); continue; } candidate.layer.ref.remove(); removed++; } catch (removeError) { skipped.push(candidate.comp.name + "/" + candidate.layer.name + ": " + removeError.toString()); } } } finally { app.endUndoGroup(); }
+        return AEToolkitJSON.stringify({ removed: removed, skipped: skipped, compositions: graph.compositions.length, layers: graph.compositions.length ? aetoolkitCepCleanupSummary(graph).layersAnalyzed : 0 });
+    } catch (error) { return "ERROR: " + error.toString(); }
+}
 function aetoolkitCepActiveCompLayers(minimum) {
     var comp = app.project.activeItem;
     if (!(comp instanceof CompItem)) throw new Error("Open a composition and select layer" + (minimum === 1 ? "." : "s."));

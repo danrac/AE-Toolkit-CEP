@@ -200,6 +200,17 @@ input, select, textarea { font-weight: 400; }
 .toolkit-dialog { width: calc(100% - 24px); max-width: 440px; max-height: calc(100% - 24px); overflow: auto; background: #1c242d; color: #e7edf5; border: 1px solid var(--accent); border-radius: 6px; padding: 12px; }
 .toolkit-dialog::backdrop { background: rgba(0,0,0,.65); }
 .toolkit-dialog > button { width: 100%; margin-top: 6px; }
+.comp-cleanup-dialog { max-width: 620px; }
+.cleanup-overview { display: grid; gap: 3px; margin: 6px 0 9px; color: #c9d5e2; }
+.cleanup-results { display: grid; gap: 7px; max-height: 45vh; overflow: auto; }
+.cleanup-comp { border: 1px solid #46596c; border-radius: 5px; padding: 7px; }
+.cleanup-comp > strong { display: block; margin-bottom: 5px; }
+.cleanup-layer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; align-items: baseline; padding: 4px 0; border-top: 1px solid rgba(100,125,148,.25); }
+.cleanup-layer:first-of-type { border-top: 0; }
+.cleanup-layer small { grid-column: 1 / -1; color: #9eafbf; }
+.cleanup-safe { color: #9bd6a9; }
+.cleanup-keep { color: #b9d0e6; }
+.cleanup-ambiguous { color: #f0c08f; }
 [hidden] { display: none !important; }
 
 /* Project presets keep labels beside their fields at every panel width. */

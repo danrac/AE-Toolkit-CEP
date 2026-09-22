@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.29">
+  <link rel="stylesheet" href="css/main.css?v=0.1.30">
 </head>
 <body>
   <main class="app-shell">
     <header>
       <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-      <span class="badge">0.1.29 Alpha</span>
+      <span class="badge">0.1.30 Alpha</span>
     </header>
 
     <div class="toolkit-workspace" data-dock="top">
@@ -171,6 +171,12 @@
           <button id="remove-unused">Remove unused</button>
           <button id="reduce-project" class="danger">Reduce to selection</button>
         </div>
+      </details>
+      <details class="card module-panel" data-panel="comp-cleanup" open>
+        <summary>Comp Cleanup</summary>
+        <p class="help">Analyze the active composition and nested precomps. Only layers proven safe are offered for removal; dependencies and uncertain cases stay protected.</p>
+        <button id="analyze-comp-cleanup" class="primary">Analyze composition</button>
+        <p id="comp-cleanup-status" class="help" aria-live="polite"></p>
       </details>
       <details class="card module-panel" data-panel="localize-selected-assets" open>
         <summary>Localize selected assets</summary>
@@ -396,6 +402,13 @@
     <p id="project-template-error" role="alert"></p>
     <div class="naming-dialog-actions"><button id="cancel-project-template">Cancel</button><button id="save-project-template" class="primary">Save</button></div>
   </dialog>
+  <dialog id="comp-cleanup-dialog" class="toolkit-dialog comp-cleanup-dialog" aria-labelledby="comp-cleanup-dialog-title">
+    <h2 id="comp-cleanup-dialog-title">Comp Cleanup analysis</h2>
+    <div id="comp-cleanup-overview" class="cleanup-overview"></div>
+    <div id="comp-cleanup-results" class="cleanup-results"></div>
+    <p id="comp-cleanup-dialog-status" class="help" aria-live="polite"></p>
+    <div class="naming-dialog-actions"><button id="cancel-comp-cleanup">Cancel</button><button id="execute-comp-cleanup" class="primary" disabled>Clean up safe layers</button></div>
+  </dialog>
   <dialog id="naming-dialog" aria-labelledby="naming-dialog-title">
     <form id="naming-dialog-form">
       <h2 id="naming-dialog-title">Module preferences</h2>
@@ -412,9 +425,9 @@
       <div class="naming-dialog-actions"><button id="curve-preset-cancel" type="button">Cancel</button><button type="submit" class="primary">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.29"></script>
-  <script src="js/template-store.js?v=0.1.29"></script>
-  <script src="js/app.js?v=0.1.29"></script>
-  <script src="js/panel-state.js?v=0.1.29"></script>
+  <script src="js/CSInterface.js?v=0.1.30"></script>
+  <script src="js/template-store.js?v=0.1.30"></script>
+  <script src="js/app.js?v=0.1.30"></script>
+  <script src="js/panel-state.js?v=0.1.30"></script>
 </body>
 </html>

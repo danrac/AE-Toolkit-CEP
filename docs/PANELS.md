@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.29 Alpha 1**. [Home and installation](../README.md)
+For **0.1.30 Alpha 1**. [Home and installation](../README.md)
 
 Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
@@ -146,6 +146,14 @@ The maintenance buttons are in this same module:
 - **Consolidate footage:** invokes AE's consolidation operation.
 - **Remove unused:** removes unused project items.
 - **Reduce to selection:** reduces the project to selected items and their dependencies.
+
+### Comp Cleanup
+
+Open a composition and choose **Analyze composition**. Toolbox walks the active composition and nested precomps through After Effects' public Layer and Property APIs. It records parenting, track mattes, precomp sources, layer-index properties exposed by effects, and resolvable named expressions. The results dialog lists every analyzed layer as **SAFE TO REMOVE**, **KEEP**, or **AMBIGUOUS**, with the reason for each classification.
+
+Choose **Clean up safe layers** only after reviewing the results. The action removes only layers classified SAFE TO REMOVE and runs as one undo step. Enabled rendering layers, guides, adjustment layers, cameras, lights, locked layers, parent or matte dependencies, shared precomps, unresolved expressions, indexed expressions, and any hierarchy that AE does not expose are preserved or marked ambiguous. The analyzer does not inspect binary `.aep` data and does not assume a fixed list of third-party effects; a missing or opaque dependency fails closed.
+
+Manual validation matrix: create a test comp with one disabled unrelated layer, a disabled layer selected by a Layer Control effect, a disabled track matte, a disabled parent null, named and index-based expression references, a three-level precomp chain, and a precomp also used by another comp. Add an adjustment layer, camera, light, guide, locked layer, and a third-party effect with both an exposed layer parameter and an opaque parameter if available. Run **Analyze composition**, confirm the unrelated layer is SAFE TO REMOVE, dependency cases are KEEP or AMBIGUOUS, the shared precomp is protected, and no composition changes before confirmation. Click **Clean up safe layers**, verify the single **Toolbox - Comp Cleanup** undo step, undo it, and confirm every layer returns.
 
 ### Localize selected assets
 
