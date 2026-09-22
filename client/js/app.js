@@ -232,7 +232,7 @@
         field.appendChild(input); field.appendChild(button); label.appendChild(field);
     }
     function renderTemplateForm() {
-        var template = templateDraft || templateById(selectedTemplateId) || { id: "", name: "", folders: {}, customFolders: [] }; byId("template-name").value = template.name; byId("template-name").oninput = function () { templateDraft.name = byId("template-name").value; }; byId("template-form-title").textContent = "Create project presets";
+        var template = templateDraft || templateById(selectedTemplateId) || { id: "", name: "", folders: {}, customFolders: [] }; byId("template-name").value = template.name; byId("template-name").oninput = function () { templateDraft.name = byId("template-name").value; }; byId("template-form-title").textContent = "Create Project Presets";
         renderNamingOrder();
         var grid = byId("template-folders"); grid.innerHTML = "";
         store.FOLDER_KEYS.forEach(function (key) { var label = document.createElement("label"); label.textContent = folderLabels[key]; if (key === "styleFrames") label.className = "full-row"; var input = document.createElement("input"); input.dataset.key = key; input.value = template.folders[key] || ""; input.placeholder = "Relative folder"; input.oninput = function () { templateDraft.folders[key] = input.value; }; addTemplateFolderBrowse(label, input, function (path) { templateDraft.folders[key] = path; }); grid.appendChild(label); });
@@ -259,9 +259,21 @@
     }
     function clearChildren(target) { while (target.firstChild) target.removeChild(target.firstChild); }
     function cleanupClassificationClass(classification) { return classification === "SAFE_TO_REMOVE" ? "cleanup-safe" : classification === "KEEP" ? "cleanup-keep" : "cleanup-ambiguous"; }
+    function cleanupSelectedCount(plan) {
+        var count = 0, selected = plan && plan.selected || {};
+        Object.keys(selected).forEach(function (key) { if (selected[key]) count++; });
+        return count;
+    }
+    function updateCompCleanupAction(plan) {
+        var execute = byId("execute-comp-cleanup"), count = cleanupSelectedCount(plan);
+        execute.disabled = count === 0;
+        byId("comp-cleanup-dialog-status").textContent = count ? "" + count + " safe layer" + (count === 1 ? "" : "s") + " selected." : "Select at least one SAFE TO REMOVE layer.";
+    }
     function renderCompCleanup(plan) {
         var overview = byId("comp-cleanup-overview"), results = byId("comp-cleanup-results"), execute = byId("execute-comp-cleanup");
         clearChildren(overview); clearChildren(results);
+        plan.selected = {};
+        (plan.compositions || []).forEach(function (comp) { (comp.layers || []).forEach(function (layer) { if (layer.classification === "SAFE_TO_REMOVE") plan.selected[layer.key] = true; }); });
         var title = document.createElement("strong"), line = document.createElement("span");
         title.textContent = "Active comp: " + plan.rootComposition.name; overview.appendChild(title);
         line.textContent = plan.compositionsAnalyzed + " composition" + (plan.compositionsAnalyzed === 1 ? "" : "s") + ", " + plan.layersAnalyzed + " layer" + (plan.layersAnalyzed === 1 ? "" : "s") + " analyzed."; overview.appendChild(line);
@@ -272,13 +284,18 @@
             var section = document.createElement("section"), heading = document.createElement("strong"); section.className = "cleanup-comp"; heading.textContent = comp.name + (comp.sharedExternal ? " · shared precomp" : ""); section.appendChild(heading);
             if (comp.unsafeForDeletion) { var warning = document.createElement("small"); warning.className = "cleanup-ambiguous"; warning.textContent = "Dependency inspection is incomplete; unmarked layers are protected."; section.appendChild(warning); }
             (comp.layers || []).forEach(function (layer) {
-                var row = document.createElement("div"), name = document.createElement("strong"), statusNode = document.createElement("span"), reasons = document.createElement("small"); row.className = "cleanup-layer";
-                name.textContent = layer.name + " · " + layer.type; statusNode.className = cleanupClassificationClass(layer.classification); statusNode.textContent = layer.classification === "SAFE_TO_REMOVE" ? "SAFE TO REMOVE" : layer.classification;
-                reasons.textContent = (layer.reasons || []).join(" "); row.appendChild(name); row.appendChild(statusNode); row.appendChild(reasons); section.appendChild(row);
+                var row = document.createElement("article"), toggle = document.createElement("label"), selection = document.createElement("input"), toggleText = document.createElement("span"), header = document.createElement("div"), name = document.createElement("strong"), statusNode = document.createElement("span"), reasons = document.createElement("small");
+                row.className = "cleanup-layer " + (layer.classification === "SAFE_TO_REMOVE" ? "cleanup-layer-safe" : "cleanup-layer-protected");
+                toggle.className = "cleanup-layer-toggle";
+                selection.type = "checkbox"; selection.className = "cleanup-select"; selection.checked = layer.classification === "SAFE_TO_REMOVE"; selection.disabled = layer.classification !== "SAFE_TO_REMOVE"; selection.setAttribute("aria-label", "Remove " + layer.name); selection.title = selection.disabled ? "Protected: " + layer.classification : "Include this layer in cleanup";
+                selection.onchange = function () { plan.selected[layer.key] = selection.checked; updateCompCleanupAction(plan); };
+                toggleText.className = "cleanup-check-label"; toggleText.textContent = selection.disabled ? "Protected" : "Remove"; toggle.appendChild(selection); toggle.appendChild(toggleText);
+                header.className = "cleanup-layer-header"; name.textContent = layer.name + " · " + layer.type; statusNode.className = cleanupClassificationClass(layer.classification); statusNode.textContent = layer.classification === "SAFE_TO_REMOVE" ? "SAFE TO REMOVE" : layer.classification;
+                header.appendChild(name); header.appendChild(statusNode); reasons.textContent = (layer.reasons || []).join(" "); row.appendChild(toggle); row.appendChild(header); row.appendChild(reasons); section.appendChild(row);
             });
             results.appendChild(section);
         });
-        execute.disabled = !(plan.safeToRemove > 0);
+        updateCompCleanupAction(plan);
     }
     function projectActionButton(target, label, handler) { var button = document.createElement("button"); button.textContent = label; button.title = label; button.onclick = handler; target.appendChild(button); }
     function showHostResult(result, successMessage) { if (result === "CANCELLED") status("No changes made."); else if (result && result.indexOf("ERROR:") === 0) status(result, true); else status(successMessage || result || "Done."); }
@@ -436,9 +453,10 @@
     byId("cancel-comp-cleanup").onclick = function () { byId("comp-cleanup-dialog").close(); };
     byId("comp-cleanup-dialog").addEventListener("cancel", function () { compCleanupPlan = null; });
     byId("execute-comp-cleanup").onclick = function () {
-        if (!compCleanupPlan || !compCleanupPlan.safeToRemove) return;
+        if (!compCleanupPlan || !cleanupSelectedCount(compCleanupPlan)) return;
         var button = byId("execute-comp-cleanup"); button.disabled = true; byId("comp-cleanup-dialog-status").textContent = "Removing only the reviewed safe layers…";
-        callHost("aetoolkitCepExecuteCompositionCleanup", "", function (result) {
+        var selected = []; Object.keys(compCleanupPlan.selected).forEach(function (key) { if (compCleanupPlan.selected[key]) selected.push(key); });
+        callHost("aetoolkitCepExecuteCompositionCleanup", JSON.stringify({selected: selected}), function (result) {
             try { var summary = JSON.parse(result); byId("comp-cleanup-dialog").close(); byId("comp-cleanup-status").textContent = "Removed " + summary.removed + " safe layer" + (summary.removed === 1 ? "." : "s.") + (summary.skipped && summary.skipped.length ? " Skipped: " + summary.skipped.join("; ") : ""); status(byId("comp-cleanup-status").textContent, !!(summary.skipped && summary.skipped.length)); }
             catch (error) { button.disabled = false; byId("comp-cleanup-dialog-status").textContent = result || error.message; status(result || error.message, true); }
         });

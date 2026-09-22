@@ -87,6 +87,20 @@ function createComp(name, id) { return new (function () { this.name = name; this
     console.log('PASS comp cleanup preserves effect, parent, matte, and nested dependencies and removes only safe layers');
 }
 
+// The review selection limits cleanup to checked safe layers and revalidates keys against a fresh analysis.
+{
+    const root = createComp('Selected cleanup', 70), setup = makeContext([root], root), { Layer, addLayer } = setup;
+    addLayer(root, new Layer('Keep disabled', 71, { enabled: false }));
+    addLayer(root, new Layer('Remove disabled', 72, { enabled: false }));
+    const analysis = JSON.parse(setup.context.aetoolkitCepAnalyzeCompositionCleanup());
+    const removeKey = analysis.compositions[0].layers.filter(layer => layer.name === 'Remove disabled')[0].key;
+    const executed = JSON.parse(setup.context.aetoolkitCepExecuteCompositionCleanup(JSON.stringify({ selected: [removeKey] })));
+    assert.equal(executed.removed, 1);
+    assert.equal(root._layers.filter(layer => layer.name === 'Keep disabled').length, 1);
+    assert.equal(root._layers.filter(layer => layer.name === 'Remove disabled').length, 0);
+    console.log('PASS comp cleanup honors the reviewed safe-layer selection');
+}
+
 // Named expressions are resolved; indexed expressions disable deletion for the whole composition.
 {
     const root = createComp('Expressions', 30), setup = makeContext([root], root), { Layer, addLayer } = setup;

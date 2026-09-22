@@ -792,9 +792,12 @@ function aetoolkitCepEnsureXmp() {
     if (ExternalObject.AdobeXMPScript === undefined) ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
 }
 function aetoolkitCepUniqueSourcePath(paths, value) {
-    if (!value || !/\.aepx?$/i.test(value)) return;
-    for (var i = 0; i < paths.length; i++) if (paths[i] === value) return;
-    paths.push(value);
+    var path = value && value.value !== undefined ? value.value : value;
+    if (!path) return;
+    path = aetoolkitCepCleanImportPath(String(path).replace(/^\s+|\s+$/g, "").replace(/&amp;/g, "&"));
+    if (!/\.aepx?$/i.test(path)) return;
+    for (var i = 0; i < paths.length; i++) if (paths[i] === path) return;
+    paths.push(path);
 }
 function aetoolkitCepReadSourceLinks(xmp) {
     var paths = [], creator = XMPConst.NS_CREATOR_ATOM || "http://ns.adobe.com/creatorAtom/1.0/", dynamicMedia = XMPConst.NS_DM || "http://ns.adobe.com/xmp/1.0/DynamicMedia/";
@@ -805,9 +808,37 @@ function aetoolkitCepReadSourceLinks(xmp) {
         } catch (readError) {}
     }
     read(function () { return xmp.getStructField(creator, "aeProjectLink", creator, "fullPath"); });
+    read(function () { return xmp.getStructField(creator, "aeProjectLink", creator, "path"); });
+    read(function () { return xmp.getStructField(creator, "MacAtom", creator, "PosixProjectPath"); });
+    read(function () { return xmp.getStructField(creator, "WindowsAtom", creator, "UncProjectPath"); });
     read(function () { return xmp.getStructField(dynamicMedia, "projectRef", dynamicMedia, "path"); });
     read(function () { return xmp.getProperty(creator, "fullPath"); });
+    read(function () { return xmp.getProperty(creator, "aeProjectLink/fullPath"); });
+    read(function () { return xmp.getProperty(creator, "aeProjectLink/path"); });
+    read(function () { return xmp.getProperty(dynamicMedia, "projectRef/path"); });
+    // Some AE versions write the link as a flat creatorAtom property instead of a struct.
+    read(function () { return xmp.getProperty(creator, "AeProjectLinkFullPath"); });
+    read(function () { return xmp.getProperty(creator, "MacAtomPosixProjectPath"); });
+    read(function () { return xmp.getProperty(creator, "WindowsAtomUncProjectPath"); });
     return paths;
+}
+function aetoolkitCepReadEmbeddedXmp(file) {
+    var opened = false, text = "", start, end;
+    try {
+        if (!file || file.length > 64 * 1024 * 1024) return "";
+        file.encoding = "BINARY";
+        opened = file.open("r");
+        if (!opened) return "";
+        text = file.read();
+        start = text.indexOf("<?xpacket");
+        if (start < 0) start = text.indexOf("<x:xmpmeta");
+        if (start < 0) return "";
+        end = text.indexOf("<?xpacket end", start);
+        if (end >= 0) { end = text.indexOf("?>", end); if (end >= 0) end += 2; }
+        if (end < 0) { end = text.indexOf("</x:xmpmeta>", start); if (end >= 0) end += 12; }
+        return end > start ? text.substring(start, end) : "";
+    } catch (embeddedTextError) { return ""; }
+    finally { if (opened) try { file.close(); } catch (closeError) {} }
 }
 function aetoolkitCepReadFootageSourceLinks(file) {
     var paths = [], notices = [], handle;
@@ -820,6 +851,12 @@ function aetoolkitCepReadFootageSourceLinks(file) {
         merge(handle.getXMP());
     } catch (embeddedError) { notices.push("Embedded metadata could not be read."); }
     finally { if (handle) try { handle.closeFile(); } catch (closeError) {} }
+    if (!paths.length) {
+        try {
+            var packet = aetoolkitCepReadEmbeddedXmp(file);
+            if (packet) merge(new XMPMeta(packet));
+        } catch (embeddedPacketError) { notices.push("Embedded XMP packet could not be parsed."); }
+    }
     var sidecarPaths = [file.fsName + ".xmp", file.fsName.replace(/\.[^\/.]+$/, "") + ".xmp"];
     for (var i = 0; i < sidecarPaths.length; i++) {
         if (i > 0 && sidecarPaths[i] === sidecarPaths[0]) continue;
@@ -1546,11 +1583,13 @@ function aetoolkitCepCleanupSummary(graph) {
 function aetoolkitCepAnalyzeCompositionCleanup() {
     try { return AEToolkitJSON.stringify(aetoolkitCepCleanupSummary(aetoolkitCepCleanupCollectGraph(app.project.activeItem))); } catch (error) { return "ERROR: " + error.toString(); }
 }
-function aetoolkitCepExecuteCompositionCleanup() {
-    var graph, candidates = [], i, j, comp, layer, removed = 0, skipped = [], candidate;
+function aetoolkitCepExecuteCompositionCleanup(argument) {
+    var graph, candidates = [], selected = null, payload = null, i, j, comp, layer, removed = 0, skipped = [], candidate;
     try {
+        if (argument) { try { payload = AEToolkitJSON.parse(String(argument)); } catch (selectionParseError) { throw new Error("Invalid cleanup selection."); } }
+        if (payload && payload.selected instanceof Array) { selected = {}; for (i = 0; i < payload.selected.length; i++) selected[String(payload.selected[i])] = true; }
         graph = aetoolkitCepCleanupCollectGraph(app.project.activeItem);
-        for (i = 0; i < graph.compositions.length; i++) { comp = graph.compositions[i]; if (!graph.hierarchy[comp.id] || comp.sharedExternal || comp.unsafeForDeletion) continue; for (j = 0; j < comp.layers.length; j++) { layer = comp.layers[j]; if (layer.classification === "SAFE_TO_REMOVE") candidates.push({ comp: comp, layer: layer }); } }
+        for (i = 0; i < graph.compositions.length; i++) { comp = graph.compositions[i]; if (!graph.hierarchy[comp.id] || comp.sharedExternal || comp.unsafeForDeletion) continue; for (j = 0; j < comp.layers.length; j++) { layer = comp.layers[j]; if (layer.classification === "SAFE_TO_REMOVE" && (!selected || selected[layer.key])) candidates.push({ comp: comp, layer: layer }); } }
         candidates.sort(function (first, second) { if (first.comp.id === second.comp.id) return second.layer.index - first.layer.index; return first.comp.id < second.comp.id ? -1 : 1; });
         if (!candidates.length) throw new Error("No layers are currently safe to remove.");
         app.beginUndoGroup("Toolbox - Comp Cleanup");

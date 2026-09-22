@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.30 Alpha 1**. [Home and installation](../README.md)
+For **0.1.31 Alpha 1**. [Home and installation](../README.md)
 
 Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
@@ -55,7 +55,7 @@ Paste full file paths, one per line, and click **Import assets**. Folder headers
 
 Select rendered footage or still images in AE's Project panel, then click **Discover selected sources**. Review the discovered project links and import the selected source projects.
 
-Discovery reads embedded XMP and `.xmp` sidecars. The metadata must include an explicit source-AE-project link; an image's generic metadata or color profile alone cannot identify its original project. Missing/offline project files are reported rather than invented.
+Discovery reads selected image and video files through After Effects' XMP reader, then checks embedded XMP packets and both common `.xmp` sidecar names when a container reader cannot open the file. It accepts the AE project-link fields written by different AE versions, including structured `creatorAtom:aeProjectLink` data, flat project-path fields, and file URLs. The metadata must include an explicit source-AE-project link; an image's generic metadata or color profile alone cannot identify its original project. Missing/offline project files are reported rather than invented.
 
 The color-space line reads the current project's working space when applicable, or saved settings from supported unopened `.aep`/`.aepx` files without switching the active project. None, sRGB IEC61966-2.1, and Rec.709 Gamma 2.4 were verified using real AE-saved fixtures in both formats. Files over 256 MB, unknown layouts, and unsupported OCIO settings report unavailable. This is the source **project working space**, not the rendered image's embedded profile.
 
@@ -151,9 +151,9 @@ The maintenance buttons are in this same module:
 
 Open a composition and choose **Analyze composition**. Toolbox walks the active composition and nested precomps through After Effects' public Layer and Property APIs. It records parenting, track mattes, precomp sources, layer-index properties exposed by effects, and resolvable named expressions. The results dialog lists every analyzed layer as **SAFE TO REMOVE**, **KEEP**, or **AMBIGUOUS**, with the reason for each classification.
 
-Choose **Clean up safe layers** only after reviewing the results. The action removes only layers classified SAFE TO REMOVE and runs as one undo step. Enabled rendering layers, guides, adjustment layers, cameras, lights, locked layers, parent or matte dependencies, shared precomps, unresolved expressions, indexed expressions, and any hierarchy that AE does not expose are preserved or marked ambiguous. The analyzer does not inspect binary `.aep` data and does not assume a fixed list of third-party effects; a missing or opaque dependency fails closed.
+Each analyzed layer is shown as its own module with a clearly labeled checkbox. **SAFE TO REMOVE** entries start checked; **KEEP** and **AMBIGUOUS** entries start unchecked and their checkboxes are disabled because they are protected. Choose or clear the available checkboxes to decide the final cleanup set, then choose **Clean up selected safe layers** only after reviewing the results. The action removes only the checked layers that remain **SAFE TO REMOVE** after a fresh reanalysis and runs as one undo step. Enabled rendering layers, guides, adjustment layers, cameras, lights, locked layers, parent or matte dependencies, shared precomps, unresolved expressions, indexed expressions, and any hierarchy that AE does not expose are preserved or marked ambiguous. The analyzer does not inspect binary `.aep` data and does not assume a fixed list of third-party effects; a missing or opaque dependency fails closed.
 
-Manual validation matrix: create a test comp with one disabled unrelated layer, a disabled layer selected by a Layer Control effect, a disabled track matte, a disabled parent null, named and index-based expression references, a three-level precomp chain, and a precomp also used by another comp. Add an adjustment layer, camera, light, guide, locked layer, and a third-party effect with both an exposed layer parameter and an opaque parameter if available. Run **Analyze composition**, confirm the unrelated layer is SAFE TO REMOVE, dependency cases are KEEP or AMBIGUOUS, the shared precomp is protected, and no composition changes before confirmation. Click **Clean up safe layers**, verify the single **Toolbox - Comp Cleanup** undo step, undo it, and confirm every layer returns.
+Manual validation matrix: create a test comp with one disabled unrelated layer, a disabled layer selected by a Layer Control effect, a disabled track matte, a disabled parent null, named and index-based expression references, a three-level precomp chain, and a precomp also used by another comp. Add an adjustment layer, camera, light, guide, locked layer, and a third-party effect with both an exposed layer parameter and an opaque parameter if available. Run **Analyze composition**, confirm the unrelated layer is SAFE TO REMOVE, dependency cases are KEEP or AMBIGUOUS, the shared precomp is protected, and no composition changes before confirmation. Clear one safe checkbox, click **Clean up selected safe layers**, verify only the remaining checked safe layer is removed in the single **Toolbox - Comp Cleanup** undo step, undo it, and confirm every layer returns.
 
 ### Localize selected assets
 

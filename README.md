@@ -2,7 +2,7 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.30 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.30-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.30.md)
+**Documented version: 0.1.31 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.31-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.31.md)
 
 ## User guide
 
@@ -44,6 +44,9 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Modify composition has its own format selector, guide replacement, and Conform solids option.
 - Custom checkers capture native templates with their media; the graphic placeholder and Job text are replaced when generating checkers.
 - Comp Cleanup analyzes the active composition and nested precomps, explains KEEP/SAFE TO REMOVE/AMBIGUOUS classifications, and removes only reviewed safe layers in one undo step.
+- Comp Cleanup shows every analyzed layer as its own module with visible selection checkboxes; safe layers start selected while protected results remain off and protected.
+- Import source AE projects reads source links from rendered image files through embedded XMP, sidecars, and the AE metadata field variants used by different versions.
+- Menu and dialog headings use consistent title case across the panel.
 - Animation and layers separates the cubic Bézier Key graph and Placement tools into remembered tabs. Keyframed Step and Repeat and Set Anchor operations preserve the existing animation.
 - Fade in/out uses named layer markers plus an opacity expression. Reuse the fade buttons to create the markers, then drag `fadeIn_start`/`fadeIn_end` or `fadeOut_start`/`fadeOut_end` in the timeline to adjust timing without a duration field.
 - Version 0.1.20 fixes the Node-enabled CEP startup regression and reads supported working spaces from unopened AEP/AEPX files.

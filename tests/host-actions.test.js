@@ -159,6 +159,19 @@ const sourceLinks = sourceContext.aetoolkitCepReadSourceLinks({
 assert.deepEqual(Array.from(sourceLinks), ['/Jobs/Graphics.aep', '/Jobs/Other.aepx']);
 console.log('PASS host source discovery reads and deduplicates explicit AE project links');
 
+const alternateSourceLinks = sourceContext.aetoolkitCepReadSourceLinks({
+    getStructField(namespace, struct, fieldNamespace, field) {
+        return struct === 'MacAtom' && field === 'PosixProjectPath' ? { value: 'file:///Volumes/Jobs/Still%20Source.aep' } : null;
+    },
+    getProperty(namespace, property) {
+        if (property === 'MacAtomPosixProjectPath') return { value: 'file:///Volumes/Jobs/Still%20Source.aep' };
+        if (property === 'aeProjectLink/fullPath') return { value: '/Volumes/Jobs/Still Source.aep' };
+        return null;
+    }
+});
+assert.deepEqual(Array.from(alternateSourceLinks), ['/Volumes/Jobs/Still Source.aep']);
+console.log('PASS source discovery normalizes flat and file-URL project metadata');
+
 function EditComp(name) { this.id = EditComp.nextId++; this.name = name; this.width = 1920; this.height = 1080; this.frameRate = 24; this.layerParentsChanged = false; }
 EditComp.nextId = 1;
 function ProjectItem(name) { this.name = name; }
@@ -549,6 +562,21 @@ console.log('PASS custom fields, version format, removal and order reach comp cr
         assert.equal(ctx.aetoolkitCepReadFootageSourceLinks(new ImageFile('/Render/still.'+extension)).paths[0],projectPath);
     }
     console.log('PASS rendered-image discovery routes embedded XMP and sidecars without filtering image extensions (mocked metadata reader)');
+}
+
+{
+    const projectPath='/Volumes/Jobs/Rendered From Image.aep';
+    const metadata={getStructField(){return null;},getProperty(namespace, property){return property === 'aeProjectLink/fullPath' ? {value:projectPath} : null;}};
+    let closed=false;
+    function EmbeddedImageFile(name){this.fsName=name;this.name=name.split('/').pop();this.exists=!/\.xmp$/i.test(name);this.length=128;}
+    EmbeddedImageFile.prototype.open=function(){return true;};
+    EmbeddedImageFile.prototype.read=function(){return 'binary prefix <?xpacket begin=""?><x:xmpmeta><rdf:RDF/></x:xmpmeta><?xpacket end="w"?> binary suffix';};
+    EmbeddedImageFile.prototype.close=function(){closed=true;};
+    const embeddedContext={JSON:undefined,File:EmbeddedImageFile,XMPConst:{NS_CREATOR_ATOM:'creator',NS_DM:'dynamic',FILE_UNKNOWN:0,OPEN_FOR_READ:1},XMPFile:function(){throw new Error('container reader unavailable');},XMPMeta:function(packet){assert(packet.indexOf('<x:xmpmeta>') >= 0);return metadata;}};
+    vm.createContext(embeddedContext);vm.runInContext(source,embeddedContext);
+    const links=embeddedContext.aetoolkitCepReadFootageSourceLinks(new EmbeddedImageFile('/Render/still.png'));
+    assert.deepEqual(Array.from(links.paths),[projectPath]); assert(closed);
+    console.log('PASS rendered-image discovery falls back to an embedded XMP packet when XMPFile cannot open the image');
 }
 
 {

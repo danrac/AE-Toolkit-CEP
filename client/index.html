@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Toolbox 2</title>
-  <link rel="stylesheet" href="css/main.css?v=0.1.30">
+  <link rel="stylesheet" href="css/main.css?v=0.1.31">
 </head>
 <body>
   <main class="app-shell">
     <header>
       <p class="eyebrow brand">Toolbox <span class="brand-version">2</span></p>
-      <span class="badge">0.1.30 Alpha</span>
+      <span class="badge">0.1.31 Alpha</span>
     </header>
 
     <div class="toolkit-workspace" data-dock="top">
@@ -30,7 +30,7 @@
     <div class="module-scroll">
     <section id="projects" class="view active">
       <details class="card connected-projects module-panel" data-panel="connected-projects">
-        <summary>Current project</summary>
+        <summary>Current Project</summary>
         <input id="project-search" type="search" placeholder="Search projects" aria-label="Search projects">
         <div class="current-project-selector">
           <select id="active-project" aria-label="Current project"></select>
@@ -45,7 +45,7 @@
         <div id="project-list" class="item-list"></div>
       </details>
       <details class="card module-panel" data-panel="render-to-outputs" open>
-        <summary>Render to outputs</summary>
+        <summary>Render To Outputs</summary>
 
         <label>Output Presets<select id="render-output-preset"><option value="">Refresh presets in Templates</option></select></label>
         <div id="render-destinations" class="render-destinations"><button disabled class="primary">Render to outputs</button></div>
@@ -54,14 +54,14 @@
 
     <section id="sourcing" class="view">
       <details class="card module-panel" data-panel="import-asset-paths" open>
-        <summary>Import asset paths</summary>
+        <summary>Import Asset Paths</summary>
 
         <textarea id="source-asset-paths" rows="8" placeholder="Paste full file paths, one per line. You can also paste a folder path followed by filenames."></textarea>
         <button id="source-import-assets" class="primary">Import assets</button>
         <p id="source-import-result" class="help" aria-live="polite"></p>
       </details>
       <details class="card module-panel" data-panel="import-source-ae-projects" open>
-        <summary>Import source AE projects</summary>
+        <summary>Import Source AE Projects</summary>
 
         <button id="source-discover-projects" title="Find AE project links in selected rendered images or videos, including XMP sidecars">Discover selected sources</button>
         <div id="source-project-records" class="item-list"></div>
@@ -71,7 +71,7 @@
 
     <section id="create-modify" class="view">
       <details class="card module-panel" data-panel="create-composition" open>
-        <summary>Create composition</summary>
+        <summary>Create Composition</summary>
 
         <div class="field-grid comp-settings">
           <label class="comp-format">Format<select id="comp-preset"></select></label>
@@ -86,7 +86,7 @@
         <button id="create-comp" class="primary">Create composition</button>
       </details>
       <details class="card module-panel" data-panel="modify-selected-compositions" open>
-        <summary>Modify composition</summary>
+        <summary>Modify Composition</summary>
         <div class="field-grid modify-settings">
           <label class="comp-format">Format<select id="modify-preset"></select></label>
           <label>Width<input id="modify-width" type="number" min="1" max="30000" value="1920"></label>
@@ -123,7 +123,7 @@
 
     <section id="covers-checkers" class="view">
       <details class="card module-panel" data-panel="create-cover" open>
-        <summary>Create cover</summary>
+        <summary>Create Cover</summary>
 
         <div class="field-grid comp-settings">
           <label class="comp-format">Format<select id="cover-preset"></select></label>
@@ -156,7 +156,7 @@
 
     <section id="cleanup-collect" class="view">
       <details class="card module-panel" data-panel="organize-project" open>
-        <summary>Organize project</summary>
+        <summary>Organize Project</summary>
 
         <label>Organizer preset<select id="organizer-preset">
           <option value="basic">Basic project folders</option>
@@ -179,12 +179,12 @@
         <p id="comp-cleanup-status" class="help" aria-live="polite"></p>
       </details>
       <details class="card module-panel" data-panel="localize-selected-assets" open>
-        <summary>Localize selected assets</summary>
+        <summary>Localize Selected Assets</summary>
 
         <button id="localize-assets">Localize selected assets</button>
       </details>
       <details class="card module-panel" data-panel="collect-project" open>
-        <summary>Collect project</summary>
+        <summary>Collect Project</summary>
 
         <button id="collect-project" class="primary" title="Collect the project and its source files">Collect</button>
       </details>
@@ -192,7 +192,7 @@
 
     <section id="tools" class="view">
       <details class="card module-panel" data-panel="composition-timing" open>
-        <summary>Composition timing</summary>
+        <summary>Composition Timing</summary>
 
         <div class="action-grid maintenance-grid timing-actions">
           <button data-comp-frame-change="-10">−10 frames</button>
@@ -210,7 +210,7 @@
         </div>
       </details>
       <details class="card module-panel" data-panel="animation-and-layers" open>
-        <summary>Animation and layers</summary>
+        <summary>Animation And Layers</summary>
 
         <div class="action-grid maintenance-grid animation-actions">
           <button id="fade-in" class="tool-icon" title="Fade in selected layers" aria-label="Fade in selected layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19 21 5v14z"/></svg></button>
@@ -224,12 +224,12 @@
           <button id="mark-guides" class="tool-icon" title="Toggle selected layers between guide and normal layers" aria-label="Toggle selected layers between guide and normal layers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 2v20M2 8h20"/><path d="m14 13 2 2 4-5"/></svg></button>
         </div>
         <div class="animation-subtabs" role="tablist" aria-label="Animation and layer tools">
-          <button id="animation-key-graph-tab" type="button" role="tab" data-animation-subtab="key-graph" aria-controls="animation-key-graph-panel">Key graph</button>
+          <button id="animation-key-graph-tab" type="button" role="tab" data-animation-subtab="key-graph" aria-controls="animation-key-graph-panel">Key Graph</button>
           <button id="animation-placement-tab" type="button" role="tab" data-animation-subtab="placement" aria-controls="animation-placement-panel">Placement</button>
         </div>
         <div id="animation-key-graph-panel" role="tabpanel" aria-labelledby="animation-key-graph-tab">
         <section class="curve-editor" aria-labelledby="curve-editor-title">
-          <div class="curve-editor-heading"><h3 id="curve-editor-title">Key graph</h3><small>Selected keyframe pairs</small></div>
+          <div class="curve-editor-heading"><h3 id="curve-editor-title">Key Graph</h3><small>Selected keyframe pairs</small></div>
           <div class="curve-preset-row"><select id="curve-preset" aria-label="Curve preset"></select><button id="save-curve-preset" title="Save the current curve to Shared resources">Save</button><button id="remove-curve-preset" title="Remove the selected shared curve preset" aria-label="Remove selected curve preset">×</button></div>
           <div class="curve-workspace">
             <svg id="curve-graph" class="curve-graph" viewBox="0 0 240 120" role="img" aria-label="Cubic Bézier easing curve editor">
@@ -252,7 +252,7 @@
         </div>
         <div id="animation-placement-panel" role="tabpanel" aria-labelledby="animation-placement-tab" hidden>
         <div class="anchor-repeat-tools">
-<section class="layer-placement-card"><h3>Step and repeat</h3><div class="direction-grid" id="repeat-directions">
+<section class="layer-placement-card"><h3>Step And Repeat</h3><div class="direction-grid" id="repeat-directions">
 <button type="button" data-x="-1" data-y="-1" title="Step and repeat top left" aria-label="Step and repeat top left">↖</button>
 <button type="button" data-x="0" data-y="-1" title="Step and repeat top center" aria-label="Step and repeat top center">↑</button>
 <button type="button" data-x="1" data-y="-1" title="Step and repeat top right" aria-label="Step and repeat top right">↗</button>
@@ -265,7 +265,7 @@
 </div><div class="placement-options">
 <label>Gap<input id="repeat-gap" type="number" value="10" disabled></label><label class="check"><input id="repeat-offset" type="checkbox">Offset</label>
 </div></section>
-<section class="layer-placement-card"><h3>Set anchor</h3><div class="direction-grid" id="anchor-directions">
+<section class="layer-placement-card"><h3>Set Anchor</h3><div class="direction-grid" id="anchor-directions">
 <button type="button" data-x="-1" data-y="-1" title="Set anchor top left" aria-label="Set anchor top left">↖</button>
 <button type="button" data-x="0" data-y="-1" title="Set anchor top center" aria-label="Set anchor top center">↑</button>
 <button type="button" data-x="1" data-y="-1" title="Set anchor top right" aria-label="Set anchor top right">↗</button>
@@ -282,7 +282,7 @@
         </div>
       </details>
       <details class="card module-panel" data-panel="select-and-align-layers" open>
-        <summary>Select and align layers</summary>
+        <summary>Select And Align Layers</summary>
 
         <div class="field-grid">
           <label>Layer type<select id="tool-select-type"><option value="null">Nulls</option><option value="solid">Solids</option><option value="shape">Shapes</option><option value="comp">Comp layers</option><option value="footage">Footage</option><option value="text">Text</option><option value="camera">Cameras</option><option value="light">Lights</option></select></label>
@@ -295,7 +295,7 @@
         </div>
       </details>
       <details class="card module-panel" data-panel="transfer-transform" open>
-        <summary>Transfer transform</summary>
+        <summary>Transfer Transform</summary>
 
         <div class="toggle-grid compact-toggles">
           <label><input id="transfer-position" type="checkbox" checked> Position</label>
@@ -305,7 +305,7 @@
         <button id="transfer-transform" class="tool-icon" title="Transfer transform" aria-label="Transfer transform"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h7v7H3zM14 12h7v7h-7zM13 5h6v4m-3-3 3 3 3-3"/></svg></button>
       </details>
       <details class="card module-panel" data-panel="replace-selected-text" open>
-        <summary>Replace selected text</summary>
+        <summary>Replace Selected Text</summary>
 
         <textarea id="tool-replace-text" rows="3" placeholder="Replacement text"></textarea>
         <button id="replace-text" class="primary tool-icon" title="Replace selected text" aria-label="Replace selected text"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h12M9 5v14M5 19h8M16 10h5m-2-2 2 2-2 2M21 16h-5m2-2-2 2 2 2"/></svg></button>
@@ -314,18 +314,18 @@
 
     <section id="templates" class="view">
       <details class="card module-panel" data-panel="shared-resources" open>
-        <summary>Shared resources</summary>
+        <summary>Shared Resources</summary>
         <div class="input-action folder-action"><label>Shared templates<input id="checker-library-root" readonly placeholder="Local library (default)"></label><button id="choose-checker-library">Browse</button></div>
         <div class="project-actions"><button id="refresh-checker-library">Refresh library</button><button id="use-local-library">Use local library</button></div>
         <p class="help">Projects, project presets, naming presets, aspect ratios, and checker templates use this library. Local storage is the default.</p>
       </details>
       <details class="card module-panel" data-panel="composition-formats" open>
-        <summary>Create aspect ratio presets</summary>
+        <summary>Create Aspect Ratio Presets</summary>
         <div class="naming-presets"><select id="saved-comp-preset" aria-label="Composition format"></select><button id="edit-comp-preset">Edit</button><button id="remove-comp-preset">Remove</button></div>
         <div class="project-actions"><button id="new-comp-preset">Create General</button><button id="new-custom-preset">Create Custom</button></div>
       </details>
       <details class="card module-panel" data-panel="edit-template" open>
-        <summary id="template-form-title">Create project presets</summary>
+        <summary id="template-form-title">Create Project Presets</summary>
         <button id="new-template" class="primary">New</button>
         <div id="project-preset-editor" hidden>
         <label>Saved preset<select id="edit-project-preset"><option value="">New preset</option></select></label>
@@ -336,7 +336,7 @@
         <button id="add-custom-folder" class="quiet add-folder">Add custom location</button>
         </section>
         <section class="preset-section" aria-labelledby="comp-naming-title">
-          <h3 id="comp-naming-title">Comp naming</h3>
+          <h3 id="comp-naming-title">Comp Naming</h3>
           <div class="naming-presets"><select id="naming-preset" aria-label="Naming preset"></select><button id="add-naming-preset">Add</button><button id="remove-naming-preset">Remove</button></div>
           <div id="naming-order" class="naming-order" aria-label="Composition name field order"></div>
           <button id="add-naming-field" class="naming-add" type="button">Add to template</button>
@@ -346,7 +346,7 @@
         </div>
       </details>
       <details class="card module-panel" data-panel="connect-project" open>
-        <summary>Add new project</summary>
+        <summary>Add New Project</summary>
 
         <label>Project name<input id="project-name" placeholder="Campaign 2026"></label>
         <div class="input-action folder-action">
@@ -357,7 +357,7 @@
         <button id="connect-project" class="primary">Add new project</button>
       </details>
       <details class="card module-panel" data-panel="aom-presets" open>
-        <summary>Load AOM presets</summary>
+        <summary>Load AOM Presets</summary>
         <div class="input-action folder-action"><label>AOM file<input id="aom-path" readonly placeholder="Choose an AOM file"></label><button id="choose-aom">Choose</button></div>
         <p class="help">In After Effects, use Edit → Templates → Output Module → Load to load this file. Then refresh the installed presets here.</p>
         <p id="aom-preset-names" class="help"></p>
@@ -371,7 +371,7 @@
     </div>
   </main>
   <dialog id="format-dialog" class="toolkit-dialog" aria-labelledby="format-dialog-title">
-    <h2 id="format-dialog-title">General format</h2>
+    <h2 id="format-dialog-title">General Format</h2>
         <div class="field-grid">
           <label>Name<input id="saved-comp-preset-name" placeholder="16 × 9"></label>
           <label>Naming code<input id="saved-comp-preset-code" placeholder="e.g. 9x16"></label>
@@ -386,7 +386,7 @@
     <p id="format-dialog-status" class="help" aria-live="polite"></p>
   </dialog>
   <dialog id="custom-format-dialog" class="toolkit-dialog" aria-labelledby="custom-format-title">
-    <h2 id="custom-format-title">Custom checker</h2>
+    <h2 id="custom-format-title">Custom Checker</h2>
     <p class="help">In a dedicated checker project, select the template comps and save. Each selected comp becomes a preset.</p>
     <p class="help">Templates need a precomp layer named “REPLACE THIS LAYER WITH GRAPHIC COMP” and a text layer named “XXXX”.</p>
     <p class="help">The library stores the native template and media. Your project stays open, and its original file path is restored after export.</p>
@@ -396,22 +396,22 @@
     <p id="custom-format-status" class="help" aria-live="polite"></p>
   </dialog>
   <dialog id="project-template-dialog" aria-labelledby="project-template-dialog-title">
-    <h2 id="project-template-dialog-title">Project template</h2>
+    <h2 id="project-template-dialog-title">Project Template</h2>
     <label>Template<select id="assigned-project-template"></select></label>
     <p class="help">Updates this project's folder mappings and naming settings. Existing files and compositions are not moved or renamed.</p>
     <p id="project-template-error" role="alert"></p>
     <div class="naming-dialog-actions"><button id="cancel-project-template">Cancel</button><button id="save-project-template" class="primary">Save</button></div>
   </dialog>
   <dialog id="comp-cleanup-dialog" class="toolkit-dialog comp-cleanup-dialog" aria-labelledby="comp-cleanup-dialog-title">
-    <h2 id="comp-cleanup-dialog-title">Comp Cleanup analysis</h2>
+    <h2 id="comp-cleanup-dialog-title">Comp Cleanup Analysis</h2>
     <div id="comp-cleanup-overview" class="cleanup-overview"></div>
     <div id="comp-cleanup-results" class="cleanup-results"></div>
     <p id="comp-cleanup-dialog-status" class="help" aria-live="polite"></p>
-    <div class="naming-dialog-actions"><button id="cancel-comp-cleanup">Cancel</button><button id="execute-comp-cleanup" class="primary" disabled>Clean up safe layers</button></div>
+    <div class="naming-dialog-actions"><button id="cancel-comp-cleanup">Cancel</button><button id="execute-comp-cleanup" class="primary" disabled>Clean up selected safe layers</button></div>
   </dialog>
   <dialog id="naming-dialog" aria-labelledby="naming-dialog-title">
     <form id="naming-dialog-form">
-      <h2 id="naming-dialog-title">Module preferences</h2>
+      <h2 id="naming-dialog-title">Module Preferences</h2>
       <div id="naming-dialog-fields"></div>
       <p id="naming-dialog-error" role="alert"></p>
       <div class="naming-dialog-actions"><button id="naming-dialog-cancel" type="button">Cancel</button><button type="submit">Save</button></div>
@@ -419,15 +419,15 @@
   </dialog>
   <dialog id="curve-preset-dialog" class="toolkit-dialog" aria-labelledby="curve-preset-dialog-title">
     <form id="curve-preset-form">
-      <h2 id="curve-preset-dialog-title">Save curve preset</h2>
+      <h2 id="curve-preset-dialog-title">Save Curve Preset</h2>
       <label>Preset name<input id="curve-preset-name" required maxlength="80" placeholder="Smooth settle"></label>
       <p id="curve-preset-error" role="alert"></p>
       <div class="naming-dialog-actions"><button id="curve-preset-cancel" type="button">Cancel</button><button type="submit" class="primary">Save</button></div>
     </form>
   </dialog>
-  <script src="js/CSInterface.js?v=0.1.30"></script>
-  <script src="js/template-store.js?v=0.1.30"></script>
-  <script src="js/app.js?v=0.1.30"></script>
-  <script src="js/panel-state.js?v=0.1.30"></script>
+  <script src="js/CSInterface.js?v=0.1.31"></script>
+  <script src="js/template-store.js?v=0.1.31"></script>
+  <script src="js/app.js?v=0.1.31"></script>
+  <script src="js/panel-state.js?v=0.1.31"></script>
 </body>
 </html>
