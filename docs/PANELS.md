@@ -2,7 +2,7 @@
 
 For **0.1.33 Alpha 1**. [Home and installation](../README.md)
 
-Screenshots show the 0.1.20 browser preview (some Projects and preset controls have changed in 0.1.22) with default values and no connected project. The browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
+Screenshots are browser layout previews for the 0.1.33 Alpha 1 documentation. They use default values and may show no connected project; the browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
 ## Navigation and saved layout
 
@@ -30,7 +30,7 @@ The first bordered destination uses the current project's Graphic Out / Outputs 
 - Without an optional subfolder: `Outputs/26_0916`.
 - With `review/v01`: `Outputs/review/v01/26_0916`.
 
-The date folder uses `YY_MMDD` and comes last. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. The earlier screenshots show the released 0.1.21 layout; the destination sections described here are included in 0.1.22.
+The date folder uses `YY_MMDD` and comes last. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.33 Alpha 1.
 
 Output filenames follow this studio format:
 
@@ -245,7 +245,7 @@ The Projects render dropdown matches AOM names against installed AE output-modul
 
 ## Troubleshooting and validation
 
-- **Toolbar/project data fails to load on 0.1.19:** update to 0.1.20, which fixes the Node/CommonJS template-store startup regression. Restart AE and verify the topper version.
+- **Toolbar/project data fails to load:** install 0.1.33 Alpha 1, restart After Effects, and verify the topper version. This release includes the Node/CommonJS template-store startup fix.
 - **Project list is empty:** clear the search filter, confirm the selected library, then Refresh. Switching libraries does not merge local records.
 - **Cannot save a shared preset:** check folder availability/write access, refresh after a revision conflict, and check for another active writer. Do not remove an active lock.
 - **Render preset unavailable:** load the AOM settings into that AE installation and refresh; matching is by exact name.
@@ -253,7 +253,7 @@ The Projects render dropdown matches AOM names against installed AE output-modul
 - **Color space unavailable:** unsupported/OCIO layouts and files above the inspection limit are not yet handled.
 - **Checker media missing:** mount the library and dependencies; install required fonts/plugins; recapture legacy binary packages if layered media paths are no longer valid.
 
-Automated tests cover the data model, ES3 syntax, host action mocks, checker packaging, revision conflicts, and exclusive locks. Native checker testing included multiple templates, nested placeholders, Job text, and relocated layered PSD media. The exact user reference checker project was unavailable. Windows native import, real network/two-machine locking, and a complete native 0.1.20 CEP verification remain unverified. Browser screenshots demonstrate layout only.
+Automated tests cover the data model, ES3 syntax, host action mocks, checker packaging, revision conflicts, and exclusive locks. Native checker testing included multiple templates, nested placeholders, Job text, and relocated layered PSD media. The exact user reference checker project was unavailable. Windows native import, real network/two-machine locking, and a complete native 0.1.33 CEP verification remain unverified. Browser screenshots demonstrate layout only.
 
 ### Set Anchor and Step and Repeat
 
@@ -263,4 +263,4 @@ Both tools operate on selected layers in one Undo group. Locked layers are skipp
 - **Set anchor:** choose a corner, edge midpoint, or center of Layer bounds. Comp instead projects the chosen composition point onto the layer's plane. Text and shape bounds include their actual left/top offsets. Normal mode shifts every existing Anchor Point key and compensates every Position key at its own time, preserving animation, scale, rotation, and parenting. Abs. shifts only Anchor Point. Separated 2D Position edits are limited to X and Y so After Effects' hidden Z follower is never written.
 - Cameras and lights have no anchor point and are skipped by Set Anchor. Expression-driven Anchor Point/Position are left unchanged. Transform expressions on other properties are evaluated by AE. Degenerate transforms may be skipped if AE cannot resolve them.
 
-Automated property/batch tests and the browser layout were checked. Native After Effects transform evaluation still requires verification before release.
+Automated property/batch tests and the browser layout were checked. Native After Effects transform evaluation still requires a project-specific validation pass in After Effects.

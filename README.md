@@ -20,7 +20,7 @@ The [illustrated panel guide](docs/PANELS.md) documents every toolbar section an
 
 ![Toolbox 2 Projects browser preview](docs/images/projects.png)
 
-Screenshots are captured from the 0.1.20 browser preview with an empty library. Native actions require After Effects; disabled controls and empty selectors in these screenshots do not indicate missing features.
+Screenshots are browser layout previews captured during the 0.1.33 documentation cycle. They may show default values or an empty library; native actions require After Effects, and disabled controls do not indicate missing features.
 
 ## Getting started
 
@@ -49,7 +49,7 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Menu and dialog headings use consistent title case across the panel.
 - Animation and layers separates the cubic Bézier Key graph and Placement tools into remembered tabs. Keyframed Step and Repeat and Set Anchor operations preserve the existing animation.
 - Fade in/out uses named layer markers plus an opacity expression. Reuse the fade buttons to create the markers, then drag `fadeIn_start`/`fadeIn_end` or `fadeOut_start`/`fadeOut_end` in the timeline to adjust timing without a duration field.
-- Version 0.1.20 fixes the Node-enabled CEP startup regression and reads supported working spaces from unopened AEP/AEPX files.
+- The 0.1.33 Alpha 1 build includes the Node-enabled CEP startup fix and reads supported working spaces from unopened AEP/AEPX files.
 
 ## Compatibility and limits
 
@@ -72,7 +72,7 @@ Before releasing host changes, run `tests/after-effects-load-check.jsx` through 
 
 Published GitHub releases trigger the workflow that signs and attaches `AE-Toolkit-CEP-v<version>.zxp`. Configure repository secrets `ZXP_CERT_BASE64` and `ZXP_CERT_PASSWORD`; optionally set `ZXP_TSA_URL`. For local signing, set `ZXPSIGNCMD_PATH`, `ZXP_CERT_PATH`, and `ZXP_CERT_PASSWORD`, then run `npm run package:zxp`. Never commit signing material.
 
-Use a distinct package version for each distributed build so installers can distinguish updates. Prerelease tags use the form `v0.1.20-alpha.1`.
+Use a distinct package version for each distributed build so installers can distinguish updates. The current prerelease tag is `v0.1.33-alpha.1`.
 
 ## License and credit
 
