@@ -1,6 +1,6 @@
 {
   "name": "ae-toolkit-cep",
-  "version": "0.1.31",
+  "version": "0.1.32",
   "private": true,
   "scripts": {
     "test": "node scripts/check-extendscript.mjs && node tests/template-store.test.js && node tests/host-actions.test.js && node tests/layer-placement.test.js && node tests/custom-checkers.test.js && node tests/shared-library.test.js && node tests/library-lock.test.js && node tests/comp-cleanup.test.js",

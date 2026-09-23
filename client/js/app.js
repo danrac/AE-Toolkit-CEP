@@ -106,7 +106,6 @@
         byId("curve-tangent-end").setAttribute("d", "M228 12 L" + second.x + " " + second.y);
         byId("curve-handle-one").setAttribute("cx", first.x); byId("curve-handle-one").setAttribute("cy", first.y);
         byId("curve-handle-two").setAttribute("cx", second.x); byId("curve-handle-two").setAttribute("cy", second.y);
-        ["curve-x1", "curve-y1", "curve-x2", "curve-y2"].forEach(function (id, index) { byId(id).value = activeCurve[index].toFixed(2); });
         if (markCustom) byId("curve-preset").value = "";
     }
     function renderCurvePresets(selectedId) {
@@ -475,7 +474,6 @@
     byId("unparent-layers").onclick = function () { callHost("aetoolkitCepUnparentSelectedLayers", "", function (result) { try { var summary = JSON.parse(result); status("Unparented " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("mark-guides").onclick = function () { callHost("aetoolkitCepToggleSelectedGuideLayers", "", function (result) { try { var summary = JSON.parse(result), message = "Toggled " + summary.changed + " guide layer" + (summary.changed === 1 ? "" : "s") + ": " + summary.guides + " guide, " + summary.normal + " normal."; if (summary.skipped.length) message += " Skipped: " + summary.skipped.join(", "); status(message, summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
     byId("curve-preset").onchange = function () { var preset = store.curvePresets(state).filter(function (entry) { return entry.id === byId("curve-preset").value; })[0]; if (preset) activeCurve = preset.curve.slice(); byId("remove-curve-preset").disabled = !preset || preset.builtIn === true; drawCurve(false); };
-    ["curve-x1", "curve-y1", "curve-x2", "curve-y2"].forEach(function (id, index) { byId(id).onchange = function () { activeCurve[index] = curveNumber(this.value); drawCurve(true); }; });
     wireCurveHandle("curve-handle-one", 0); wireCurveHandle("curve-handle-two", 2);
     Array.prototype.forEach.call(document.querySelectorAll("[data-animation-subtab]"), function (button) { button.onclick = function () { setAnimationSubtab(button.getAttribute("data-animation-subtab"), true); }; });
     var initialAnimationSubtab = "key-graph"; try { initialAnimationSubtab = window.localStorage.getItem("toolbox2.animation-subtab") || initialAnimationSubtab; } catch (ignoreAnimationSubtab) {} setAnimationSubtab(initialAnimationSubtab, false);
