@@ -18,7 +18,6 @@ console.log('PASS bundled JSON works with no native JSON and preserves path char
 assert.equal(context.aetoolkitCepNormalizeSubfolder('Delivery\\v01'), 'Delivery/v01');
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('/Delivery/v01/'));
 for (const invalid of ['//server/share', 'C:relative', 'Delivery/..', '.']) assert.throws(() => context.aetoolkitCepNormalizeSubfolder(invalid));
-assert.equal(context.aetoolkitCepRenderDate(), '26_0915');
 assert.equal(context.aetoolkitCepCleanImportPath('file:///Volumes/Jobs/a%20b.mov'), '/Volumes/Jobs/a b.mov');
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('../outside'));
 assert.throws(() => context.aetoolkitCepNormalizeSubfolder('C:/outside'));
@@ -47,7 +46,8 @@ const result = renderContext.aetoolkitCepRenderSelected(JSON.stringify({ outputT
 assert.ok(/^Rendered 1 composition/.test(result));
 assert.equal(renderQueue.didRender, true);
 assert.equal(existingQueueItem.render, true);
-assert.equal(folders['/Job/Output/Delivery/v01/26_0915'], true);
+assert.equal(folders['/Job/Output/Delivery/v01'], true);
+assert.equal(folders['/Job/Output/Delivery/v01/26_0915'], undefined);
 assert.equal(renderQueue._items[1].outputModule(1).template, 'Studio EXR');
 assert.ok(renderQueue._items[1].outputModule(1).file.fsName.endsWith('_[#####].exr'));
 assert.equal(renderQueue._items[1].outputModule(1).outputSettings['Output File Info']['Subfolder Path'], '');
@@ -82,10 +82,10 @@ for (const [template, extension, token] of [
     const output = renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode:'offline',outputTemplate:'User-defined preset',basePath:'/Job/Output',subfolder:'26_0916\\'}));
     assert.match(output,/^Rendered 1/);
     assert.equal(applied,'User-defined preset');
-    assert.equal(outputSettings['Output File Info']['Base Path'],'/Job/Output/26_0916/26_0915');
+    assert.equal(outputSettings['Output File Info']['Base Path'],'/Job/Output/26_0916');
     assert.equal(outputSettings['Output File Info']['Subfolder Path'],'');
     assert.equal(outputSettings['Output File Info']['File Template'],'Title_24fps_1920x1080'+token+'.[fileextension]');
-    assert.equal(resolved.file.fsName,'/Job/Output/26_0916/26_0915/Title_24fps_1920x1080'+token+'.'+extension);
+    assert.equal(resolved.file.fsName,'/Job/Output/26_0916/Title_24fps_1920x1080'+token+'.'+extension);
     assert.ok(calls>=3,'Reacquires invalidated output module');
     assert.equal(existingQueueItem.render,true);
 }
@@ -116,13 +116,34 @@ for (const mode of [undefined]) {
         };
         assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({mode,outputTemplate:'Client output',basePath:'/Job/Output'})),/^Rendered 1/);
         const file = renderQueue._items[renderQueue._items.length-1].outputModule(1).file;
-        assert.equal(file.fsName,'/Job/Output/26_0915/ABA_9x16_A_new_v01_dr_'+String(fps).replace('.', '_')+'fps_1920x1080.mp4');
+        assert.equal(file.fsName,'/Job/Output/ABA_9x16_A_new_v01_dr_'+String(fps).replace('.', '_')+'fps_1920x1080.mp4');
         assert.equal(namingComp.frameRate, fps, 'Filename formatting must preserve the composition frame rate');
     }
 }
 Object.assign(namingComp,savedNaming);
 renderQueue.items.add = originalAdd;
 console.log('PASS studio naming format for selected comps, including underscore-separated fractional FPS');
+
+const fullSize = new renderContext.CompItem('FullSize');
+fullSize.width = 3840; fullSize.height = 2160;
+renderContext.app.project.selection = [fullSize];
+renderQueue.items.add = function(comp) {
+    const module = {
+        file: null,
+        applyTemplate() {},
+        getSettings() { return { 'Output File Info': { 'File Name': 'FullSize.mp4' }, 'Video Output': { Resize: true, Width: '1920', Height: '1080' } }; },
+        setSettings(value) { this.outputSettings = value; },
+    };
+    const item = { render: true, comp, outputModule() { return module; }, remove() { renderQueue._items.splice(renderQueue._items.indexOf(this), 1); renderQueue.numItems--; } };
+    renderQueue._items.push(item); renderQueue.numItems++; return item;
+};
+const scaledOutput = renderContext.aetoolkitCepRenderSelected(JSON.stringify({ outputTemplate: 'Half Size', basePath: '/Job/Output/Scaled' }));
+assert.match(scaledOutput, /^Rendered 1 composition/);
+assert.equal(renderQueue._items[renderQueue._items.length - 1].outputModule(1).file.fsName, '/Job/Output/Scaled/FullSize_24fps_1920x1080.mp4');
+assert.deepEqual(renderContext.aetoolkitCepOutputDimensions({ getSettings() { return { Resize: 'false', Width: '1920', Height: '1080' }; } }, fullSize), { width: 3840, height: 2160 });
+renderQueue.items.add = originalAdd;
+renderContext.app.project.selection = [namingComp];
+console.log('PASS output filename dimensions follow the output module render size');
 
 
 let removedComp = false, removedItem = false;

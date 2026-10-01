@@ -2,7 +2,7 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.33 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.33-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.33.md)
+**Documented version: 0.1.34 Alpha 1.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.34-alpha.1) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.34.md)
 
 ## User guide
 
@@ -39,7 +39,7 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Add new project lives in Templates. Create project presets starts with **New**; the editor opens only when needed.
 - Shared resources covers projects, project presets, naming presets, aspect ratio presets, and custom checker packages.
 - Output presets are read from AE and optionally filtered by an AOM file. No fixed ProRes/PNG preset names are required.
-- Render to outputs and template-defined custom render destinations each have their own bordered subfolder controls; destinations use optional subfolder / YY_MMDD.
+- Render to outputs and template-defined custom render destinations each have their own bordered subfolder controls; destinations use the selected optional subfolder without creating an automatic date folder.
 - Change each connected project’s template from its named button in Current project; paths and render destinations refresh automatically.
 - Modify composition has its own format selector, guide replacement, and Conform solids option.
 - Custom checkers capture native templates with their media; the graphic placeholder and Job text are replaced when generating checkers.
@@ -49,7 +49,7 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Menu and dialog headings use consistent title case across the panel.
 - Animation and layers separates the cubic Bézier Key graph and Placement tools into remembered tabs. Keyframed Step and Repeat and Set Anchor operations preserve the existing animation.
 - Fade in/out uses named layer markers plus an opacity expression. Reuse the fade buttons to create the markers, then drag `fadeIn_start`/`fadeIn_end` or `fadeOut_start`/`fadeOut_end` in the timeline to adjust timing without a duration field.
-- The 0.1.33 Alpha 1 build includes the Node-enabled CEP startup fix and reads supported working spaces from unopened AEP/AEPX files.
+- The 0.1.34 Alpha 1 build includes the Node-enabled CEP startup fix and reads supported working spaces from unopened AEP/AEPX files.
 
 ## Compatibility and limits
 
@@ -72,7 +72,7 @@ Before releasing host changes, run `tests/after-effects-load-check.jsx` through 
 
 Published GitHub releases trigger the workflow that signs and attaches `AE-Toolkit-CEP-v<version>.zxp`. Configure repository secrets `ZXP_CERT_BASE64` and `ZXP_CERT_PASSWORD`; optionally set `ZXP_TSA_URL`. For local signing, set `ZXPSIGNCMD_PATH`, `ZXP_CERT_PATH`, and `ZXP_CERT_PASSWORD`, then run `npm run package:zxp`. Never commit signing material.
 
-Use a distinct package version for each distributed build so installers can distinguish updates. The current prerelease tag is `v0.1.33-alpha.1`.
+Use a distinct package version for each distributed build so installers can distinguish updates. The current prerelease tag is `v0.1.34-alpha.1`.
 
 ## License and credit
 

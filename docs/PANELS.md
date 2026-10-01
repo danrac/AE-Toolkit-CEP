@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.33 Alpha 1**. [Home and installation](../README.md)
+For **0.1.34 Alpha 1**. [Home and installation](../README.md)
 
 Screenshots are browser layout previews for the 0.1.33 Alpha 1 documentation. They use default values and may show no connected project; the browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
@@ -30,7 +30,7 @@ The first bordered destination uses the current project's Graphic Out / Outputs 
 - Without an optional subfolder: `Outputs/26_0916`.
 - With `review/v01`: `Outputs/review/v01/26_0916`.
 
-The date folder uses `YY_MMDD` and comes last. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.33 Alpha 1.
+Toolbox does not create an automatic date folder. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.34 Alpha 1.
 
 Output filenames follow this studio format:
 
@@ -39,7 +39,7 @@ Output filenames follow this studio format:
 ```
 
 For example: `ABA_9x16_A_new_v01_dr_23_976fps_1080x1920.mp4`.
-The comp name is preserved, FPS uses up to three decimal places with an underscore replacing the decimal point (`23_976fps`, `29_97fps`, `59_94fps`; whole rates remain `24fps`). This only formats the filename; the composition frame rate is unchanged. Dimensions come from the selected comp. The extension comes from AE's output module. Image sequences retain the preset's frame-number suffix before the extension so individual frames have unique filenames.
+The comp name is preserved, FPS uses up to three decimal places with an underscore replacing the decimal point (`23_976fps`, `29_97fps`, `59_94fps`; whole rates remain `24fps`). This only formats the filename; the composition frame rate is unchanged. Width and height come from the selected output module's render settings, so a half-size 3840×2160 comp is named with `1920x1080`. If AE does not expose render dimensions for a preset, the comp dimensions are used as a fallback. The extension comes from AE's output module. Image sequences retain the preset's frame-number suffix before the extension so individual frames have unique filenames.
 
 The selected output-module name is applied to AE's installed template of exactly that name. AE supplies the extension and sequence numbering. Existing render-queue enabled states are restored after the workflow. Save the AE project and select comps before rendering. See [Load AOM presets](#load-aom-presets) for setup.
 

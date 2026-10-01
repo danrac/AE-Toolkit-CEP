@@ -669,10 +669,6 @@ function aetoolkitCepImportFromFolder(pathText) {
         return imported ? "Imported selected assets." : "CANCELLED";
     } catch (error) { return "ERROR: " + error.toString(); }
 }
-function aetoolkitCepRenderDate() {
-    var date = new Date(), year = String(date.getFullYear()).slice(-2), month = date.getMonth() + 1, day = date.getDate();
-    return year + "_" + (month < 10 ? "0" : "") + month + (day < 10 ? "0" : "") + day;
-}
 function aetoolkitCepNormalizeSubfolder(value) {
     var path = String(value || "").replace(/\\/g, "/").replace(/^\s+|\s+$/g, "").replace(/\/+$/g, "");
     if (!path) return "";
@@ -694,6 +690,56 @@ function aetoolkitCepSelectedComps() {
     if (!comps.length) throw new Error("Select one or more compositions in the Project panel before rendering.");
     return comps;
 }
+function aetoolkitCepOutputNumber(value) {
+    var number = Number(value);
+    return isFinite(number) && number > 0 ? Math.round(number) : 0;
+}
+function aetoolkitCepOutputDimensionsFromSettings(value) {
+    var dimensions = null, width, height, key, child;
+    if (!value || typeof value !== "object") return null;
+    width = aetoolkitCepOutputNumber(value.Width || value.width || value["Output Width"] || value["output width"]);
+    height = aetoolkitCepOutputNumber(value.Height || value.height || value["Output Height"] || value["output height"]);
+    if (width && height) return { width: width, height: height };
+    for (key in value) if (value.hasOwnProperty(key)) {
+        child = value[key];
+        if (child && typeof child === "object") {
+            dimensions = aetoolkitCepOutputDimensionsFromSettings(child);
+            if (dimensions) return dimensions;
+        }
+    }
+    return null;
+}
+function aetoolkitCepOutputResizeEnabled(value) {
+    var key, child, raw;
+    if (!value || typeof value !== "object") return null;
+    if (value.hasOwnProperty("Resize")) {
+        raw = value.Resize;
+        if (raw === false || String(raw).toLowerCase() === "false" || String(raw) === "0") return false;
+        if (raw === true || String(raw).toLowerCase() === "true" || String(raw) === "1") return true;
+    }
+    for (key in value) if (value.hasOwnProperty(key)) {
+        child = value[key];
+        if (child && typeof child === "object") {
+            raw = aetoolkitCepOutputResizeEnabled(child);
+            if (raw !== null) return raw;
+        }
+    }
+    return null;
+}
+function aetoolkitCepOutputDimensions(module, comp) {
+    var settings, dimensions, resizeEnabled;
+    if (module) {
+        if (module.width && module.height) dimensions = { width: aetoolkitCepOutputNumber(module.width), height: aetoolkitCepOutputNumber(module.height) };
+        if (!dimensions && module.getSettings && typeof GetSettingsFormat !== "undefined") {
+            try {
+                settings = module.getSettings(GetSettingsFormat.STRING);
+                resizeEnabled = aetoolkitCepOutputResizeEnabled(settings);
+                if (resizeEnabled !== false) dimensions = aetoolkitCepOutputDimensionsFromSettings(settings);
+            } catch (settingsError) {}
+        }
+    }
+    return dimensions || { width: aetoolkitCepOutputNumber(comp.width) || comp.width, height: aetoolkitCepOutputNumber(comp.height) || comp.height };
+}
 function aetoolkitCepRenderSelected(jsonText) {
     var oldQueueStates = [], newQueueItems = [], renderStarted = false;
     try {
@@ -704,9 +750,8 @@ function aetoolkitCepRenderSelected(jsonText) {
         var destination = basePath;
         var subfolder = aetoolkitCepNormalizeSubfolder(options.subfolder);
         if (subfolder) destination += "/" + subfolder;
-        destination += "/" + aetoolkitCepRenderDate();
         aetoolkitCepEnsureFolder(destination);
-        var comps = aetoolkitCepSelectedComps(), queue = app.project.renderQueue, i, queueItem, outputModule, frameRate, templateName;
+        var comps = aetoolkitCepSelectedComps(), queue = app.project.renderQueue, i, queueItem, outputModule, frameRate, dimensions, templateName;
         for (i = 1; i <= queue.numItems; i++) { oldQueueStates.push({ item: queue.item(i), render: queue.item(i).render }); queue.item(i).render = false; }
         templateName = String(options.outputTemplate);
         for (i = 0; i < comps.length; i++) {
@@ -718,7 +763,8 @@ function aetoolkitCepRenderSelected(jsonText) {
             outputModule = queueItem.outputModule(1);
             // Studio naming: [compName]_[frameRate]fps_[width]x[height].[fileExtension]
             frameRate = String(Math.round(comps[i].frameRate * 1000) / 1000).replace(".", "_");
-            aetoolkitCepAssignOutputFile(queueItem, destination, comps[i].name + "_" + frameRate + "fps_" + comps[i].width + "x" + comps[i].height);
+            dimensions = aetoolkitCepOutputDimensions(outputModule, comps[i]);
+            aetoolkitCepAssignOutputFile(queueItem, destination, comps[i].name + "_" + frameRate + "fps_" + dimensions.width + "x" + dimensions.height);
 
         }
         renderStarted = true;
