@@ -19,5 +19,8 @@ for (const entry of ['CSXS', 'client', 'host', 'LICENSE', 'NOTICE']) {
   if (!existsSync(source)) throw new Error(`Missing extension entry: ${entry}`);
   cpSync(source, resolve(stage, entry), { recursive: true });
 }
+const stagedIndex = resolve(stage, 'client/index.html');
+const stagedIndexText = readFileSync(stagedIndex, 'utf8').replace(/0\.1\.\d+/g, packageJson.version);
+writeFileSync(stagedIndex, stagedIndexText);
 writeFileSync(resolve(stage, 'package.json'), JSON.stringify({ name: packageJson.name, version: packageJson.version, license: packageJson.license }, null, 2) + '\n');
 console.log(`Staged CEP extension: ${stage}`);
