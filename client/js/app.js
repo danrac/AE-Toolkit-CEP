@@ -358,6 +358,13 @@
         (sourceDiscovery.notices || []).forEach(function (notice) { var note = document.createElement("small"); note.textContent = notice; list.appendChild(note); });
         importButton.disabled = !(sourceDiscovery.records || []).some(function (record) { return record.exists; });
     }
+    function projectDisplayName(project) {
+        var name = String(project && project.name || "").replace(/\\/g, "/").replace(/\/+$/g, "");
+        var leaf = name.split("/").pop();
+        if (leaf) return leaf;
+        var root = String(project && project.root || "").replace(/\\/g, "/").replace(/\/+$/g, "");
+        return root.split("/").pop() || "Unnamed project";
+    }
     function renderActiveProject() {
         renderCompNamingFields();
         var assignedProject = activeProject(), assignedTemplate = assignedProject && templateById(assignedProject.templateId);
@@ -367,7 +374,7 @@
         var query = byId("project-search").value.toLowerCase().trim();
         clearChildren(select); var matches = state.projects.filter(function (entry) { return !query || (entry.name + " " + entry.root).toLowerCase().indexOf(query) !== -1; });
         var prompt = document.createElement("option"); prompt.value = ""; prompt.textContent = matches.length ? "Select project" : "No matching projects"; select.appendChild(prompt);
-        matches.forEach(function (entry) { var option = document.createElement("option"); option.value = entry.id; option.textContent = entry.name; select.appendChild(option); });
+        matches.forEach(function (entry) { var option = document.createElement("option"); option.value = entry.id; option.textContent = projectDisplayName(entry); select.appendChild(option); });
         if (project) { if (state.activeProjectId !== project.id) state.activeProjectId = project.id; select.value = matches.some(function (entry) { return entry.id === project.id; }) ? project.id : ""; }
         select.disabled = !project;
         for (var i = 0; i < ids.length; i++) byId(ids[i]).disabled = !project;
