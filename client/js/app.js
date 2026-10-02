@@ -248,11 +248,11 @@
         item.className = "list-item"; pathsList.className = "resolved-paths";
         Object.keys(paths).forEach(function (key) {
             if (!paths[key]) return;
-            var row = document.createElement("div"), label = document.createElement("strong"), value = document.createElement("span"), actions = document.createElement("div");
-            row.className = "resolved-path"; label.textContent = pathLabel(project, key); value.textContent = paths[key]; actions.className = "folder-row-actions";
+            var row = document.createElement("div"), label = document.createElement("strong"), actions = document.createElement("div");
+            row.className = "resolved-path"; label.textContent = pathLabel(project, key); actions.className = "folder-row-actions";
             projectActionButton(actions, "Reveal", function () { callHost("aetoolkitCepRevealFolder", paths[key], function (result) { showHostResult(result, "Opened " + paths[key]); }); });
             projectActionButton(actions, "Import", function () { callHost("aetoolkitCepImportFromFolder", paths[key], function (result) { showHostResult(result); }); });
-            row.appendChild(label); row.appendChild(value); row.appendChild(actions); pathsList.appendChild(row);
+            row.appendChild(label); row.appendChild(actions); pathsList.appendChild(row);
         });
         item.appendChild(pathsList); list.appendChild(item);
     }
@@ -302,11 +302,19 @@
     function compPresetById(id) { return compPresets().filter(function (preset) { return preset.id === id; })[0]; }
     function presetFor(prefix) { return compPresetById(byId(prefix + "-preset").value); }
     function compOptions() { var width = byId("comp-width").value, height = byId("comp-height").value, preset = presetFor("comp"); return { namingFields: activeNamingFields(), namingValues: namingValues[namingContext] || {}, width: width, height: height, fps: byId("comp-fps").value, duration: byId("comp-duration").value, format: preset ? store.compFormatCode(preset) : width + "x" + height, guideAssets: preset && preset.assets || {}, addGuides: byId("comp-add-guides").checked }; }
-    function coverOptions() { var preset = presetFor("cover"); return { width: byId("cover-width").value, height: byId("cover-height").value, fps: byId("cover-fps").value, duration: byId("cover-duration").value, format: preset ? store.compFormatCode(preset) : byId("cover-width").value + "x" + byId("cover-height").value, topLine: byId("cover-top-line").value, bottomLine: byId("cover-bottom-line").value, date: byId("cover-date").value, spot: byId("cover-spot").value }; }
+    function coverOptions() { var preset = presetFor("cover"), width = preset ? preset.width : 1920, height = preset ? preset.height : 1080; return { width: width, height: height, fps: 23.976, duration: 10, format: preset ? store.compFormatCode(preset) : width + "x" + height, topLine: byId("cover-top-line").value, bottomLine: byId("cover-bottom-line").value, date: byId("cover-date").value, spot: byId("cover-spot").value }; }
     function checkerOptions() { return { width: byId("checker-width").value, height: byId("checker-height").value, frame: byId("checker-frame").value }; }
-    function renderFormatSelect(prefix) { var select = byId(prefix + "-preset"), selected = select.value; select.innerHTML = ""; compPresets().filter(function (preset) { return prefix === "checker" || preset.kind !== "custom-checker"; }).forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = (preset.kind === "custom-checker" ? "Checker · " : "") + preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); }); var custom = document.createElement("option"); custom.value = "custom"; custom.textContent = "Custom"; select.appendChild(custom); select.value = selected && Array.prototype.some.call(select.options, function (option) { return option.value === selected; }) ? selected : "custom"; if (!selected && select.options.length) select.selectedIndex = 0; }
-    function renderFormatSelects() { renderFormatSelect("comp"); renderFormatSelect("modify"); renderFormatSelect("cover"); renderFormatSelect("checker"); renderCheckerMode(); }
-    function wireFormatPreset(prefix) { byId(prefix + "-preset").onchange = function () { var preset = presetFor(prefix); if (preset) { byId(prefix + "-width").value = preset.width; byId(prefix + "-height").value = preset.height; } if (prefix === "checker") renderCheckerMode(); }; }
+    function renderFormatSelect(prefix) { var select = byId(prefix + "-preset"), selected = select.value; select.innerHTML = ""; compPresets().filter(function (preset) { return prefix === "checker" || preset.kind !== "custom-checker"; }).forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = (preset.kind === "custom-checker" ? "Checker · " : "") + preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); }); if (prefix !== "cover") { var custom = document.createElement("option"); custom.value = "custom"; custom.textContent = "Custom"; select.appendChild(custom); } select.value = selected && Array.prototype.some.call(select.options, function (option) { return option.value === selected; }) ? selected : ""; if (!selected && select.options.length) select.selectedIndex = 0; }
+    function syncCreateCompFormatFields() {
+        var custom = byId("comp-preset").value === "custom";
+        ["comp-width", "comp-height", "comp-fps", "comp-duration"].forEach(function (id) { byId(id).disabled = !custom; });
+    }
+    function syncModifyFormatFields() {
+        var custom = byId("modify-preset").value === "custom";
+        ["modify-width", "modify-height", "modify-target-fps"].forEach(function (id) { byId(id).disabled = !custom; });
+    }
+    function renderFormatSelects() { renderFormatSelect("comp"); renderFormatSelect("modify"); renderFormatSelect("cover"); renderFormatSelect("checker"); renderCheckerMode(); syncCreateCompFormatFields(); syncModifyFormatFields(); }
+    function wireFormatPreset(prefix) { byId(prefix + "-preset").onchange = function () { var preset = presetFor(prefix), width = byId(prefix + "-width"), height = byId(prefix + "-height"); if (preset && width && height) { width.value = preset.width; height.value = preset.height; } if (prefix === "comp") syncCreateCompFormatFields(); if (prefix === "modify") syncModifyFormatFields(); if (prefix === "checker") renderCheckerMode(); }; }
     function startCompPresetDraft(preset) { preset = preset || { id: "", name: "", width: "", height: "", assets: { matte: "", chartOne: "" } }; compPresetDraft = { id: preset.id || "", name: preset.name || "", formatCode: preset.id ? store.compFormatCode(preset) : "", width: preset.width || "", height: preset.height || "", assets: copy(preset.assets || {}) }; }
     function renderCompPresetForm() { var select = byId("saved-comp-preset"); select.innerHTML = ""; compPresets().forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); }); if (compPresetDraft.id) select.value = compPresetDraft.id; byId("saved-comp-preset-name").value = compPresetDraft.name; byId("saved-comp-preset-code").value = compPresetDraft.formatCode; byId("saved-comp-preset-width").value = compPresetDraft.width; byId("saved-comp-preset-height").value = compPresetDraft.height; select.value = compPresetDraft.id || ""; byId("remove-comp-preset").disabled = !compPresetDraft.id; renderFormatAssets(); }
     function renderFormatAssets() {
@@ -324,8 +332,9 @@
         });
     }
     function renderCheckerMode() {
-        var preset = presetFor("checker"), custom = !!(preset && preset.kind === "custom-checker");
+        var preset = presetFor("checker"), custom = !!(preset && preset.kind === "custom-checker"), manual = byId("checker-preset").value === "custom";
         ["checker-width", "checker-height"].forEach(function (id) { byId(id).parentNode.hidden = custom; });
+        ["checker-width", "checker-height", "checker-frame"].forEach(function (id) { byId(id).disabled = !manual || custom; });
         byId("checker-frame-field").hidden = custom; byId("checker-job-field").hidden = !custom;
         if (custom && !byId("checker-job-code").value) {
             var values = namingValues[namingContext] || {}, fields = activeNamingFields(), jobField = fields.filter(function (field) { return field.id === "job" || field.label.toLowerCase() === "job"; })[0];

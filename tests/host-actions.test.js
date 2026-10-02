@@ -220,6 +220,16 @@ assert.equal(editComp.height, 2160);
 assert.equal(editComp.frameRate, 25);
 assert.equal(editComp.name, 'New Main_01');
 assert.equal(editComp.layerParentsChanged, false);
+function ResizeLayer(name, locked) { this.name = name; this.locked = !!locked; this.parent = null; this.threeDLayer = false; }
+const resizeLayers = [new ResizeLayer('Background'), new ResizeLayer('Graphic', true)];
+const resizeParent = { name: '', locked: false, parent: null, threeDLayer: false, position: { values: [], setValue(value) { this.values.push(value); } }, remove() { this.removed = true; } };
+const resizeComp = { width: 1920, height: 1080, duration: 10, numLayers: 2, layer(index) { return resizeLayers[index - 1]; }, layers: { addNull() { resizeLayers.unshift(resizeParent); return resizeParent; } } };
+editContext.aetoolkitCepResizeCompCentered(resizeComp, 3840, 2160);
+assert.deepEqual(resizeParent.position.values, [[960, 540], [1920, 1080]]);
+assert.equal(resizeComp.width, 3840); assert.equal(resizeComp.height, 2160);
+assert.equal(resizeLayers[1].parent, null); assert.equal(resizeLayers[2].parent, null);
+assert.equal(resizeLayers[2].locked, true); assert.equal(resizeParent.removed, true);
+console.log('PASS comp resize centers layers through a temporary parent null and restores hierarchy state');
 editContext.app.project.selection = [new ProjectItem('A[Old].mov'), new ProjectItem('Old_B')];
 const renamed = JSON.parse(editContext.aetoolkitCepRenameSelectedItems(JSON.stringify({ operation: 'replace', find: 'Old', replace: 'New', start: 1 })));
 assert.equal(renamed.renamed, 2);
@@ -557,14 +567,15 @@ console.log('PASS custom fields, version format, removal and order reach comp cr
 {
     const shared = {name:'Background',width:1920,height:1080,pixelAspect:1,mainSource:new SolidSource()}; shared.mainSource.color=[1,0,0];
     const anchor = {value:[960,540],numKeys:0,setValue(value){this.value=value}};
+    const position = {value:[320,240],numKeys:0,setValue(value){this.value=value}};
     const layer = new AVLayer(); layer.source=shared; layer.locked=true;
-    layer.replaceSource=function(source){this.source=source}; layer.property=()=>({property:()=>anchor});
+    layer.replaceSource=function(source){this.source=source}; layer.property=()=>({property(name){return name==='ADBE Anchor Point'?anchor:position;}});
     let removed = false;
     const comp = {width:1080,height:1920,pixelAspect:1,duration:10,numLayers:1,layer:()=>layer,layers:{addSolid(color,name,width,height,pixelAspect){return {source:{name,width,height,pixelAspect},remove(){removed=true}}}}};
     conformContext.aetoolkitCepConformCompSolids(comp);
     assert.equal(layer.source.width,1080); assert.equal(layer.source.height,1920);
     assert.equal(shared.width,1920); assert.equal(shared.height,1080);
-    assert.deepEqual(anchor.value,[540,960]); assert.equal(layer.locked,true); assert(removed);
+    assert.deepEqual(anchor.value,[540,960]); assert.deepEqual(position.value,[540,960]); assert.equal(layer.locked,true); assert(removed);
     console.log('PASS comp solid conform creates independent sources, preserves locks, and shifts anchor center');
 }
 

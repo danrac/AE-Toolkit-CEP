@@ -23,6 +23,7 @@ button:hover { background: #334253; }
 .card { background: #1c242d; border: 1px solid #647d94; border-top: 2px solid var(--accent); border-radius: 4px; padding: 5px; margin: 6px 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
 label { display: block; color: #b9c8d8; font-size: 11px; font-weight: 500; margin-top: 7px; text-transform: uppercase; }
 input, select, textarea { display: block; width: 100%; margin-top: 5px; border: 1px solid #46596c; border-radius: 4px; padding: 5px; background: #11171d; color: #eef4fb; font: inherit; text-transform: none; }
+input:disabled, select:disabled { background: #252d36; border-color: #3d4a57; color: #7f8c99; opacity: .62; cursor: not-allowed; }
 textarea { min-height: 64px; resize: vertical; }
 .primary { width: 100%; margin-top: 8px; background: var(--accent); border-color: var(--accent); color: #151a20; font-weight: 500; }
 .quiet { padding: 4px 7px; font-size: 11px; }
@@ -45,10 +46,9 @@ textarea { min-height: 64px; resize: vertical; }
 .custom-location button { margin-bottom: 1px; }
 .add-folder { margin-top: 7px; }
 .resolved-paths { display: grid; gap: 5px; margin-top: 9px; }
-.resolved-path { display: grid; grid-template-columns: 78px 1fr auto; gap: 6px; align-items: center; font-size: 11px; }
+.resolved-path { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; font-size: 11px; }
 .folder-row-actions { display: flex; gap: 4px; }
 .folder-row-actions button { padding: 5px 8px; }
-.resolved-path span { color: #aabccc; overflow-wrap: anywhere; }
 .project-actions, .action-grid, .render-grid { display: grid; gap: 5px; margin-top: 7px; }
 .project-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .action-grid, .render-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }

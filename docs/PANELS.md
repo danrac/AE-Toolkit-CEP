@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.36**. [Home and installation](../README.md)
+For **0.1.37**. [Home and installation](../README.md)
 
 Screenshots are browser layout previews for the 0.1.33 Alpha 1 documentation. They use default values and may show no connected project; the browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
 
@@ -30,7 +30,7 @@ The first bordered destination uses the current project's Graphic Out / Outputs 
 - Without an optional subfolder: `Outputs/26_0916`.
 - With `review/v01`: `Outputs/review/v01/26_0916`.
 
-Toolbox does not create an automatic date folder. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.36.
+Toolbox does not create an automatic date folder. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.37.
 
 Output filenames follow this studio format:
 
@@ -245,7 +245,7 @@ The Projects render dropdown matches AOM names against installed AE output-modul
 
 ## Troubleshooting and validation
 
-- **Toolbar/project data fails to load:** install 0.1.36, restart After Effects, and verify the topper version. This release includes the Node/CommonJS template-store startup fix.
+- **Toolbar/project data fails to load:** install 0.1.37, restart After Effects, and verify the topper version. This release includes the Node/CommonJS template-store startup fix.
 - **Project list is empty:** clear the search filter, confirm the selected library, then Refresh. Switching libraries does not merge local records.
 - **Cannot save a shared preset:** check folder availability/write access, refresh after a revision conflict, and check for another active writer. Do not remove an active lock.
 - **Render preset unavailable:** load the AOM settings into that AE installation and refresh; matching is by exact name.

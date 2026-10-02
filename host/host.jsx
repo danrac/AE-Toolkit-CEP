@@ -1146,6 +1146,39 @@ function aetoolkitCepReplacePresetGuides(comp, assets, knownAssets) {
     aetoolkitCepAddPresetGuides(comp, assets);
     for (i = 0; i < old.length; i++) { old[i].locked = false; old[i].remove(); }
 }
+function aetoolkitCepResizeCompCentered(comp, width, height) {
+    var topLevel = [], changed = [], center, target, parent, i, layer, locked, threeD = false;
+    if (!comp.numLayers || !comp.layers || !comp.layers.addNull) { comp.width = width; comp.height = height; return; }
+    for (i = 1; i <= comp.numLayers; i++) {
+        layer = comp.layer(i);
+        if (!layer.parent) { topLevel.push(layer); if (layer.threeDLayer) threeD = true; }
+    }
+    if (!topLevel.length) { comp.width = width; comp.height = height; return; }
+    center = [comp.width / 2, comp.height / 2, 0]; target = [width / 2, height / 2, 0];
+    parent = comp.layers.addNull(comp.duration);
+    parent.name = aetoolkitCepUniqueLayerName(comp, "Toolbox resize center");
+    parent.threeDLayer = threeD;
+    parent.position.setValue(threeD ? center : [center[0], center[1]]);
+    try {
+        for (i = 0; i < topLevel.length; i++) {
+            layer = topLevel[i]; locked = layer.locked;
+            try {
+                layer.locked = false;
+                layer.parent = parent;
+                changed.push({layer:layer, locked:locked});
+            } catch (parentError) { layer.locked = locked; }
+        }
+        comp.width = width; comp.height = height;
+        parent.position.setValue(threeD ? target : [target[0], target[1]]);
+    } finally {
+        for (i = 0; i < changed.length; i++) {
+            layer = changed[i].layer;
+            try { layer.parent = null; } catch (unparentError) {}
+            try { layer.locked = changed[i].locked; } catch (lockError) {}
+        }
+        try { parent.remove(); } catch (removeError) {}
+    }
+}
 function aetoolkitCepModifySelectedComps(jsonText) {
     try {
         var options = AEToolkitJSON.parse(jsonText), updateSize = !!options.updateSize, updateFps = !!options.updateFps, renameBase = aetoolkitCepSafeName(options.renameBase), settings, comps, i;
@@ -1156,7 +1189,7 @@ function aetoolkitCepModifySelectedComps(jsonText) {
         try {
             if (updateSize && options.replaceGuides) aetoolkitCepPrepareGuideFiles(options.guideAssets || {});
             for (i = 0; i < comps.length; i++) {
-                if (updateSize) { comps[i].width = settings.width; comps[i].height = settings.height; }
+                if (updateSize) aetoolkitCepResizeCompCentered(comps[i], settings.width, settings.height);
                 if (updateSize && options.replaceGuides) aetoolkitCepReplacePresetGuides(comps[i], options.guideAssets || {}, options.knownGuideAssets || []);
                 if (updateFps) comps[i].frameRate = settings.fps;
                 if (options.conformSolids) aetoolkitCepConformCompSolids(comps[i]);
@@ -2464,27 +2497,44 @@ function aetoolkitCepReadAom(path) {
 }
 
 function aetoolkitCepConformCompSolids(comp, selected) {
-    var layers = [], count = 0, i, layer, source, temporary, replacement, locked, anchor, delta, value, k;
+    var layers = [], count = 0, i, layer, source, temporary, replacement, locked, anchor, position, anchorValue, positionValue, anchorDelta, positionDelta, targetPosition, k;
     if (selected) { for (i = 0; i < selected.length; i++) layers.push(selected[i]); }
     else for (i = 1; i <= comp.numLayers; i++) layers.push(comp.layer(i));
     for (i = 0; i < layers.length; i++) {
         layer = layers[i];
         if (!(layer instanceof AVLayer) || layer.nullLayer || !layer.source || !(layer.source.mainSource instanceof SolidSource)) continue;
         source = layer.source;
-        if (source.width === comp.width && source.height === comp.height && source.pixelAspect === comp.pixelAspect) continue;
-        // Create a dedicated source: shared solids in other comps must not change.
-        temporary = comp.layers.addSolid(source.mainSource.color, source.name, comp.width, comp.height, comp.pixelAspect, comp.duration);
-        replacement = temporary.source; temporary.remove();
+        replacement = null;
+        if (source.width !== comp.width || source.height !== comp.height || source.pixelAspect !== comp.pixelAspect) {
+            // Create a dedicated source: shared solids in other comps must not change.
+            temporary = comp.layers.addSolid(source.mainSource.color, source.name, comp.width, comp.height, comp.pixelAspect, comp.duration);
+            replacement = temporary.source; temporary.remove();
+        }
         locked = layer.locked;
         try {
             layer.locked = false;
-            delta = [(comp.width - source.width) / 2, (comp.height - source.height) / 2];
-            layer.replaceSource(replacement, false);
+            if (replacement) layer.replaceSource(replacement, false);
             count++;
             anchor = layer.property("ADBE Transform Group").property("ADBE Anchor Point");
-            if (!anchor.expressionEnabled) {
-                if (anchor.numKeys) for (k = 1; k <= anchor.numKeys; k++) { value = anchor.keyValue(k); value[0] += delta[0]; value[1] += delta[1]; anchor.setValueAtKey(k, value); }
-                else { value = anchor.value; value[0] += delta[0]; value[1] += delta[1]; anchor.setValue(value); }
+            position = layer.property("ADBE Transform Group").property("ADBE Position");
+            // Shift animated values so the new solid's anchor is centered in its source,
+            // then move the layer's anchor to the center of the composition. This keeps
+            // animation intact while making the current layer placement deterministic.
+            if (anchor && !anchor.expressionEnabled) {
+                anchorValue = anchor.value;
+                anchorDelta = [comp.width / 2 - anchorValue[0], comp.height / 2 - anchorValue[1], 0];
+                if (anchorValue.length > 2) anchorDelta[2] = 0;
+                try { aetoolkitCepPlacementShift(anchor, anchorDelta, layer.threeDLayer ? 3 : 2); } catch (anchorError) {}
+            }
+            if (position && !position.expressionEnabled) {
+                positionValue = position.value;
+                targetPosition = layer.threeDLayer ? [comp.width / 2, comp.height / 2, positionValue.length > 2 ? positionValue[2] : 0] : [comp.width / 2, comp.height / 2];
+                if (layer.parent && layer.parent.fromComp) {
+                    targetPosition = layer.parent.fromComp(layer.threeDLayer ? [comp.width / 2, comp.height / 2, 0] : [comp.width / 2, comp.height / 2]);
+                }
+                positionDelta = [targetPosition[0] - positionValue[0], targetPosition[1] - positionValue[1], 0];
+                if (positionValue.length > 2) positionDelta[2] = (targetPosition[2] || 0) - positionValue[2];
+                try { aetoolkitCepPlacementShift(position, positionDelta, layer.threeDLayer ? 3 : 2); } catch (positionError) {}
             }
         } finally { layer.locked = locked; }
     }
