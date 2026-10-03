@@ -744,7 +744,7 @@ function aetoolkitCepRenderSelected(jsonText) {
     var oldQueueStates = [], newQueueItems = [], renderStarted = false;
     try {
         if (!app.project.file) throw new Error("Save the After Effects project before rendering.");
-        var options = AEToolkitJSON.parse(jsonText), basePath = String(options.basePath || "");
+        var options = AEToolkitJSON.parse(jsonText), basePath = String(options.basePath || ""), includeFps = options.includeFps !== false;
         if (!basePath) throw new Error("The selected project has no output folder.");
         if (!options.outputTemplate) throw new Error("Choose an output preset before rendering.");
         var destination = basePath;
@@ -761,10 +761,11 @@ function aetoolkitCepRenderSelected(jsonText) {
             try { outputModule.applyTemplate(templateName); }
             catch (templateError) { throw new Error("The render template '" + templateName + "' is not installed. " + templateError.toString()); }
             outputModule = queueItem.outputModule(1);
-            // Studio naming: [compName]_[frameRate]fps_[width]x[height].[fileExtension]
+            // Studio naming: [compName]_[frameRate]fps_[width]x[height].[fileExtension].
+            // Round to three decimals to avoid binary floating-point noise.
             frameRate = String(Math.round(comps[i].frameRate * 1000) / 1000).replace(".", "_");
             dimensions = aetoolkitCepOutputDimensions(outputModule, comps[i]);
-            aetoolkitCepAssignOutputFile(queueItem, destination, comps[i].name + "_" + frameRate + "fps_" + dimensions.width + "x" + dimensions.height);
+            aetoolkitCepAssignOutputFile(queueItem, destination, comps[i].name + (includeFps ? "_" + frameRate + "fps" : "") + "_" + dimensions.width + "x" + dimensions.height);
 
         }
         renderStarted = true;

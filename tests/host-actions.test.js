@@ -120,9 +120,19 @@ for (const mode of [undefined]) {
         assert.equal(namingComp.frameRate, fps, 'Filename formatting must preserve the composition frame rate');
     }
 }
+const noFpsName = namingComp.name;
+namingComp.frameRate = 23.976023;
+renderQueue.items.add = function(comp) {
+    const item = originalAdd(comp);
+    item.outputModule(1).file = {name:'Default.mp4'};
+    return item;
+};
+assert.match(renderContext.aetoolkitCepRenderSelected(JSON.stringify({outputTemplate:'Client output',basePath:'/Job/Output',includeFps:false})),/^Rendered 1/);
+assert.equal(renderQueue._items[renderQueue._items.length-1].outputModule(1).file.fsName,'/Job/Output/' + noFpsName + '_1920x1080.mp4');
+assert.equal(namingComp.frameRate,23.976023);
 Object.assign(namingComp,savedNaming);
 renderQueue.items.add = originalAdd;
-console.log('PASS studio naming format for selected comps, including underscore-separated fractional FPS');
+console.log('PASS studio naming format for rounded fractional FPS and optional FPS suffix');
 
 const fullSize = new renderContext.CompItem('FullSize');
 fullSize.width = 3840; fullSize.height = 2160;

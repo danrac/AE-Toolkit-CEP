@@ -568,14 +568,16 @@
                 else if (result) { input.value = result; renderSubfolderValues[key] = result; }
             }); };
             label.appendChild(input); row.appendChild(label); row.appendChild(choose); section.appendChild(row);
-            var button = document.createElement("button"); button.className = "primary";
+            var actionRow = document.createElement("div"), button = document.createElement("button"), fpsLabel = document.createElement("label"), fpsCheck = document.createElement("input");
+            actionRow.className = "render-action-row"; button.className = "primary";
             button.textContent = destination.id === "outputs" ? "Render to outputs" : "Render to " + destination.label;
             button.disabled = !project || !destination.path; button.title = destination.path || "Choose a project with an output folder";
+            fpsLabel.className = "render-fps-toggle"; fpsLabel.textContent = "Include FPS"; fpsCheck.type = "checkbox"; fpsCheck.checked = true; fpsCheck.disabled = button.disabled; fpsLabel.insertBefore(fpsCheck, fpsLabel.firstChild);
             button.onclick = function () {
                 if (!byId("render-output-preset").value) { status("Choose an output preset. Refresh presets in Templates if needed.", true); return; }
-                callHost("aetoolkitCepRenderSelected", JSON.stringify({ outputTemplate: byId("render-output-preset").value, basePath: destination.path, subfolder: input.value }), function (result) { showHostResult(result); });
+                callHost("aetoolkitCepRenderSelected", JSON.stringify({ outputTemplate: byId("render-output-preset").value, basePath: destination.path, subfolder: input.value, includeFps: fpsCheck.checked }), function (result) { showHostResult(result); });
             };
-            section.appendChild(button); container.appendChild(section);
+            actionRow.appendChild(button); actionRow.appendChild(fpsLabel); section.appendChild(actionRow); container.appendChild(section);
         });
     }
     var aomPresetNames = null;

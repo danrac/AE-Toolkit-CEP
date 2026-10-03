@@ -2,7 +2,7 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.37.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.37) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.37.md)
+**Documented version: 0.1.38.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.38) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.38.md)
 
 ## User guide
 
@@ -49,7 +49,7 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Menu and dialog headings use consistent title case across the panel.
 - Animation and layers separates the cubic Bézier Key graph and Placement tools into remembered tabs. Keyframed Step and Repeat and Set Anchor operations preserve the existing animation.
 - Fade in/out uses named layer markers plus an opacity expression. Reuse the fade buttons to create the markers, then drag `fadeIn_start`/`fadeIn_end` or `fadeOut_start`/`fadeOut_end` in the timeline to adjust timing without a duration field.
-- The 0.1.37 build centers conformed solids and resized compositions, hides resolved project paths, and makes format presets control the Create/Modify fields.
+- The 0.1.38 build adds optional FPS filename suffixes with rounded frame rates and places Renamer at the bottom of Cleanup / Collect.
 
 ## Compatibility and limits
 
@@ -72,7 +72,7 @@ Before releasing host changes, run `tests/after-effects-load-check.jsx` through 
 
 Published GitHub releases trigger the workflow that signs and attaches `AE-Toolkit-CEP-v<version>.zxp`. Configure repository secrets `ZXP_CERT_BASE64` and `ZXP_CERT_PASSWORD`; optionally set `ZXP_TSA_URL`. For local signing, set `ZXPSIGNCMD_PATH`, `ZXP_CERT_PATH`, and `ZXP_CERT_PASSWORD`, then run `npm run package:zxp`. Never commit signing material.
 
-Use a distinct package version for each distributed build so installers can distinguish updates. The current release tag is `v0.1.37`.
+Use a distinct package version for each distributed build so installers can distinguish updates. The current release tag is `v0.1.38`.
 
 ## License and credit
 

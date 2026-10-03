@@ -103,22 +103,6 @@
         <label>Name<input id="modify-name-base" placeholder="Campaign_Main"></label>
         <button id="modify-comps" class="primary">Modify composition</button>
       </details>
-      <details class="card module-panel" data-panel="rename-selected-project-items" open>
-        <summary>Renamer</summary>
-
-        <div class="field-grid rename-fields">
-          <label class="rename-operation">Operation<select id="rename-operation">
-            <option value="replace">Find and replace</option>
-            <option value="prefix">Add prefix</option>
-            <option value="suffix">Add suffix</option>
-            <option value="number">Append sequence</option>
-            <option value="remove">Remove text</option>
-          </select></label>
-          <label id="rename-find-field"><span id="rename-find-label">Search</span><input id="rename-find" placeholder="Search"></label>
-          <label id="rename-replace-field">Replace<input id="rename-replace" placeholder="Replace"></label>
-        </div>
-        <button id="rename-selected" class="primary">Rename selected items</button>
-      </details>
     </section>
 
     <section id="covers-checkers" class="view">
@@ -181,6 +165,22 @@
         <summary>Collect Project</summary>
 
         <button id="collect-project" class="primary" title="Collect the project and its source files">Collect</button>
+      </details>
+      <details class="card module-panel" data-panel="rename-selected-project-items" open>
+        <summary>Renamer</summary>
+
+        <div class="field-grid rename-fields">
+          <label class="rename-operation">Operation<select id="rename-operation">
+            <option value="replace">Find and replace</option>
+            <option value="prefix">Add prefix</option>
+            <option value="suffix">Add suffix</option>
+            <option value="number">Append sequence</option>
+            <option value="remove">Remove text</option>
+          </select></label>
+          <label id="rename-find-field"><span id="rename-find-label">Search</span><input id="rename-find" placeholder="Search"></label>
+          <label id="rename-replace-field">Replace<input id="rename-replace" placeholder="Replace"></label>
+        </div>
+        <button id="rename-selected" class="primary">Rename selected items</button>
       </details>
     </section>
 
