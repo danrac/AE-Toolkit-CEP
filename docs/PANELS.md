@@ -1,8 +1,8 @@
 # Toolbox 2 panel guide
 
-For **0.1.38**. [Home and installation](../README.md)
+For **0.1.39**. [Home and installation](../README.md) · [Client formats and CSV guide](CLIENT-FORMATS.md)
 
-Screenshots are browser layout previews for the 0.1.33 Alpha 1 documentation. They use default values and may show no connected project; the browser cannot execute AE host operations. Scroll inside the panel to reach modules below the visible area.
+The client-format screenshots were refreshed for 0.1.39 using the bundled-assets Example Studio CSV. Other sections retain earlier 0.1.33 browser layout previews where noted. Preview saves are simulated; native actions require AE. Scroll inside the panel to reach modules below the visible area.
 
 ## Navigation and saved layout
 
@@ -18,7 +18,7 @@ Search by project name or root path, then select a result in the dropdown. **Ref
 
 The button beneath the project selector shows its assigned template. Click it to choose another template, then **Save** to store the assignment for that project or **Cancel** to leave it unchanged. Saving refreshes folder mappings and composition naming; existing files and comps are not moved or renamed.
 
-**Open project file** opens the connected project's AE file; **Reveal project root** opens its root folder. The folder list below resolves the template's AE Projects, Assets, Graphic In, Graphic Out, Style Frames, and custom locations against that root. Each folder provides adjacent **Reveal** and **Import** actions. Saving a project preset refreshes the mappings used by connected projects.
+**Open project file** opens the connected project's AE file; **Reveal project root** opens its root folder. The folder list below shows only folder labels, with adjacent **Reveal** and **Import** actions. Paths still resolve against the project root internally. Saving a project preset refreshes the mappings used by connected projects.
 
 ### Render to outputs
 
@@ -27,10 +27,10 @@ Choose **Output Presets**, enter or choose an Optional subfolder if needed, then
 The first bordered destination uses the current project's Graphic Out / Outputs mapping. Custom locations marked **Render output** in the project preset add more bordered sections below it, each with its own Optional subfolder, Choose subfolder, and **Render to [location]** button. Subfolder values are independent per project, template, and destination during the panel session:
 
 
-- Without an optional subfolder: `Outputs/26_0916`.
-- With `review/v01`: `Outputs/review/v01/26_0916`.
+- Without an optional subfolder: `Outputs/`.
+- With `review/v01`: `Outputs/review/v01/`.
 
-Toolbox does not create an automatic date folder. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.38.
+Toolbox does not create an automatic date folder. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.39.
 
 Output filenames follow this studio format:
 
@@ -40,6 +40,8 @@ Output filenames follow this studio format:
 
 For example: `ABA_9x16_A_new_v01_dr_23_976fps_1080x1920.mp4`.
 The comp name is preserved, FPS uses up to three decimal places with an underscore replacing the decimal point (`23_976fps`, `29_97fps`, `59_94fps`; whole rates remain `24fps`). This only formats the filename; the composition frame rate is unchanged. Width and height come from the selected output module's render settings, so a half-size 3840×2160 comp is named with `1920x1080`. If AE does not expose render dimensions for a preset, the comp dimensions are used as a fallback. The extension comes from AE's output module. Image sequences retain the preset's frame-number suffix before the extension so individual frames have unique filenames.
+
+**Include FPS** beside each render button defaults on. Clear it to omit the FPS segment, for example `ABA_9x16_A_new_v01_dr_1080x1920.mp4`.
 
 The selected output-module name is applied to AE's installed template of exactly that name. AE supplies the extension and sequence numbering. Existing render-queue enabled states are restored after the workflow. Save the AE project and select comps before rendering. See [Load AOM presets](#load-aom-presets) for setup.
 
@@ -61,46 +63,40 @@ The color-space line reads the current project's working space when applicable, 
 
 ## Create / Modify
 
-![Composition creation, modification, and renaming](images/create-modify.png)
+![Client-filtered composition creation and modification](images/create-modify-0.1.39.jpg)
 
 ### Create composition
 
-Choose a format or Custom, then set dimensions, FPS, and duration. Naming inputs follow the current project template and expand to fill available rows. The live preview shows the resulting name; empty text fields are omitted.
+Choose a Client and format. Existing formats remain under Default; selecting another client filters the format list. Preset selection fills and mutes dimensions, FPS, and duration. Choose Custom to edit these values. Preset FPS comes from the saved definition; older formats without FPS use 23.976. Naming inputs follow the current project template. The live preview shows the resulting name; empty text fields are omitted.
 
 The default order is `Job_Format_Style_Description_v01_Initials`. The format uses a separate naming code: 9:16 TikTok safe produces `9x16`, not its display label. Example: `ABA_9x16_A_NewCard_v01_DR`.
 
-**Add this format’s stored guide assets** is enabled by default. The selected format's mattes/guides are imported as guide layers when checked.
+**Add this format’s stored guide assets** is enabled by default. The selected format's reference layers are centered, with Guide 1, Guide 2, other guides, then mattes. Guides use 50% opacity; mattes use 100%. Both are non-rendering guide layers. Missing files stop creation before a partial comp is created.
 
 ### Modify composition
 
-Select comps in AE's Project panel. Choose this module's independent format dropdown and dimensions. Enable only the operations required:
+Select comps in AE's Project panel. Choose this module's independent Client and Format selectors. A preset mutes its dimensions and FPS fields; Custom enables manual values. Enable only the operations required:
 
 | Option | Effect |
 | --- | --- |
 | Size | Updates dimensions; a preset replaces existing Toolbox format guides with its own assets. Custom dimensions retain existing guides. |
-| FPS | Applies the entered frame rate. |
+| FPS | Applies the preset FPS, or the entered Custom frame rate. |
 | Rename | Applies the requested name. |
 | Conform solids | Conforms direct solid layers inside the modified comps to their dimensions. |
 
-Other layers and unrelated user guide layers are preserved; duration remains unchanged. This is not the original temporary-null content-resizing workflow. Conforming does not recurse into nested comps and uses separate solid sources so other comps sharing the original solid are not changed. Expression-driven anchor points are left intact.
-
-### Renamer
-
-![Modify composition and Renamer](images/renamer.png)
-
-Apply Find and replace, Add prefix, Add suffix, Append sequence, or Remove text to selected project items. Search text is literal: characters such as `[` and `.` are not regular-expression commands.
+Resizing uses a temporary centered null to move top-level layer hierarchies from the old comp center to the new center, then restores parenting and lock states. Duration stays unchanged. Conforming acts on direct solid layers, creates separate sources to protect shared originals, centers the anchor and layer, and shifts existing transform keys. Expression-driven transform properties are left intact.
 
 ## Covers / Checkers
 
-![Cover and checker controls](images/covers-checkers.png)
+![Cover and client-filtered checker controls](images/covers-checkers-0.1.39.jpg)
 
 ### Create cover
 
-Choose a format, dimensions, duration, and FPS. Fill Top line, Bottom line, Date, and Spot / version, then click **Create cover**. The result is an editable AE comp with background and named text layers.
+Choose a format, then fill Top line, Bottom line, Date, and Spot / version and click **Create cover**. Dimensions and FPS follow the format, and duration defaults to 10 seconds; those numeric controls are hidden. The result is an editable AE comp with background and named text layers.
 
 ### Create Checkers
 
-Select graphic comps in AE and choose a format. General checkers use the Width, Height, and **Checker frame** controls; the chosen frame is held. Custom presets instead import their saved template and preserve its timing. Custom presets require a Job code and do not use the General checker held-frame setting.
+This panel is below Create Cover in Covers / Checkers. Select graphic comps in AE, choose a Client, then a format. General presets determine Width, Height, and FPS and add their stored guides/mattes. The Checker frame defaults to 10 and is held using the graphic comp's frame rate. Custom in the format dropdown unlocks the general fields. Native custom presets instead import their saved template and preserve its timing; they require a Job code and do not use the General checker held-frame setting.
 
 Each selected graphic creates its own checker. Render the generated comps using **Projects → Render to outputs → Render to outputs**.
 
@@ -108,7 +104,7 @@ Each selected graphic creates its own checker. Render the generated comps using 
 
 1. Prepare a dedicated project containing checker templates and their dependencies. Save it as `.aep` or `.aepx` with no unsaved changes.
 2. Include a precomp layer named exactly `REPLACE THIS LAYER WITH GRAPHIC COMP` and a text layer named exactly `XXXX`. These may be nested. Disable source-text expressions on `XXXX`.
-3. Select the template comps and use **Templates → Create aspect ratio presets → Create Custom → Use selected comps**. Batch selection creates multiple presets.
+3. Select the template comps and use **Templates → Create Checker Presets → Create Custom**, set the Client, then **Use selected comps**. The Create Custom shortcut in Create Aspect Ratio Presets opens the same capture flow. Batch selection creates multiple presets.
 4. Choose the resulting custom preset in Create Checkers, enter the Job code, select the graphic comps, and create.
 
 The graphic source is replaced **in place**, keeping layer order, transforms, and template timing. `XXXX` receives the Job code while retaining text styling. Other layers, artwork, visibility, and expressions remain in the native template. Other text labels are not automatically rewritten.
@@ -163,6 +159,10 @@ Copies selected file-based footage into the current project's Assets location wi
 
 **Collect** opens AE's native Collect Files dialog. Choose the collection options and destination there to finish; the button is not an unattended collector.
 
+### Renamer
+
+Renamer is the final panel in Cleanup / Collect. Apply Find and replace, Add prefix, Add suffix, Append sequence, or Remove text to selected project items. Search text is literal: characters such as `[` and `.` are not regular-expression commands.
+
 ## Tools
 
 ![Timing, animation, layer, transform, and text tools](images/tools.png)
@@ -183,7 +183,7 @@ The Conform solids icon applies only to selected solid layers. Use the Modify co
 
 ## Templates
 
-![Shared resources, aspect ratios, and project setup](images/templates.png)
+![Shared resources, aspect ratios, and checker preset controls](images/templates-0.1.39.jpg)
 
 ### Shared resources
 
@@ -201,11 +201,17 @@ A save lock blocks concurrent writes, and revision checks reject outdated saves.
 
 ### Create aspect ratio presets
 
-Select an existing format to **Edit** or **Remove**, or choose **Create General** / **Create Custom**.
+Choose a Client, then an existing format to Edit or Remove, or choose Create General / Create Custom. Add registers a client; Remove moves that client's presets to Default. Default remains available and cannot be removed.
 
-![General format dialog with stacked matte and guide rows](images/general-format.png)
+![General format dialog with Client, FPS, and stacked matte/guide rows](images/general-format-0.1.39.jpg)
 
-**Create General** exposes Name, Naming code, Width, Height, and a list of matte/guide assets. A new format starts with one Matte and one Guide row. **Add guide** adds a row; each row can change type, choose a file, or be removed. Save format stores the preset and assets for Create/Modify.
+**Create General** exposes Name, Client, Naming code, Width, Height, FPS, and a list of matte/guide assets. A new format starts with one Matte and one Guide row. Add guide adds a row; each row can change type, choose a file, or be removed. Save format stores the preset and assets for Create/Modify.
+
+The full-width **Read CSV** button opens a file browser, applies valid new/changed rows to the selected library, then shows a results popup. Reimporting unchanged rows adds no duplicates. See [the CSV guide](CLIENT-FORMATS.md) and [bundled-assets example](examples/client-formats.csv).
+
+### Create Checker Presets
+
+This separate panel uses the same Client, Add/Remove, Edit, Create General/Create Custom, and full-width Read CSV controls. General definitions store target dimensions, FPS, and guide/matte references. Native custom captures store the template project and media with client assignment. CSV imports populate both aspect-ratio and general-checker definitions in one operation; the Create Checkers format list filters them by client.
 
 **Create Custom** captures the selected native checker comps; see [template preparation](#custom-checker-template-preparation). Removing a preset removes it from selection without deleting existing comps or package media. Preset data belongs to the currently selected library, so shared-library changes can affect other users after refresh.
 
@@ -245,7 +251,7 @@ The Projects render dropdown matches AOM names against installed AE output-modul
 
 ## Troubleshooting and validation
 
-- **Toolbar/project data fails to load:** install 0.1.38, restart After Effects, and verify the topper version. This release includes the Node/CommonJS template-store startup fix.
+- **Toolbar/project data fails to load:** install 0.1.39, restart After Effects, and verify the topper version. This release includes the Node/CommonJS template-store startup fix.
 - **Project list is empty:** clear the search filter, confirm the selected library, then Refresh. Switching libraries does not merge local records.
 - **Cannot save a shared preset:** check folder availability/write access, refresh after a revision conflict, and check for another active writer. Do not remove an active lock.
 - **Render preset unavailable:** load the AOM settings into that AE installation and refresh; matching is by exact name.

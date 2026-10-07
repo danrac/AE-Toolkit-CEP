@@ -295,6 +295,20 @@ assert.equal(canvasComps[1].name, 'CKR_01_Promo');
 assert.equal(canvasComps[1].layers.entries[0].timeRemapEnabled, true);
 assert.deepEqual(canvasComps[1].layers.entries[0].property().values, [[0, 10 / 24], [10, 10 / 24]]);
 console.log('PASS host creates native editable covers and held-frame checkers');
+const checkerGuides = {matte:'/shared/matte.png',chartOne:'/shared/safe.png',chartTwo:'/shared/grid.png'};
+let preparedCheckerGuides, addedCheckerGuides, targetChecker;
+coverContext.aetoolkitCepPrepareGuideFiles = function(assets) { preparedCheckerGuides = assets; };
+coverContext.aetoolkitCepAddPresetGuides = function(comp,assets) { targetChecker = comp; addedCheckerGuides = assets; };
+const guidedCheckers = JSON.parse(coverContext.aetoolkitCepCreateCheckers(JSON.stringify({width:1080,height:1920,fps:25,frame:10,guideAssets:checkerGuides})));
+assert.equal(guidedCheckers.created,1);
+assert.deepEqual(preparedCheckerGuides,checkerGuides); assert.deepEqual(addedCheckerGuides,checkerGuides);
+assert.equal(targetChecker.width,1080); assert.equal(targetChecker.height,1920);
+assert.equal(targetChecker.frameRate,25,'A checker uses the template FPS even when its graphic comp has another FPS');
+const beforeMissingGuide = canvasComps.length;
+coverContext.aetoolkitCepPrepareGuideFiles = function() { throw new Error('Guide file is unavailable'); };
+assert.match(coverContext.aetoolkitCepCreateCheckers(JSON.stringify({width:1080,height:1920,frame:10,guideAssets:checkerGuides})),/Guide file is unavailable/);
+assert.equal(canvasComps.length,beforeMissingGuide);
+console.log('PASS checker presets add all configured guides at the target size and preflight unavailable guides');
 
 function FolderItem(name, items) { this.name = name; this._items = items || []; this.numItems = this._items.length; }
 FolderItem.prototype.item = function (index) { return this._items[index - 1]; };

@@ -198,7 +198,13 @@
         if (!name) throw new Error("Preset name is required.");
         if (!isFinite(width) || Math.floor(width) !== width || width < 1 || width > 30000) throw new Error("Preset width must be between 1 and 30000.");
         if (!isFinite(height) || Math.floor(height) !== height || height < 1 || height > 30000) throw new Error("Preset height must be between 1 and 30000.");
-        return { id: preset.id || idFromName(name), name: name, formatCode: compFormatCode(preset), width: width, height: height, assets: Object.keys(assets).reduce(function (result, key) { if (!/^(matte|chartOne|chartTwo|matte_[a-z0-9]+|guide_[a-z0-9]+)$/.test(key)) throw new Error("Invalid guide entry."); result[key] = String(assets[key] || ""); return result; }, {}) };
+        var normalized = { id: preset.id || idFromName(name), name: name, formatCode: compFormatCode(preset), width: width, height: height, assets: Object.keys(assets).reduce(function (result, key) { if (!/^(matte|chartOne|chartTwo|matte_[a-z0-9]+|guide_[a-z0-9]+)$/.test(key)) throw new Error("Invalid guide entry."); result[key] = String(assets[key] || ""); return result; }, {}) };
+        if (preset.client) normalized.client = String(preset.client).trim();
+        if (preset.importSource) normalized.importSource = preset.importSource;
+        if (preset.kind === "general-checker") normalized.kind = preset.kind;
+        normalized.fps = preset.fps === undefined || preset.fps === "" ? 23.976 : Number(preset.fps);
+        if (!isFinite(normalized.fps) || normalized.fps < 1 || normalized.fps > 240) throw new Error("Preset FPS must be between 1 and 240.");
+        return normalized;
     }
     function compPresets(state) {
         var saved = state.compPresets || [], defaults = defaultCompPresets(), legacy = { hd: "HD", uhd: "UHD", square: "Square", vertical: "Vertical" };

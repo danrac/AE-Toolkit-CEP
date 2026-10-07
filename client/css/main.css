@@ -251,6 +251,10 @@ input, select, textarea { font-weight: 400; }
 .current-project-selector select { margin: 0; }
 
 .render-destinations { display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
+.csv-import-review { max-height: 210px; overflow: auto; margin-top: 7px; }
+.csv-import-review p { margin-bottom: 5px; }
+.csv-import-entry { padding: 5px; margin-bottom: 3px; border: 1px solid #46596c; border-radius: 4px; }
+.csv-import-review small { display: block; padding: 3px 0; color: #e1ac95; }
 .render-destinations button { width: 100%; }
 .project-folder-settings .custom-location .custom-render-toggle { display: flex; align-items: center; gap: 6px; }
 .custom-render-toggle input { width: auto; margin: 0; }

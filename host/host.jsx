@@ -610,6 +610,19 @@ function aetoolkitCepChooseProjectRoot() {
         return folder ? folder.fsName : "";
     } catch (error) { return "ERROR: " + error.toString(); }
 }
+function aetoolkitCepChooseFormatCSV() {
+    var file, opened = false;
+    try {
+        file = File.openDialog("Choose client formats CSV", function (entry) { return entry instanceof Folder || /\.csv$/i.test(entry.name); });
+        if (!file) return "";
+        if (!file.exists || !/\.csv$/i.test(file.name)) throw new Error("Choose an existing CSV file.");
+        if (file.length > 4 * 1024 * 1024) throw new Error("Formats CSV exceeds the 4 MB limit.");
+        file.encoding = "UTF-8"; opened = file.open("r");
+        if (!opened) throw new Error("Cannot read the formats CSV.");
+        return AEToolkitJSON.stringify({path:file.fsName,text:file.read()});
+    } catch (error) { return "ERROR: " + error.toString(); }
+    finally { if (opened) file.close(); }
+}
 function aetoolkitCepRevealFolder(pathText) {
     try {
         var folder = new Folder(pathText);
@@ -1051,12 +1064,14 @@ function aetoolkitCepCompDimensions(options) {
 function aetoolkitCepCreateComp(jsonText) {
     try {
         var options = AEToolkitJSON.parse(jsonText), settings = aetoolkitCepCompDimensions(options), name = aetoolkitCepBuildCompName(options, 1), comp;
+        if (options.addGuides) aetoolkitCepPrepareGuideFiles(options.guideAssets || {});
         app.beginUndoGroup("AE Toolkit CEP: Create composition");
         try {
             comp = app.project.items.addComp(name, settings.width, settings.height, 1, settings.duration, settings.fps);
             comp.label = 14;
             if (options.addGuides) aetoolkitCepAddPresetGuides(comp, options.guideAssets || {});
-        } finally { app.endUndoGroup(); }
+        } catch (creationError) { if (comp) comp.remove(); throw creationError; }
+        finally { app.endUndoGroup(); }
         return AEToolkitJSON.stringify({ id: comp.id, name: comp.name, width: comp.width, height: comp.height, fps: comp.frameRate });
     } catch (error) { return "ERROR: " + error.toString(); }
 }
@@ -1108,14 +1123,22 @@ function aetoolkitCepGuideFootage(file) {
     return app.project.importFile(new ImportOptions(file));
 }
 function aetoolkitCepAddPresetGuides(comp, assets) {
-    var keys = aetoolkitCepGuideKeys(assets), i, path, file, footage, layer;
-    for (i = 0; i < keys.length; i++) {
+    var keys = aetoolkitCepGuideKeys(assets), ordered = [], i, path, file, footage, layer;
+    // Define top-to-bottom order explicitly; reverse insertion keeps all guides above mattes.
+    if (assets.chartOne) ordered.push("chartOne");
+    if (assets.chartTwo) ordered.push("chartTwo");
+    for (i = 0; i < keys.length; i++) if (keys[i].indexOf("matte") !== 0 && keys[i] !== "chartOne" && keys[i] !== "chartTwo") ordered.push(keys[i]);
+    if (assets.matte) ordered.push("matte");
+    for (i = 0; i < keys.length; i++) if (keys[i].indexOf("matte") === 0 && keys[i] !== "matte") ordered.push(keys[i]);
+    keys = ordered;
+    for (i = keys.length - 1; i >= 0; i--) {
         path = assets[keys[i]];
         if (!path) continue;
         file = aetoolkitCepResolveGuideAsset(path);
         if (!file.exists) throw new Error("Stored " + keys[i] + " guide file is unavailable: " + file.fsName);
         footage = aetoolkitCepGuideFootage(file);
         layer = comp.layers.add(footage);
+        if (layer.moveToBeginning) layer.moveToBeginning();
         layer.guideLayer = true;
         layer.comment = "Toolbox2:format-guide:" + keys[i];
         try { layer.transform.position.setValue([comp.width / 2, comp.height / 2]); } catch (positionError) {}
@@ -1293,16 +1316,18 @@ function aetoolkitCepSetCheckerHold(layer, sourceComp, targetComp, frame) {
 function aetoolkitCepCreateCheckers(jsonText) {
     try {
         var options = AEToolkitJSON.parse(jsonText), width = aetoolkitCepNumber(options.width, "Width", 1, 30000, true), height = aetoolkitCepNumber(options.height, "Height", 1, 30000, true), frame = aetoolkitCepNumber(options.frame, "Frame", 0, 999999, true), comps = aetoolkitCepSelectedComps(), i, source, checker, sourceLayer;
+        aetoolkitCepPrepareGuideFiles(options.guideAssets || {});
         app.beginUndoGroup("AE Toolkit CEP: Create checkers");
         try {
             for (i = 0; i < comps.length; i++) {
                 source = comps[i];
-                checker = app.project.items.addComp("CKR_" + aetoolkitCepPadNumber(i + 1, 2) + "_" + aetoolkitCepSafeName(source.name), width, height, source.pixelAspect || 1, source.duration, source.frameRate);
+                checker = app.project.items.addComp("CKR_" + aetoolkitCepPadNumber(i + 1, 2) + "_" + aetoolkitCepSafeName(source.name), width, height, source.pixelAspect || 1, source.duration, options.fps ? aetoolkitCepNumber(options.fps, "FPS", 1, 240, false) : source.frameRate);
                 checker.label = 14;
                 sourceLayer = checker.layers.add(source);
                 try { sourceLayer.transform.position.setValue([width / 2, height / 2]); } catch (positionError) {}
                 aetoolkitCepSetCheckerHold(sourceLayer, source, checker, frame);
-                aetoolkitCepAddTextLayer(checker, "Checker info", source.name + "  |  frame " + frame + "  |  " + source.frameRate + " fps", [10, height - 14], 13, 45);
+                aetoolkitCepAddTextLayer(checker, "Checker info", source.name + "  |  frame " + frame + "  |  " + checker.frameRate + " fps", [10, height - 14], 13, 45);
+                aetoolkitCepAddPresetGuides(checker, options.guideAssets || {});
             }
         } finally { app.endUndoGroup(); }
         return AEToolkitJSON.stringify({ created: comps.length });
@@ -2184,7 +2209,7 @@ function aetoolkitCepListCheckerTemplates(jsonText) {
         for (i = 0; i < folders.length; i++) if (folders[i] instanceof Folder && new File(folders[i].fsName + "/template.json").exists) {
             try {
                 data = aetoolkitCepReadCheckerManifest(folders[i]);
-                for (j = 0; j < data.templates.length; j++) { entry = data.templates[j]; records.push({id: "custom-" + folders[i].name + "-" + j, kind: "custom-checker", name: entry.name, width: entry.width, height: entry.height, packageId: folders[i].name, templateIndex: j, assets: {}}); }
+                for (j = 0; j < data.templates.length; j++) { entry = data.templates[j]; records.push({id: "custom-" + folders[i].name + "-" + j, kind: "custom-checker", client:entry.client || "Default", name: entry.name, width: entry.width, height: entry.height, packageId: folders[i].name, templateIndex: j, assets: {}}); }
             } catch (error) { notices.push(folders[i].name + ": " + error.toString()); }
         }
         return AEToolkitJSON.stringify({root:root.fsName, presets:records, notices:notices});
@@ -2225,7 +2250,7 @@ function aetoolkitCepCaptureCheckerTemplates(jsonText) {
             aetoolkitCepValidateChecker(comps[i]);
             var path = aetoolkitCepCompPath(comps[i]);
             for (j = 1; j <= app.project.numItems; j++) { item = app.project.item(j); if (item !== comps[i] && item instanceof CompItem && AEToolkitJSON.stringify(aetoolkitCepCompPath(item)) === AEToolkitJSON.stringify(path)) throw new Error("Give same-folder compositions unique names before capturing."); }
-            templates.push({name:comps[i].name, width:comps[i].width, height:comps[i].height, path:path});
+            templates.push({name:comps[i].name, client:String(options.client || "Default"), width:comps[i].width, height:comps[i].height, path:path});
         }
         // Only export dedicated template projects; never publish unrelated work into a shared library.
         var dependencies = {};

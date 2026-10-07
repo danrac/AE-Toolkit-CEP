@@ -1,6 +1,7 @@
 (function () {
     var store = window.AEToolkitTemplates, cs = new CSInterface(), state = store.defaultState(), selectedTemplateId = state.templates[0].id, selectedCompPresetId = state.compPresets[0].id, templateDraft, compPresetDraft, sourceDiscovery = null;
     var customCheckerPresets = [], checkerLibraryRoot = "", libraryReady = false, compCleanupPlan = null;
+    var csv = window.AEToolkitFormatCSV, csvImportBusy = false, presetEditorKind = "aspect";
     try { checkerLibraryRoot = window.localStorage.getItem("toolbox2.template-library") || ""; } catch (ignoreLibraryPreference) {}
     var folderLabels = { afterEffects: "AE Projects", assets: "Assets", toGfx: "Graphic In", outputs: "Graphic Out", styleFrames: "Style Frames" };
     function byId(id) { return document.getElementById(id); }
@@ -298,13 +299,107 @@
     }
     function projectActionButton(target, label, handler) { var button = document.createElement("button"); button.textContent = label; button.title = label; button.onclick = handler; target.appendChild(button); }
     function showHostResult(result, successMessage) { if (result === "CANCELLED") status("No changes made."); else if (result && result.indexOf("ERROR:") === 0) status(result, true); else status(successMessage || result || "Done."); }
-    function compPresets() { return store.compPresets(state).concat(customCheckerPresets.filter(function (entry) { return (state.removedCompPresets || []).indexOf(entry.id) === -1; })); }
-    function compPresetById(id) { return compPresets().filter(function (preset) { return preset.id === id; })[0]; }
-    function presetFor(prefix) { return compPresetById(byId(prefix + "-preset").value); }
-    function compOptions() { var width = byId("comp-width").value, height = byId("comp-height").value, preset = presetFor("comp"); return { namingFields: activeNamingFields(), namingValues: namingValues[namingContext] || {}, width: width, height: height, fps: byId("comp-fps").value, duration: byId("comp-duration").value, format: preset ? store.compFormatCode(preset) : width + "x" + height, guideAssets: preset && preset.assets || {}, addGuides: byId("comp-add-guides").checked }; }
-    function coverOptions() { var preset = presetFor("cover"), width = preset ? preset.width : 1920, height = preset ? preset.height : 1080; return { width: width, height: height, fps: 23.976, duration: 10, format: preset ? store.compFormatCode(preset) : width + "x" + height, topLine: byId("cover-top-line").value, bottomLine: byId("cover-bottom-line").value, date: byId("cover-date").value, spot: byId("cover-spot").value }; }
-    function checkerOptions() { return { width: byId("checker-width").value, height: byId("checker-height").value, frame: byId("checker-frame").value }; }
-    function renderFormatSelect(prefix) { var select = byId(prefix + "-preset"), selected = select.value; select.innerHTML = ""; compPresets().filter(function (preset) { return prefix === "checker" || preset.kind !== "custom-checker"; }).forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = (preset.kind === "custom-checker" ? "Checker · " : "") + preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); }); if (prefix !== "cover") { var custom = document.createElement("option"); custom.value = "custom"; custom.textContent = "Custom"; select.appendChild(custom); } select.value = selected && Array.prototype.some.call(select.options, function (option) { return option.value === selected; }) ? selected : ""; if (!selected && select.options.length) select.selectedIndex = 0; }
+    function compPresets() { return store.compPresets(state); }
+    function checkerPresets() {
+        var saved = state.checkerPresets || [], legacy = compPresets().filter(function (preset) { return !preset.importSource && !saved.some(function (entry) { return entry.id === preset.id; }); });
+        return saved.concat(legacy).concat(customCheckerPresets.map(function (entry) { var preset = copy(entry); if (state.customCheckerClients && state.customCheckerClients[entry.id]) preset.client = state.customCheckerClients[entry.id]; return preset; })).filter(function (entry) { return (state.removedCompPresets || []).indexOf(entry.id) === -1 && (state.removedCheckerPresets || []).indexOf(entry.id) === -1; });
+    }
+    function compPresetById(id) { return compPresets().concat(checkerPresets()).filter(function (preset) { return preset.id === id; })[0]; }
+    function presetFor(prefix) { return (prefix === "checker" ? checkerPresets() : compPresets()).filter(function (preset) { return preset.id === byId(prefix + "-preset").value; })[0]; }
+    function clientOf(preset) { return csv.clientName(preset && preset.client); }
+    function clientNames() {
+        var clients = ["Default"];
+        (state.presetClients || []).concat(compPresets().concat(checkerPresets()).map(clientOf)).forEach(function (name) { name = csv.clientName(name); if (!clients.some(function (entry) { return entry.toLowerCase() === name.toLowerCase(); })) clients.push(name); });
+        return clients.slice(0,1).concat(clients.slice(1).sort());
+    }
+    function sameClient(preset, client) { return clientOf(preset).toLowerCase() === csv.clientName(client).toLowerCase(); }
+    function renderClients() {
+        var names = clientNames();
+        ["comp-client", "modify-client", "checker-client", "aspect-library-client", "checker-library-client"].forEach(function (id) {
+            var select = byId(id), previous = select.value; clearChildren(select);
+            names.forEach(function (name) { var option = document.createElement("option"); option.value = name; option.textContent = name; select.appendChild(option); });
+            select.value = names.indexOf(previous) >= 0 ? previous : "Default";
+        });
+        var suggestions = byId("preset-client-names"); clearChildren(suggestions);
+        names.forEach(function (name) { var option = document.createElement("option"); option.value = name; suggestions.appendChild(option); });
+        ["aspect", "checker"].forEach(function (kind) { byId("remove-" + kind + "-client").disabled = byId(kind + "-library-client").value === "Default"; });
+    }
+    function saveClientChange(next, message, onSaved) {
+        var previous = state; state = next;
+        callHost("aetoolkitCepSaveState",JSON.stringify(state),function (result) {
+            if (result !== "OK") { state = previous; status(result || "Could not save client.",true); return; }
+            renderFormatSelects(); renderCompPresetForm(); if (onSaved) onSaved(); status(message);
+        });
+    }
+    function addClient(kind) {
+        var name;
+        namingDialog("Add Client",function (container) { var label = document.createElement("label"); label.textContent = "Client Name"; name = document.createElement("input"); name.required = true; label.appendChild(name); container.appendChild(label); },function () {
+            var client = csv.clientName(name.value); if (!name.value.trim()) throw new Error("Enter a client name.");
+            if (clientNames().some(function (entry) { return entry.toLowerCase() === client.toLowerCase(); })) throw new Error("This client already exists.");
+            var next = copy(state); next.presetClients = (next.presetClients || []).concat([client]);
+            saveClientChange(next,"Client added.",function () { byId(kind + "-library-client").value = client; renderPresetLibrary(kind); byId("remove-" + kind + "-client").disabled = false; });
+        });
+    }
+    function removeClient(kind) {
+        var client = byId(kind + "-library-client").value; if (!client || client === "Default") return;
+        namingDialog("Remove Client",function (container) { var note = document.createElement("p"); note.textContent = "Remove " + client + "? Its presets will move to Default and remain available. A later CSV import can recreate the client."; container.appendChild(note); },function () {
+            var next = copy(state); next.presetClients = (next.presetClients || []).filter(function (entry) { return csv.clientName(entry).toLowerCase() !== client.toLowerCase(); });
+            ["compPresets", "checkerPresets"].forEach(function (key) { (next[key] || []).forEach(function (preset) { if (sameClient(preset,client)) { preset.client = "Default"; delete preset.importSource; } }); });
+            next.customCheckerClients = next.customCheckerClients || {};
+            checkerPresets().forEach(function (preset) { if (preset.kind === "custom-checker" && sameClient(preset,client)) next.customCheckerClients[preset.id] = "Default"; });
+            saveClientChange(next,"Client removed; presets moved to Default.");
+        });
+    }
+    ["aspect", "checker"].forEach(function (kind) {
+        byId(kind + "-library-client").onchange = function () { renderPresetLibrary(kind); byId("remove-" + kind + "-client").disabled = this.value === "Default"; };
+        byId("add-" + kind + "-client").onclick = function () { addClient(kind); };
+        byId("remove-" + kind + "-client").onclick = function () { removeClient(kind); };
+    });
+    function readFormatsCSV() {
+        if (csvImportBusy) return;
+        if (!libraryReady) { status("Refresh or choose an available library before importing.",true); return; }
+        csvImportBusy = true;
+        ["aspect-read-csv","checker-read-csv"].forEach(function (id) { byId(id).disabled = true; });
+        var root = checkerLibraryRoot;
+        function finish(message, plan, error) {
+            csvImportBusy = false;
+            ["aspect-read-csv","checker-read-csv"].forEach(function (id) { byId(id).disabled = false; });
+            if (!message) return;
+            byId("format-import-status").textContent = message; var review = byId("format-csv-review"); clearChildren(review);
+            if (plan) {
+                ["aspect", "checker"].forEach(function (kind) { var counts = plan.counts[kind], summary = document.createElement("p"); summary.textContent = (kind === "aspect" ? "Aspect ratios" : "Checker presets") + ": " + counts.added + " new, " + counts.updated + " updated, " + counts.unchanged + " unchanged."; review.appendChild(summary); });
+                plan.notices.forEach(function (notice) { var entry = document.createElement("small"); entry.textContent = notice; review.appendChild(entry); });
+            }
+            byId("format-import-dialog").showModal(); status(message,error);
+        }
+        callHost("aetoolkitCepChooseFormatCSV","",function (result) {
+            if (!result) { finish(); return; }
+            try {
+                if (root !== checkerLibraryRoot || !libraryReady) throw new Error("Library changed while choosing the CSV. Read it again.");
+                var file = JSON.parse(result), parsed = csv.parse(file.text), plan = csv.merge(state,parsed);
+                var clientsChanged = JSON.stringify(state.presetClients || []) !== JSON.stringify(plan.state.presetClients);
+                if (!plan.changes.length && !clientsChanged) { finish("Already up to date. No library write needed.",plan); return; }
+                var previous = state; state = plan.state; status("Saving CSV updates to the selected library…");
+                callHost("aetoolkitCepSaveState",JSON.stringify(state),function (saved) {
+                    if (saved !== "OK") { state = previous; finish(saved || "Import could not be saved. Refresh library and read the CSV again.",null,true); return; }
+                    renderFormatSelects(); renderCompPresetForm(); finish("Saved CSV updates to the selected library.",plan);
+                });
+            } catch (error) { finish(result.indexOf("ERROR:") === 0 ? result : error.message,null,true); }
+        });
+    }
+    byId("aspect-read-csv").onclick = byId("checker-read-csv").onclick = readFormatsCSV;
+    byId("close-format-import").onclick = function () { byId("format-import-dialog").close(); };
+    function presetFPS(preset) { return preset && preset.fps !== undefined ? preset.fps : 23.976; }
+    function compOptions() { var preset = presetFor("comp"), width = preset ? preset.width : byId("comp-width").value, height = preset ? preset.height : byId("comp-height").value; return { namingFields: activeNamingFields(), namingValues: namingValues[namingContext] || {}, width: width, height: height, fps: preset ? presetFPS(preset) : byId("comp-fps").value, duration: byId("comp-duration").value, format: preset ? store.compFormatCode(preset) : width + "x" + height, guideAssets: preset && preset.assets || {}, addGuides: byId("comp-add-guides").checked }; }
+    function coverOptions() { var preset = presetFor("cover"), width = preset ? preset.width : 1920, height = preset ? preset.height : 1080; return { width: width, height: height, fps: presetFPS(preset), duration: 10, format: preset ? store.compFormatCode(preset) : width + "x" + height, topLine: byId("cover-top-line").value, bottomLine: byId("cover-bottom-line").value, date: byId("cover-date").value, spot: byId("cover-spot").value }; }
+    function checkerOptions() { var preset = presetFor("checker"); return { width: preset ? preset.width : byId("checker-width").value, height: preset ? preset.height : byId("checker-height").value, fps: preset && preset.fps, frame: byId("checker-frame").value, guideAssets: preset && preset.assets || {} }; }
+    function renderFormatSelect(prefix) {
+        var select = byId(prefix + "-preset"), selected = select.value, client = byId(prefix + "-client"), presets = prefix === "checker" ? checkerPresets() : compPresets(); clearChildren(select);
+        presets.filter(function (preset) { return !client || sameClient(preset, client.value); }).forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = (preset.kind === "custom-checker" ? "Checker · " : "") + preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); });
+        if (prefix !== "cover") { var custom = document.createElement("option"); custom.value = "custom"; custom.textContent = "Custom"; select.appendChild(custom); }
+        select.value = selected && Array.prototype.some.call(select.options, function (option) { return option.value === selected; }) ? selected : select.options.length ? select.options[0].value : "";
+        applyFormatSelection(prefix);
+    }
     function syncCreateCompFormatFields() {
         var custom = byId("comp-preset").value === "custom";
         ["comp-width", "comp-height", "comp-fps", "comp-duration"].forEach(function (id) { byId(id).disabled = !custom; });
@@ -313,10 +408,30 @@
         var custom = byId("modify-preset").value === "custom";
         ["modify-width", "modify-height", "modify-target-fps"].forEach(function (id) { byId(id).disabled = !custom; });
     }
-    function renderFormatSelects() { renderFormatSelect("comp"); renderFormatSelect("modify"); renderFormatSelect("cover"); renderFormatSelect("checker"); renderCheckerMode(); syncCreateCompFormatFields(); syncModifyFormatFields(); }
-    function wireFormatPreset(prefix) { byId(prefix + "-preset").onchange = function () { var preset = presetFor(prefix), width = byId(prefix + "-width"), height = byId(prefix + "-height"); if (preset && width && height) { width.value = preset.width; height.value = preset.height; } if (prefix === "comp") syncCreateCompFormatFields(); if (prefix === "modify") syncModifyFormatFields(); if (prefix === "checker") renderCheckerMode(); }; }
-    function startCompPresetDraft(preset) { preset = preset || { id: "", name: "", width: "", height: "", assets: { matte: "", chartOne: "" } }; compPresetDraft = { id: preset.id || "", name: preset.name || "", formatCode: preset.id ? store.compFormatCode(preset) : "", width: preset.width || "", height: preset.height || "", assets: copy(preset.assets || {}) }; }
-    function renderCompPresetForm() { var select = byId("saved-comp-preset"); select.innerHTML = ""; compPresets().forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); }); if (compPresetDraft.id) select.value = compPresetDraft.id; byId("saved-comp-preset-name").value = compPresetDraft.name; byId("saved-comp-preset-code").value = compPresetDraft.formatCode; byId("saved-comp-preset-width").value = compPresetDraft.width; byId("saved-comp-preset-height").value = compPresetDraft.height; select.value = compPresetDraft.id || ""; byId("remove-comp-preset").disabled = !compPresetDraft.id; renderFormatAssets(); }
+    function renderFormatSelects() { renderClients(); renderFormatSelect("comp"); renderFormatSelect("modify"); renderFormatSelect("cover"); renderFormatSelect("checker"); }
+    function applyFormatSelection(prefix) {
+        var preset = presetFor(prefix), width = byId(prefix + "-width"), height = byId(prefix + "-height");
+        if (preset && width && height) { width.value = preset.width; height.value = preset.height; }
+        if (preset && (prefix === "comp" || prefix === "modify")) byId(prefix === "comp" ? "comp-fps" : "modify-target-fps").value = presetFPS(preset);
+        if (prefix === "comp") { syncCreateCompFormatFields(); renderCompNamePreview(); }
+        if (prefix === "modify") syncModifyFormatFields();
+        if (prefix === "checker") renderCheckerMode();
+    }
+    function wireFormatPreset(prefix) { byId(prefix + "-preset").onchange = function () { applyFormatSelection(prefix); }; var client = byId(prefix + "-client"); if (client) client.onchange = function () { renderFormatSelect(prefix); }; }
+    function startCompPresetDraft(preset) { preset = preset || { id: "", name: "", client: byId(presetEditorKind + "-library-client").value || "Default", width: "", height: "", assets: { matte: "", chartOne: "" } }; compPresetDraft = copy(preset); compPresetDraft.fps = presetFPS(preset); compPresetDraft.client = clientOf(preset); compPresetDraft.id = preset.id || ""; compPresetDraft.formatCode = preset.id ? store.compFormatCode(preset) : ""; }
+    function renderPresetLibrary(kind) {
+        var select = byId(kind === "aspect" ? "saved-comp-preset" : "saved-checker-preset"), selected = select.value; clearChildren(select);
+        (kind === "aspect" ? compPresets() : checkerPresets()).filter(function (preset) { return sameClient(preset, byId(kind + "-library-client").value); }).forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); });
+        select.value = Array.prototype.some.call(select.options, function (option) { return option.value === selected; }) ? selected : select.options.length ? select.options[0].value : "";
+        byId(kind === "aspect" ? "edit-comp-preset" : "edit-checker-preset").disabled = !select.value;
+        byId(kind === "aspect" ? "remove-comp-preset" : "remove-checker-preset").disabled = !select.value;
+    }
+    function renderCompPresetForm() {
+        renderClients(); renderPresetLibrary("aspect"); renderPresetLibrary("checker");
+        byId("format-dialog-title").textContent = presetEditorKind === "checker" ? "General Checker Format" : "General Format";
+        ["name", "client", "formatCode", "width", "height", "fps"].forEach(function (key) { byId("saved-comp-preset-" + (key === "formatCode" ? "code" : key)).value = compPresetDraft[key] || ""; });
+        renderFormatAssets();
+    }
     function renderFormatAssets() {
         var list = byId("format-assets"); clearChildren(list);
         Object.keys(compPresetDraft.assets).forEach(function (key) {
@@ -420,20 +535,53 @@
     byId("format-dialog").addEventListener("close", function () { startCompPresetDraft(compPresetById(selectedCompPresetId)); renderCompPresetForm(); });
     byId("cancel-format-dialog").onclick = function () { byId("format-dialog").close(); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderCompPresetForm(); };
     byId("cancel-custom-dialog").onclick = function () { byId("custom-format-dialog").close(); };
-    byId("new-custom-preset").onclick = function () { byId("custom-format-status").textContent = ""; byId("custom-format-detail").textContent = ""; byId("custom-format-dialog").showModal(); };
-    byId("edit-comp-preset").onclick = function () { var preset = compPresetById(byId("saved-comp-preset").value); if (!preset) return; startCompPresetDraft(preset); renderCompPresetForm(); if (preset.kind === "custom-checker") { byId("custom-format-detail").textContent = preset.name + " · " + preset.width + " × " + preset.height + ". Capture selected comps to save a new version."; byId("custom-format-dialog").showModal(); } else byId("format-dialog").showModal(); };
+    function openCustomChecker(kind) { byId("custom-checker-client").value = byId(kind + "-library-client").value || "Default"; byId("custom-format-status").textContent = ""; byId("custom-format-detail").textContent = ""; byId("custom-format-dialog").showModal(); }
+    byId("new-custom-preset").onclick = function () { openCustomChecker("checker"); };
+    byId("aspect-custom-preset").onclick = function () { openCustomChecker("aspect"); };
+    function editLibraryPreset(kind) {
+        var preset = (kind === "aspect" ? compPresets() : checkerPresets()).filter(function (entry) { return entry.id === byId(kind === "aspect" ? "saved-comp-preset" : "saved-checker-preset").value; })[0];
+        if (!preset) return; presetEditorKind = kind; selectedCompPresetId = preset.id; startCompPresetDraft(preset); renderCompPresetForm();
+        if (preset.kind === "custom-checker") { byId("custom-checker-client").value = clientOf(preset); byId("custom-format-detail").textContent = preset.name + " · " + preset.width + " × " + preset.height + ". Capture selected comps to save a new version."; byId("custom-format-dialog").showModal(); } else byId("format-dialog").showModal();
+    }
+    byId("edit-comp-preset").onclick = function () { editLibraryPreset("aspect"); };
+    byId("edit-checker-preset").onclick = function () { editLibraryPreset("checker"); };
     byId("choose-checker-library").onclick = function () { callHost("aetoolkitCepChooseCheckerLibrary", "", function (path) { if (!path) return; customCheckerPresets = []; checkerLibraryRoot = path; try { window.localStorage.setItem("toolbox2.template-library", path); } catch (error) { status("Could not save library preference.", true); } load(); }); };
     byId("refresh-checker-library").onclick = function () { load(); };
     byId("use-local-library").onclick = function () { checkerLibraryRoot = ""; customCheckerPresets = []; try { window.localStorage.removeItem("toolbox2.template-library"); } catch (ignore) {} load(); };
-    byId("capture-custom-checkers").onclick = function () { var button = this; button.disabled = true; status("Copying selected checker templates and media…"); callHost("aetoolkitCepCaptureCheckerTemplates", JSON.stringify({libraryRoot:checkerLibraryRoot}), function (result) { button.disabled = false; try { var summary = JSON.parse(result); refreshCheckerLibrary(function () { byId("custom-format-dialog").close(); status("Saved " + summary.captured + " checker template(s)."); }); } catch (error) { status(result || error.message, true); } }); };
-    byId("saved-comp-preset").onchange = function () { selectedCompPresetId = byId("saved-comp-preset").value; startCompPresetDraft(compPresetById(selectedCompPresetId)); renderCompPresetForm(); };
-    byId("new-comp-preset").onclick = function () { startCompPresetDraft(); renderCompPresetForm(); byId("format-dialog-status").textContent = ""; byId("format-dialog").showModal(); };
+    byId("capture-custom-checkers").onclick = function () { var button = this; button.disabled = true; status("Copying selected checker templates and media…"); callHost("aetoolkitCepCaptureCheckerTemplates", JSON.stringify({libraryRoot:checkerLibraryRoot,client:csv.clientName(byId("custom-checker-client").value)}), function (result) { button.disabled = false; try { var summary = JSON.parse(result); refreshCheckerLibrary(function () { renderCompPresetForm(); byId("custom-format-dialog").close(); status("Saved " + summary.captured + " checker template(s)."); }); } catch (error) { status(result || error.message, true); } }); };
+    byId("saved-comp-preset").onchange = function () { presetEditorKind = "aspect"; selectedCompPresetId = this.value; startCompPresetDraft(compPresetById(selectedCompPresetId)); renderCompPresetForm(); };
+    byId("saved-checker-preset").onchange = function () { presetEditorKind = "checker"; selectedCompPresetId = this.value; startCompPresetDraft(compPresetById(selectedCompPresetId)); renderCompPresetForm(); };
+    function newLibraryPreset(kind) { presetEditorKind = kind; startCompPresetDraft(); renderCompPresetForm(); byId("format-dialog-status").textContent = ""; byId("format-dialog").showModal(); }
+    byId("new-comp-preset").onclick = function () { newLibraryPreset("aspect"); };
+    byId("new-checker-preset").onclick = function () { newLibraryPreset("checker"); };
     byId("saved-comp-preset-code").oninput = function () { compPresetDraft.formatCode = this.value; };
-    ["name", "width", "height"].forEach(function (key) { byId("saved-comp-preset-" + key).oninput = function () { compPresetDraft[key] = byId("saved-comp-preset-" + key).value; }; });
+    ["name", "client", "width", "height", "fps"].forEach(function (key) { byId("saved-comp-preset-" + key).oninput = function () { compPresetDraft[key] = byId("saved-comp-preset-" + key).value; }; });
     byId("add-format-asset").onclick = function () { var key = "guide_" + Date.now().toString(36); while (Object.prototype.hasOwnProperty.call(compPresetDraft.assets, key)) key += "a"; compPresetDraft.assets[key] = ""; renderFormatAssets(); };
-    byId("remove-comp-preset").onclick = function () { if (!compPresetDraft.id) return; var previous = state; state = store.removeCompPreset(state, compPresetDraft.id); callHost("aetoolkitCepSaveState", JSON.stringify(state), function (result) { if (result !== "OK") { state = previous; status(result || "Could not remove format.", true); return; } selectedCompPresetId = compPresets().length ? compPresets()[0].id : ""; startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); status("Format removed."); }); };
+    function removeLibraryPreset(kind) {
+        var id = byId(kind === "aspect" ? "saved-comp-preset" : "saved-checker-preset").value; if (!id) return;
+        var previous = state; state = copy(state);
+        if (kind === "aspect") state = store.removeCompPreset(state,id);
+        else { state.checkerPresets = (state.checkerPresets || []).filter(function (entry) { return entry.id !== id; }); state.removedCheckerPresets = (state.removedCheckerPresets || []).concat([id]); }
+        callHost("aetoolkitCepSaveState", JSON.stringify(state), function (result) { if (result !== "OK") { state = previous; status(result || "Could not remove format.",true); return; } renderFormatSelects(); renderCompPresetForm(); status("Preset removed."); });
+    }
+    byId("remove-comp-preset").onclick = function () { removeLibraryPreset("aspect"); };
+    byId("remove-checker-preset").onclick = function () { removeLibraryPreset("checker"); };
 
-    byId("save-comp-preset").onclick = function () { try { var normalized = store.normalizeCompPreset(compPresetDraft); callHost("aetoolkitCepStorePresetAssets", JSON.stringify({ id: normalized.id, assets: normalized.assets, libraryRoot: checkerLibraryRoot }), function (result) { try { normalized.assets = JSON.parse(result); state = store.upsertCompPreset(state, normalized); selectedCompPresetId = normalized.id; startCompPresetDraft(normalized); save(function () { renderFormatSelects(); renderCompPresetForm(); byId("format-dialog").close(); status("Composition format saved."); }); } catch (error) { status(result || error.message, true); } }); } catch (error) { status(error.message, true); } };
+    byId("save-comp-preset").onclick = function () {
+        try {
+            var draft = copy(compPresetDraft), kind = presetEditorKind; draft.client = csv.clientName(draft.client);
+            if (!draft.id) draft.id = "manual-" + kind + "-" + encodeURIComponent(csv.identity(draft.client,draft.formatCode || draft.name));
+            var normalized = store.normalizeCompPreset(draft);
+            callHost("aetoolkitCepStorePresetAssets", JSON.stringify({ id: normalized.id, assets: normalized.assets, libraryRoot: checkerLibraryRoot }), function (result) {
+                try {
+                    normalized.assets = JSON.parse(result); var previous = state; state = copy(state);
+                    if (kind === "checker") { normalized.kind = "general-checker"; state.checkerPresets = (state.checkerPresets || []).filter(function (entry) { return entry.id !== normalized.id; }).concat([normalized]); state.removedCheckerPresets = (state.removedCheckerPresets || []).filter(function (id) { return id !== normalized.id; }); }
+                    else state = store.upsertCompPreset(state, normalized);
+                    callHost("aetoolkitCepSaveState", JSON.stringify(state), function (saved) { if (saved !== "OK") { state = previous; status(saved || "Could not save preset.",true); return; } selectedCompPresetId = normalized.id; startCompPresetDraft(normalized); renderFormatSelects(); renderCompPresetForm(); byId("format-dialog").close(); status("Preset saved."); });
+                } catch (error) { status(result || error.message,true); }
+            });
+        } catch (error) { status(error.message,true); }
+    };
     byId("create-comp").onclick = function () { callHost("aetoolkitCepCreateComp", JSON.stringify(compOptions()), function (result) { try { var created = JSON.parse(result); status("Created " + created.name + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("modify-comps").onclick = function () { var preset = presetFor("modify"), options = { width: byId("modify-width").value, height: byId("modify-height").value, fps: byId("modify-target-fps").value, duration: 10, replaceGuides: !!preset, guideAssets: preset && preset.assets || {}, knownGuideAssets: compPresets().map(function (entry) { return entry.assets || {}; }) }; options.conformSolids = byId("modify-solids").checked; options.updateSize = byId("modify-size").checked; options.updateFps = byId("modify-fps").checked; options.renameBase = byId("modify-name").checked ? byId("modify-name-base").value : ""; callHost("aetoolkitCepModifySelectedComps", JSON.stringify(options), function (result) { try { var summary = JSON.parse(result); status("Modified " + summary.modified + " composition" + (summary.modified === 1 ? "." : "s.") + " Layer relationships were preserved."); } catch (error) { status(result || error.message, true); } }); };
     function renderRenameFields() {

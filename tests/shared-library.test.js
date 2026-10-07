@@ -20,5 +20,14 @@ const loaded=JSON.parse(b.aetoolkitCepLoadState());assert.equal(loaded.namingPre
 assert.match(b.aetoolkitCepSaveState(JSON.stringify(data)),/changed on another computer/);
 assert.equal(b.aetoolkitCepSaveState(JSON.stringify(loaded)),'OK');assert.equal(JSON.parse(a.aetoolkitCepLoadState()).libraryRevision,2);
 const local=machine('');assert.equal(JSON.parse(local.aetoolkitCepLoadState()).projects.length,0);
+const csv = require('../client/js/format-csv.js');
+const csvText = 'CLIENT,PREFIX (Menu Item Name),ASPECT (Format Code),SizeX,SizeY,Matte,Chart1,Chart2\nAmazon,Amazon Story,AZ-STRY,1080,1920,N/A,/shared/guide.png,\n';
+const merged = csv.merge(JSON.parse(a.aetoolkitCepLoadState()),csv.parse(csvText));
+assert.equal(a.aetoolkitCepSaveState(JSON.stringify(merged.state)),'OK');
+const otherMachine = JSON.parse(b.aetoolkitCepLoadState());
+assert.equal(otherMachine.checkerPresets[0].client,'Amazon');
+assert.equal(otherMachine.checkerPresets[0].assets.chartOne,'/shared/guide.png');
+assert(otherMachine.presetClients.includes('Amazon'));
+assert.equal(csv.merge(otherMachine,csv.parse(csvText)).changes.length,0);
 for(const root of ['/Volumes/Studio/Library','Z:/Studio/Library']) {const ctx=machine(root);assert.equal(ctx.aetoolkitCepResolveGuideAsset('library:guide-assets/square/matte.png').fsName,root+'/guide-assets/square/matte.png');assert.throws(()=>ctx.aetoolkitCepResolveGuideAsset('library:../outside.png'));}
 console.log('PASS shared preset categories, independent local state, stale-save rejection, Mac/Windows relative assets');

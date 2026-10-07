@@ -2,9 +2,11 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.38.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.38) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.38.md)
+**Documented version: 0.1.39.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.39) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.39.md)
 
 ## User guide
+
+See [client-specific formats and repeatable CSV imports](docs/CLIENT-FORMATS.md) for the column schema, update rules, FPS defaults, and guide/matte assembly.
 
 The [illustrated panel guide](docs/PANELS.md) documents every toolbar section and its modules:
 
@@ -12,11 +14,11 @@ The [illustrated panel guide](docs/PANELS.md) documents every toolbar section an
 | --- | --- |
 | [Projects](docs/PANELS.md#projects) | Search connected projects, reveal/import folders, render to template-defined destinations. |
 | [Sourcing](docs/PANELS.md#sourcing) | Import file paths; discover source AE projects and supported saved color spaces. |
-| [Create / Modify](docs/PANELS.md#create--modify) | Create and modify comps, replace preset guides, conform solids, rename items. |
+| [Create / Modify](docs/PANELS.md#create--modify) | Create and modify comps by client and format, replace preset guides, and conform solids. |
 | [Covers / Checkers](docs/PANELS.md#covers--checkers) | Build editable covers and general or custom-template checkers. |
-| [Cleanup / Collect](docs/PANELS.md#cleanup--collect) | Organize, consolidate, remove unused items, localize, and collect. |
+| [Cleanup / Collect](docs/PANELS.md#cleanup--collect) | Organize, consolidate, remove unused items, localize, collect, and rename items. |
 | [Tools](docs/PANELS.md#tools) | Timing, animation, layer selection/alignment, transform transfer, and text tools. |
-| [Templates](docs/PANELS.md#templates) | Shared resources, aspect ratios, project/naming presets, project registration, and AOM output presets. |
+| [Templates](docs/PANELS.md#templates) | Shared resources, clients, aspect/checker presets, CSV imports, project/naming presets, project registration, and AOM output presets. |
 
 ![Toolbox 2 Projects browser preview](docs/images/projects.png)
 
@@ -49,7 +51,8 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Menu and dialog headings use consistent title case across the panel.
 - Animation and layers separates the cubic Bézier Key graph and Placement tools into remembered tabs. Keyframed Step and Repeat and Set Anchor operations preserve the existing animation.
 - Fade in/out uses named layer markers plus an opacity expression. Reuse the fade buttons to create the markers, then drag `fadeIn_start`/`fadeIn_end` or `fadeOut_start`/`fadeOut_end` in the timeline to adjust timing without a duration field.
-- The 0.1.38 build adds optional FPS filename suffixes with rounded frame rates and places Renamer at the bottom of Cleanup / Collect.
+- The 0.1.39 build adds client-specific aspect/checker presets and repeatable CSV import. Read CSV opens a file browser and applies new or changed definitions automatically, preserving unchanged presets and the existing Default formats.
+- Presets store FPS as well as dimensions. Composition creation uses the preset settings and assembles centered guides above mattes, with guide availability checked before creating the comp.
 
 ## Compatibility and limits
 
@@ -72,7 +75,7 @@ Before releasing host changes, run `tests/after-effects-load-check.jsx` through 
 
 Published GitHub releases trigger the workflow that signs and attaches `AE-Toolkit-CEP-v<version>.zxp`. Configure repository secrets `ZXP_CERT_BASE64` and `ZXP_CERT_PASSWORD`; optionally set `ZXP_TSA_URL`. For local signing, set `ZXPSIGNCMD_PATH`, `ZXP_CERT_PATH`, and `ZXP_CERT_PASSWORD`, then run `npm run package:zxp`. Never commit signing material.
 
-Use a distinct package version for each distributed build so installers can distinguish updates. The current release tag is `v0.1.38`.
+Use a distinct package version for each distributed build so installers can distinguish updates. The current release tag is `v0.1.39`. The panel badge and cache identifiers are generated from `package.json` during staging.
 
 ## License and credit
 

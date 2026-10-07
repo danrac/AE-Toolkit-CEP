@@ -1,0 +1,3 @@
+CLIENT,PREFIX (Menu Item Name),ASPECT (Format Code),SizeX,SizeY,Matte,Chart1,Chart2,FPS
+Example Studio,HD Safe Guide,EX-HD,1920,1080,bundled:185_matte.png,bundled:HD_chart.psd,N/A,24
+,Square Safe Guide,EX-SQ,1080,1080,bundled:1x1_matte.png,bundled:1x1_chart.psd,N/A,24

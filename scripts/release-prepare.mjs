@@ -48,6 +48,7 @@ if (!versionRegex.test(newVersion)) {
 // Files that contain version information to update
 const versionFiles = [
   'package.json',
+  'package-lock.json',
   'CSXS/manifest.xml'
 ];
 
@@ -68,7 +69,7 @@ function updateManifest() {
   const updatedManifest = manifestContent.replace(
     /ExtensionBundleVersion="([^"]+)"/,
     `ExtensionBundleVersion="${newVersion}"`
-  );
+  ).replace(/(<Extension\s+Id="[^"]+"\s+Version=")[^"]+"/g, (_, prefix) => prefix + newVersion + '"');
   writeFileSync(resolve(root, 'CSXS/manifest.xml'), updatedManifest);
   console.log('Updated CSXS/manifest.xml');
 }
@@ -210,6 +211,10 @@ async function prepareRelease() {
   
   // Update version files
   updatePackageJson();
+  const lock = JSON.parse(readFileSync(resolve(root, 'package-lock.json'), 'utf8'));
+  lock.version = newVersion;
+  lock.packages[''].version = newVersion;
+  writeFileSync(resolve(root, 'package-lock.json'), JSON.stringify(lock, null, 2) + '\n');
   updateManifest();
   
   // Run tests
