@@ -1,6 +1,6 @@
 # Toolbox 2 panel guide
 
-For **0.1.39**. [Home and installation](../README.md) · [Client formats and CSV guide](CLIENT-FORMATS.md)
+For **0.1.40**. [Home and installation](../README.md) · [Client formats and CSV guide](CLIENT-FORMATS.md)
 
 The client-format screenshots were refreshed for 0.1.39 using the bundled-assets Example Studio CSV. Other sections retain earlier 0.1.33 browser layout previews where noted. Preview saves are simulated; native actions require AE. Scroll inside the panel to reach modules below the visible area.
 
@@ -30,7 +30,7 @@ The first bordered destination uses the current project's Graphic Out / Outputs 
 - Without an optional subfolder: `Outputs/`.
 - With `review/v01`: `Outputs/review/v01/`.
 
-Toolbox does not create an automatic date folder. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.39.
+Toolbox does not create an automatic date folder. Legacy Offline, Online, and Checkers subfolder settings no longer drive rendering. The four mode buttons and render-subfolder fields in Create project presets have been removed. Older screenshots may show the pre-0.1.33 layout; the destination sections described here match 0.1.40.
 
 Output filenames follow this studio format:
 
@@ -56,6 +56,8 @@ Paste full file paths, one per line, and click **Import assets**. Folder headers
 ### Import source AE projects
 
 Select rendered footage or still images in AE's Project panel, then click **Discover selected sources**. Review the discovered project links and import the selected source projects.
+
+Toolbox also [matches source comps to render filenames](SOURCE-COMP-MATCHING.md), moves matches to ImportedComps, and avoids isolating duplicate names. Per-render results show the matching method or explain when manual review is needed.
 
 Discovery reads selected image and video files through After Effects' XMP reader, then checks embedded XMP packets and both common `.xmp` sidecar names when a container reader cannot open the file. It accepts the AE project-link fields written by different AE versions, including structured `creatorAtom:aeProjectLink` data, flat project-path fields, and file URLs. The metadata must include an explicit source-AE-project link; an image's generic metadata or color profile alone cannot identify its original project. Missing/offline project files are reported rather than invented.
 
@@ -199,6 +201,8 @@ All users must select the same shared library to see its saved presets, then ref
 
 A save lock blocks concurrent writes, and revision checks reject outdated saves. On a conflict, refresh and reapply your change instead of overwriting another user's work. Crash-leftover `.lock` files intentionally block writes; only remove one after confirming no workstation is still writing. These mechanisms were tested with local processes, not an actual two-machine network share.
 
+[Automatic local backups](SHARED-BACKUPS.md) retain the last two completed shared-library snapshots, including preset definitions and available referenced media. If the shared source is unavailable, Toolbox uses its last valid backup for viewing and generating comps/checkers, with shared editing disabled. Shared Resources displays backup status and includes **Reveal Local Backup**. Reconnect and refresh to resume saving to the shared source.
+
 ### Create aspect ratio presets
 
 Choose a Client, then an existing format to Edit or Remove, or choose Create General / Create Custom. Add registers a client; Remove moves that client's presets to Default. Default remains available and cannot be removed.
@@ -251,7 +255,7 @@ The Projects render dropdown matches AOM names against installed AE output-modul
 
 ## Troubleshooting and validation
 
-- **Toolbar/project data fails to load:** install 0.1.39, restart After Effects, and verify the topper version. This release includes the Node/CommonJS template-store startup fix.
+- **Toolbar/project data fails to load:** install 0.1.40, restart After Effects, and verify the topper version. This release includes the Node/CommonJS template-store startup fix.
 - **Project list is empty:** clear the search filter, confirm the selected library, then Refresh. Switching libraries does not merge local records.
 - **Cannot save a shared preset:** check folder availability/write access, refresh after a revision conflict, and check for another active writer. Do not remove an active lock.
 - **Render preset unavailable:** load the AOM settings into that AE installation and refresh; matching is by exact name.

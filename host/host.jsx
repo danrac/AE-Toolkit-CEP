@@ -558,6 +558,10 @@ function aetoolkitCepDataFolder() {
 function aetoolkitCepStateFile() {
     return new File((AEToolkitLibraryRoot ? aetoolkitCepCheckerLibraryRoot(AEToolkitLibraryRoot).fsName : aetoolkitCepDataFolder().fsName) + "/project-templates.json");
 }
+function aetoolkitCepLocalDataPath() {
+    try { return aetoolkitCepDataFolder().fsName; }
+    catch (error) { return "ERROR: " + error.toString(); }
+}
 function aetoolkitCepDefaultState() {
     return '{"version":1,"templates":[{"id":"default-motion","name":"Default Motion Project","folders":{"afterEffects":"After Effects","assets":"Assets","toGfx":"Incoming","outputs":"Outputs","styleFrames":"Outputs/Style Frames"},"customFolders":[]}],"projects":[],"activeProjectId":""}';
 }
@@ -938,6 +942,10 @@ function aetoolkitCepSourceProjectFile(pathText) {
     if (!/\.aepx?$/i.test(path) || !aetoolkitCepIsAbsolutePath(path)) return null;
     return new File(path);
 }
+function aetoolkitCepArrayContains(values, value) {
+    for (var i = 0; i < values.length; i++) if (values[i] === value) return true;
+    return false;
+}
 function aetoolkitCepDiscoverSourceProjects() {
     try {
         aetoolkitCepEnsureXmp();
@@ -947,7 +955,9 @@ function aetoolkitCepDiscoverSourceProjects() {
             var item = selection[i];
             if (!(item instanceof FootageItem) || !item.file) { notices.push(item.name + ": select file-based footage."); continue; }
             if (!item.file.exists) { notices.push(item.name + ": source media is offline."); continue; }
-            sourceNames.push(item.name);
+            var renderName = item.file.name;
+            try { renderName = decodeURIComponent(renderName); } catch (nameError) {}
+            sourceNames.push(renderName);
             var result = aetoolkitCepReadFootageSourceLinks(item.file);
             if (!result.paths.length) notices.push(item.name + ": no explicit After Effects project link was found.");
             for (var j = 0; j < result.paths.length; j++) {
@@ -955,7 +965,11 @@ function aetoolkitCepDiscoverSourceProjects() {
                 if (!file) { notices.push(item.name + ": project link is not an absolute .aep or .aepx path."); continue; }
                 var key = file.fsName;
                 if ($.os.indexOf("Win") !== -1) key = key.toLowerCase();
-                if (!seen[key]) { seen[key] = true; records.push({ path: file.fsName, exists: file.exists, colorSpace: aetoolkitCepSourceProjectColorSpace(file) }); }
+                if (!seen[key]) {
+                    seen[key] = { path: file.fsName, exists: file.exists, colorSpace: aetoolkitCepSourceProjectColorSpace(file), sourceNames: [] };
+                    records.push(seen[key]);
+                }
+                if (!aetoolkitCepArrayContains(seen[key].sourceNames, renderName)) seen[key].sourceNames.push(renderName);
             }
             for (j = 0; j < result.notices.length; j++) notices.push(item.name + ": " + result.notices[j]);
         }
@@ -971,43 +985,102 @@ function aetoolkitCepProjectFolder(name) {
     return app.project.items.addFolder(name);
 }
 function aetoolkitCepSourceName(name) {
-    return String(name).replace(/\.[^.]+$/, "").replace(/_[0-9.]+fps_[0-9]+x[0-9]+$/, "");
+    var variants = aetoolkitCepSourceNameVariants(name);
+    return variants[variants.length - 1];
+}
+function aetoolkitCepSourceNameVariants(name) {
+    var stem = String(name).replace(/^.*[\\\/]/, "").replace(/\.[^.]+$/, ""), names = [stem];
+    function add(value) { if (value && !aetoolkitCepArrayContains(names, value)) names.push(value); return value; }
+    // AE sequence tokens and actual image frame numbers follow the render size.
+    stem = add(stem.replace(/[_ .-]\[#+\]$/, ""));
+    stem = add(stem.replace(/(\d+x\d+)[_ .-]\d+$/i, "$1"));
+    stem = add(stem.replace(/[_ -]\d+x\d+$/i, ""));
+    add(stem.replace(/[_ -]\d+(?:[._]\d+)?fps$/i, ""));
+    return names;
+}
+function aetoolkitCepSourceCompMatch(comps, renderName) {
+    var names = aetoolkitCepSourceNameVariants(renderName), best = [], score = -1;
+    for (var i = 0; i < comps.length; i++) {
+        var name = String(comps[i].name), folded = name.toLowerCase(), rank = -1, method = "";
+        for (var j = 0; j < names.length; j++) {
+            var candidate = names[j], current = -1, kind = "";
+            if (name === candidate) { current = (j === 0 ? 4000000 : 3000000) + name.length; kind = j === 0 ? "Exact name" : "Render suffix removed"; }
+            else if (folded === candidate.toLowerCase()) { current = (j === 0 ? 3500000 : 2500000) + name.length; kind = "Name ignoring case"; }
+            else if (folded && candidate.toLowerCase().indexOf(folded) === 0 && /^[_ .-]/.test(candidate.substring(name.length))) { current = name.length; kind = "Longest name prefix"; }
+            if (current > rank) { rank = current; method = kind; }
+        }
+        if (rank < 0 || rank < score) continue;
+        if (rank > score) { best = []; score = rank; }
+        // Identical names can appear in several folders. Pick the first copy.
+        var duplicate = false;
+        for (j = 0; j < best.length; j++) if (best[j].comp.name === name) duplicate = true;
+        if (!duplicate) best.push({ comp: comps[i], method: method });
+    }
+    return best;
+}
+function aetoolkitCepGatherSourceComps(folder, comps) {
+    if (!(folder instanceof FolderItem)) return;
+    for (var i = 1; i <= folder.numItems; i++) {
+        var item = folder.item(i);
+        if (item instanceof CompItem) comps.push(item);
+        else if (item instanceof FolderItem) aetoolkitCepGatherSourceComps(item, comps);
+    }
 }
 function aetoolkitCepImportSourceProjects(jsonText) {
-    var imported = 0, errors = [];
+    var imported = 0, isolated = 0, errors = [], matches = [];
     try {
         var options = AEToolkitJSON.parse(jsonText), paths = options.paths || [], sourceNames = options.sourceNames || [];
         if (!paths.length) throw new Error("Select at least one source project.");
-        var projectsFolder = aetoolkitCepProjectFolder("ImportedProjects"), compsFolder = null;
-        function matches(comp) {
-            for (var n = 0; n < sourceNames.length; n++) if (comp.name === aetoolkitCepSourceName(sourceNames[n])) return true;
-            return false;
-        }
-        function gather(folder) {
-            if (!(folder instanceof FolderItem)) return;
-            for (var i = 1; i <= folder.numItems; i++) {
-                var item = folder.item(i);
-                if (item instanceof CompItem && matches(item)) {
-                    if (!compsFolder) compsFolder = aetoolkitCepProjectFolder("ImportedComps");
-                    item.parentFolder = compsFolder;
-                } else if (item instanceof FolderItem) gather(item);
-            }
-        }
+        var projectsFolder = aetoolkitCepProjectFolder("ImportedProjects"), compsFolder = null, seenPaths = {};
         app.beginUndoGroup("AE Toolkit CEP: Import source projects");
         try {
             for (var i = 0; i < paths.length; i++) {
                 var file = aetoolkitCepSourceProjectFile(paths[i]);
                 if (!file || !file.exists) { errors.push("Not found: " + paths[i]); continue; }
+                var key = file.fsName;
+                if ($.os.indexOf("Win") !== -1) key = key.toLowerCase();
+                if (seenPaths[key]) continue;
+                seenPaths[key] = true;
                 try {
                     var project = app.project.importFile(new ImportOptions(file));
                     project.parentFolder = projectsFolder;
-                    gather(project);
                     imported++;
+                    var names = sourceNames, records = options.records, comps = [];
+                    if (records) {
+                        names = [];
+                        for (var r = 0; r < records.length; r++) {
+                            var recordFile = aetoolkitCepSourceProjectFile(records[r].path);
+                            if (recordFile && ($.os.indexOf("Win") !== -1 ? recordFile.fsName.toLowerCase() : recordFile.fsName) === key) names = records[r].sourceNames || [];
+                        }
+                    }
+                    // Snapshot every candidate before moving items out of live folders.
+                    aetoolkitCepGatherSourceComps(project, comps);
+                    var seenNames = {};
+                    for (var n = 0; n < names.length; n++) {
+                        if (seenNames["$" + names[n]]) continue;
+                        seenNames["$" + names[n]] = true;
+                        var found = aetoolkitCepSourceCompMatch(comps, names[n]), entry = { projectPath: file.fsName, renderName: names[n], status: "unmatched", candidates: [] };
+                        if (found.length === 1) {
+                            var comp = found[0].comp, existing = null;
+                            if (!compsFolder) compsFolder = aetoolkitCepProjectFolder("ImportedComps");
+                            for (var c = 1; c <= compsFolder.numItems; c++) {
+                                var current = compsFolder.item(c);
+                                if (current instanceof CompItem && current.name === comp.name) { existing = current; break; }
+                            }
+                            entry.compName = comp.name; entry.method = found[0].method;
+                            if (existing) entry.status = "reused";
+                            else { comp.parentFolder = compsFolder; isolated++; entry.status = "moved"; }
+                        } else if (found.length > 1) {
+                            entry.status = "ambiguous";
+                            for (c = 0; c < found.length; c++) entry.candidates.push(found[c].comp.name);
+                        }
+                        matches.push(entry);
+                    }
                 } catch (importError) { errors.push("Could not import " + file.fsName + ": " + importError.toString()); }
             }
         } finally { app.endUndoGroup(); }
     } catch (error) { errors.push(error.toString()); }
-    return AEToolkitJSON.stringify({ imported: imported, errors: errors });
+    return AEToolkitJSON.stringify({ imported: imported, isolated: isolated, matches: matches, errors: errors });
 }
 function aetoolkitCepNumber(value, label, minimum, maximum, integerOnly) {
     var parsed = Number(value);

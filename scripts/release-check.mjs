@@ -11,7 +11,7 @@ if (lock.version !== version || lock.packages[''].version !== version) throw new
 for (const required of ['com.danrac.aetoolkit.cep.panel', './client/index.html', './host/host.jsx']) {
   if (manifest.indexOf(required) === -1) throw new Error(`Manifest is missing ${required}.`);
 }
-for (const runtimeFile of ['client/index.html', 'client/js/app.js', 'client/js/template-store.js', 'client/js/format-csv.js', 'client/js/panel-state.js', 'host/host.jsx']) {
+for (const runtimeFile of ['client/index.html', 'client/js/app.js', 'client/js/template-store.js', 'client/js/format-csv.js', 'client/js/shared-backup.js', 'client/js/panel-state.js', 'host/host.jsx']) {
   if (!existsSync(resolve(root, runtimeFile))) throw new Error(`Missing runtime file: ${runtimeFile}`);
 }
 console.log('Release structure is valid.');

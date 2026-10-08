@@ -2,6 +2,7 @@
     var store = window.AEToolkitTemplates, cs = new CSInterface(), state = store.defaultState(), selectedTemplateId = state.templates[0].id, selectedCompPresetId = state.compPresets[0].id, templateDraft, compPresetDraft, sourceDiscovery = null;
     var customCheckerPresets = [], checkerLibraryRoot = "", libraryReady = false, compCleanupPlan = null;
     var csv = window.AEToolkitFormatCSV, csvImportBusy = false, presetEditorKind = "aspect";
+    var sharedBackup = null, backupDataRoot = "", backupSnapshot = null, backupOffline = false, libraryLoadSerial = 0;
     try { checkerLibraryRoot = window.localStorage.getItem("toolbox2.template-library") || ""; } catch (ignoreLibraryPreference) {}
     var folderLabels = { afterEffects: "AE Projects", assets: "Assets", toGfx: "Graphic In", outputs: "Graphic Out", styleFrames: "Style Frames" };
     function byId(id) { return document.getElementById(id); }
@@ -60,8 +61,11 @@
     }, true);
     function status(message, error) { var target = byId("status"); target.textContent = message; target.style.color = error ? "#ff9d9d" : "#91d0a4"; ["format-dialog", "custom-format-dialog"].forEach(function (id) { var dialog = byId(id); if (dialog && dialog.open) byId(id === "format-dialog" ? "format-dialog-status" : "custom-format-status").textContent = message; }); }
     function callHost(name, argument, callback) {
+        if (backupOffline && ["aetoolkitCepSaveState", "aetoolkitCepStorePresetAssets", "aetoolkitCepCaptureCheckerTemplates"].indexOf(name) !== -1) { if (callback) callback("ERROR: Using a local backup. Reconnect the shared library before saving preset changes."); return; }
         if (name === "aetoolkitCepSaveState" && !libraryReady) { callback("ERROR: Library unavailable. Refresh or choose a library before saving."); return; }
-        var setup = "AEToolkitLibraryRoot = " + JSON.stringify(checkerLibraryRoot) + ";", root = cs.getExtensionPath();
+        var effectiveRoot = backupOffline && backupSnapshot ? backupSnapshot.root : checkerLibraryRoot, backupSource = checkerLibraryRoot;
+        if (backupOffline && ["aetoolkitCepListCheckerTemplates", "aetoolkitCepCreateCustomCheckers"].indexOf(name) !== -1) { var backupOptions = JSON.parse(argument || "{}"); backupOptions.libraryRoot = effectiveRoot; argument = JSON.stringify(backupOptions); }
+        var setup = "AEToolkitLibraryRoot = " + JSON.stringify(effectiveRoot) + ";", root = cs.getExtensionPath();
         if (root) setup += "AEToolkitHostDirectory = new Folder(" + JSON.stringify(root + "/host") + ").fsName;";
         function execute(release) {
             try {
@@ -69,6 +73,7 @@
                     if (name === "aetoolkitCepSaveState" && result === "OK") state.libraryRevision = Number(state.libraryRevision || 0) + 1;
                     if (release) try { release(); } catch (error) { status("Saved, but library lock cleanup failed: " + error.message, true); }
                     if (callback) callback(result);
+                    if ((result === "OK" && name === "aetoolkitCepSaveState") || (name === "aetoolkitCepCaptureCheckerTemplates" && result && result.charAt(0) === "{")) syncLocalBackup(backupSource);
                 });
             } catch (error) { if (release) release(); if (callback) callback("ERROR: " + error.message); }
         }
@@ -84,6 +89,40 @@
             execute(release);
         });
     }
+
+    function backupModule(callback) {
+        if (sharedBackup && backupDataRoot) { callback(sharedBackup); return; }
+        var root = cs.getExtensionPath(), nodeRequire = window.cep_node && window.cep_node.require || window.require;
+        if (!root || !nodeRequire) { callback(null); return; }
+        try { sharedBackup = nodeRequire(root + "/client/js/shared-backup.js"); }
+        catch (error) { byId("library-backup-status").textContent = "Local backup unavailable: " + error.message; callback(null); return; }
+        cs.evalScript("aetoolkitCepLocalDataPath()",function (path) {
+            if (!path || path.indexOf("ERROR:") === 0 || !/^(\/|[A-Za-z]:[\\\/]|[\\\/]{2})/.test(path)) { byId("library-backup-status").textContent = "Local backup storage unavailable. Reopen the updated extension."; callback(null); return; }
+            backupDataRoot = path; callback(sharedBackup);
+        });
+    }
+    function showBackup(snapshot,offline) {
+        backupSnapshot = snapshot; byId("reveal-library-backup").disabled = !snapshot;
+        if (!snapshot) return;
+        var when = new Date(snapshot.metadata.savedAt).toLocaleString(), warnings = snapshot.metadata.warnings || [];
+        byId("library-backup-status").textContent = (offline ? "Using local backup from " : "Local backup updated: ") + when + (offline ? ". Shared library saves are paused until you reconnect." : ".") + (warnings.length ? " " + warnings.length + " asset warning(s); some files may require reconnecting." : "");
+    }
+    function updateLibraryEditingControls() {
+        ["new-template", "save-template", "connect-project", "save-project-template", "add-custom-folder", "add-naming-field", "add-naming-preset", "save-curve-preset", "new-comp-preset", "new-checker-preset", "new-custom-preset", "aspect-custom-preset", "save-comp-preset", "capture-custom-checkers", "add-aspect-client", "add-checker-client", "aspect-read-csv", "checker-read-csv"].forEach(function (id) { byId(id).disabled = !libraryReady; });
+    }
+    function syncLocalBackup(source) {
+        if (!source) return;
+        backupModule(function (api) {
+            if (!api) return;
+            if (source === checkerLibraryRoot && !backupOffline) byId("library-backup-status").textContent = "Updating local shared-library backup…";
+            api.sync(backupDataRoot,source).then(function (snapshot) { if (source === checkerLibraryRoot && !backupOffline) showBackup(snapshot,false); },function (error) {
+                if (source !== checkerLibraryRoot || backupOffline) return;
+                byId("library-backup-status").textContent = "Local backup could not refresh: " + error.message;
+                api.load(backupDataRoot,source).then(function (snapshot) { if (source === checkerLibraryRoot && !backupOffline && snapshot) { backupSnapshot = snapshot; byId("reveal-library-backup").disabled = false; } });
+            });
+        });
+    }
+    byId("reveal-library-backup").onclick = function () { if (backupSnapshot) callHost("aetoolkitCepRevealFolder",backupSnapshot.root,function (result) { showHostResult(result); }); };
 
     function save(onSaved) { callHost("aetoolkitCepSaveState", JSON.stringify(state), function (result) { if (result === "OK") { if (onSaved) onSaved(); } else status(result || "Could not save project templates.", true); }); }
     function templateById(id) { return state.templates.filter(function (template) { return template.id === id; })[0]; }
@@ -115,7 +154,7 @@
         presets.forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name + (preset.builtIn ? "" : " · Shared"); select.appendChild(option); });
         select.value = presets.some(function (entry) { return entry.id === selected; }) ? selected : "ease-in-out";
         var preset = presets.filter(function (entry) { return entry.id === select.value; })[0]; if (preset) activeCurve = preset.curve.slice();
-        byId("remove-curve-preset").disabled = !preset || preset.builtIn === true; drawCurve(false);
+        byId("remove-curve-preset").disabled = !libraryReady || !preset || preset.builtIn === true; drawCurve(false);
     }
     function editCurveHandle(index, event) {
         var graph = byId("curve-graph"), clientX = event.clientX, clientY = event.clientY, point, local;
@@ -179,7 +218,7 @@
         var custom = document.createElement("option"); custom.value = ""; custom.textContent = "Custom"; select.appendChild(custom);
         var match = "";
         namingPresets().forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name; select.appendChild(option); if (JSON.stringify(preset.namingFields) === JSON.stringify(templateDraft.namingFields)) match = preset.id; });
-        select.value = match; byId("remove-naming-preset").disabled = !match || match === "default";
+        select.value = match; byId("remove-naming-preset").disabled = !libraryReady || !match || match === "default";
     }
     function namingDialog(title, populate, commit) {
         var dialog = byId("naming-dialog"), fields = byId("naming-dialog-fields"); clearChildren(fields); byId("naming-dialog-title").textContent = title; byId("naming-dialog-error").textContent = "";
@@ -322,7 +361,7 @@
         });
         var suggestions = byId("preset-client-names"); clearChildren(suggestions);
         names.forEach(function (name) { var option = document.createElement("option"); option.value = name; suggestions.appendChild(option); });
-        ["aspect", "checker"].forEach(function (kind) { byId("remove-" + kind + "-client").disabled = byId(kind + "-library-client").value === "Default"; });
+        ["aspect", "checker"].forEach(function (kind) { byId("remove-" + kind + "-client").disabled = !libraryReady || byId(kind + "-library-client").value === "Default"; });
     }
     function saveClientChange(next, message, onSaved) {
         var previous = state; state = next;
@@ -351,7 +390,7 @@
         });
     }
     ["aspect", "checker"].forEach(function (kind) {
-        byId(kind + "-library-client").onchange = function () { renderPresetLibrary(kind); byId("remove-" + kind + "-client").disabled = this.value === "Default"; };
+        byId(kind + "-library-client").onchange = function () { renderPresetLibrary(kind); byId("remove-" + kind + "-client").disabled = !libraryReady || this.value === "Default"; };
         byId("add-" + kind + "-client").onclick = function () { addClient(kind); };
         byId("remove-" + kind + "-client").onclick = function () { removeClient(kind); };
     });
@@ -424,7 +463,7 @@
         (kind === "aspect" ? compPresets() : checkerPresets()).filter(function (preset) { return sameClient(preset, byId(kind + "-library-client").value); }).forEach(function (preset) { var option = document.createElement("option"); option.value = preset.id; option.textContent = preset.name + " · " + preset.width + " × " + preset.height; select.appendChild(option); });
         select.value = Array.prototype.some.call(select.options, function (option) { return option.value === selected; }) ? selected : select.options.length ? select.options[0].value : "";
         byId(kind === "aspect" ? "edit-comp-preset" : "edit-checker-preset").disabled = !select.value;
-        byId(kind === "aspect" ? "remove-comp-preset" : "remove-checker-preset").disabled = !select.value;
+        byId(kind === "aspect" ? "remove-comp-preset" : "remove-checker-preset").disabled = !libraryReady || !select.value;
     }
     function renderCompPresetForm() {
         renderClients(); renderPresetLibrary("aspect"); renderPresetLibrary("checker");
@@ -457,13 +496,16 @@
         }
     }
     function refreshCheckerLibrary(callback) {
+        var ticket = libraryLoadSerial, source = checkerLibraryRoot;
         callHost("aetoolkitCepListCheckerTemplates", JSON.stringify({libraryRoot:checkerLibraryRoot}), function (result) {
-            try { if (!result) return; var catalog = JSON.parse(result); customCheckerPresets = catalog.presets; byId("checker-library-root").value = catalog.root; renderFormatSelects(); renderCompPresetForm(); if (catalog.notices.length) status(catalog.notices.join(" "), true); if (callback) callback(catalog); }
+            if (ticket !== libraryLoadSerial || source !== checkerLibraryRoot) return;
+            try { if (!result) return; var catalog = JSON.parse(result); customCheckerPresets = catalog.presets; byId("checker-library-root").value = checkerLibraryRoot || catalog.root; renderFormatSelects(); renderCompPresetForm(); if (catalog.notices.length) status(catalog.notices.join(" "), true); if (callback) callback(catalog); }
             catch (error) { status(result || error.message, true); }
         });
     }
     function renderSourceDiscovery() {
         var list = byId("source-project-records"), importButton = byId("source-import-projects"); clearChildren(list);
+        clearChildren(byId("source-comp-results"));
         if (!sourceDiscovery) { importButton.disabled = true; return; }
         (sourceDiscovery.records || []).forEach(function (record) {
             var row = document.createElement("label"), check = document.createElement("input"), detail = document.createElement("div"), name = document.createElement("strong");
@@ -482,6 +524,24 @@
         (sourceDiscovery.notices || []).forEach(function (notice) { var note = document.createElement("small"); note.textContent = notice; list.appendChild(note); });
         importButton.disabled = !(sourceDiscovery.records || []).some(function (record) { return record.exists; });
     }
+    function renderSourceCompResults(matches) {
+        var list = byId("source-comp-results"); clearChildren(list);
+        (matches || []).forEach(function (match) {
+            var row = document.createElement("div"), detail = document.createElement("div"), heading = document.createElement("strong");
+            row.className = "source-record source-comp-result";
+            heading.className = "source-record-status";
+            heading.textContent = {moved:"MOVED TO IMPORTEDCOMPS", reused:"ALREADY IN IMPORTEDCOMPS", unmatched:"NO MATCH", ambiguous:"REVIEW MATCH"}[match.status] || match.status;
+            detail.appendChild(heading);
+            [["Render", match.renderName], ["Comp", match.compName || (match.candidates || []).join(", ") || "No matching composition"], ["Project", match.projectPath], ["Match", match.method || ""]].forEach(function (field) {
+                if (!field[1]) return;
+                var line = document.createElement("div"), caption = document.createElement("span"), value = document.createElement("span");
+                line.className = "source-record-field"; caption.className = "source-record-caption"; caption.textContent = field[0] + ":";
+                value.className = "source-record-value"; value.textContent = field[1]; line.appendChild(caption); line.appendChild(value); detail.appendChild(line);
+            });
+            if (match.status === "unmatched" || match.status === "ambiguous") { var note = document.createElement("small"); note.textContent = "Comps remain in the imported project folder for review."; detail.appendChild(note); }
+            row.appendChild(detail); list.appendChild(row);
+        });
+    }
     function projectDisplayName(project) {
         var name = String(project && project.name || "").replace(/\\/g, "/").replace(/\/+$/g, "");
         var leaf = name.split("/").pop();
@@ -493,7 +553,7 @@
         renderCompNamingFields();
         var assignedProject = activeProject(), assignedTemplate = assignedProject && templateById(assignedProject.templateId);
         byId("change-project-template").textContent = assignedTemplate ? assignedTemplate.name : "No project selected";
-        byId("change-project-template").disabled = !assignedProject;
+        byId("change-project-template").disabled = !libraryReady || !assignedProject;
         var select = byId("active-project"), project = activeProject(), ids = ["open-project-file", "reveal-project-root", "remove-project"];
         var query = byId("project-search").value.toLowerCase().trim();
         clearChildren(select); var matches = state.projects.filter(function (entry) { return !query || (entry.name + " " + entry.root).toLowerCase().indexOf(query) !== -1; });
@@ -502,10 +562,63 @@
         if (project) { if (state.activeProjectId !== project.id) state.activeProjectId = project.id; select.value = matches.some(function (entry) { return entry.id === project.id; }) ? project.id : ""; }
         select.disabled = !project;
         for (var i = 0; i < ids.length; i++) byId(ids[i]).disabled = !project;
+        byId("remove-project").disabled = !libraryReady || !project;
         renderDestinationButtons();
 
     }
-    function load() { libraryReady = false; callHost("aetoolkitCepLoadState", "", function (result) { try { if (result) state = JSON.parse(result); libraryReady = true; if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets(); if (!state.curvePresets) state.curvePresets = []; if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || ""; selectedTemplateId = state.templates[0] && state.templates[0].id; selectedCompPresetId = compPresets().length ? compPresets()[0].id : ""; startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); renderCurvePresets("ease-in-out"); status("Ready."); refreshCheckerLibrary(); } catch (error) { startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); renderCurvePresets("ease-in-out"); status("Library could not be loaded. Saving is disabled: " + error.message, true); } }); }
+    function load() {
+        var ticket = ++libraryLoadSerial, source = checkerLibraryRoot;
+        libraryReady = false; backupOffline = false; backupSnapshot = null; customCheckerPresets = [];
+        byId("reveal-library-backup").disabled = true;
+        byId("library-backup-status").textContent = source ? "Checking shared library and local backup…" : "Local library active.";
+        function current() { return ticket === libraryLoadSerial && source === checkerLibraryRoot; }
+        function renderLoaded(data, offline) {
+            if (!current()) return;
+            if (!data || !Array.isArray(data.templates) || !data.templates.length || !Array.isArray(data.projects)) throw new Error("Invalid library data.");
+            state = data; libraryReady = !offline;
+            if (!state.compPresets || !state.compPresets.length) state.compPresets = store.defaultCompPresets();
+            if (!state.curvePresets) state.curvePresets = [];
+            if (!state.activeProjectId) state.activeProjectId = state.projects[0] && state.projects[0].id || "";
+            selectedTemplateId = state.templates[0].id; selectedCompPresetId = compPresets().length ? compPresets()[0].id : "";
+            startTemplateDraft(templateById(selectedTemplateId)); startCompPresetDraft(compPresetById(selectedCompPresetId));
+            renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); renderCurvePresets("ease-in-out");
+            updateLibraryEditingControls();
+            status(offline ? "Shared library unavailable. Using the local backup; preset saves are paused." : "Ready.");
+            refreshCheckerLibrary();
+            if (!offline && source) syncLocalBackup(source);
+        }
+        function fail(error) {
+            if (!current()) return;
+            libraryReady = false; state = store.defaultState();
+            selectedTemplateId = state.templates[0].id; startTemplateDraft(state.templates[0]); startCompPresetDraft(state.compPresets[0]);
+            renderFormatSelects(); renderCompPresetForm(); renderTemplates(); renderTemplateForm(); renderProjects(); renderActiveProject(); renderCurvePresets("ease-in-out");
+            updateLibraryEditingControls();
+            status("Library could not be loaded. Saving is disabled: " + error,true);
+        }
+        function useBackup(api, originalError, otherwise) {
+            if (!api || !source) { if (otherwise) otherwise(); else fail(originalError); return; }
+            api.load(backupDataRoot,source).then(function (snapshot) {
+                if (!current()) return;
+                if (!snapshot) { if (otherwise) otherwise(); else fail(originalError); return; }
+                backupOffline = true; showBackup(snapshot,true);
+                try { renderLoaded(api.offlineState(snapshot),true); } catch (error) { backupOffline = false; fail(error.message); }
+            },function (error) { if (otherwise) otherwise(); else fail(error.message); });
+        }
+        function readHost(api) {
+            if (!current()) return;
+            callHost("aetoolkitCepLoadState","",function (result) {
+                if (!current()) return;
+                try { renderLoaded(JSON.parse(result),false); }
+                catch (error) { useBackup(api,result && result.indexOf("ERROR:") === 0 ? result : error.message); }
+            });
+        }
+        if (!source) { readHost(null); return; }
+        backupModule(function (api) {
+            if (!current()) return;
+            if (api && !api.available(source)) useBackup(api,"Shared library unavailable.",function () { readHost(api); });
+            else readHost(api);
+        });
+    }
     document.querySelectorAll(".tab").forEach(function (tab) { tab.onclick = function () { document.querySelectorAll(".tab, .view").forEach(function (entry) { entry.classList.remove("active"); }); document.querySelectorAll(".tab").forEach(function (button) { button.setAttribute("aria-pressed", button === tab ? "true" : "false"); }); tab.classList.add("active"); document.querySelector("h1").textContent = tab.getAttribute("aria-label"); byId(tab.dataset.view).classList.add("active"); }; });
     byId("add-naming-field").onclick = function () { editNamingField(-1); };
     byId("naming-preset").onchange = function () { var id = this.value, preset = namingPresets().filter(function (entry) { return entry.id === id; })[0]; if (preset) { templateDraft.namingFields = copy(preset.namingFields); renderNamingOrder(); } };
@@ -530,7 +643,20 @@
     byId("choose-project-root").onclick = function () { callHost("aetoolkitCepChooseProjectRoot", "", function (result) { if (result && result.indexOf("ERROR:") === 0) status(result, true); else if (result) byId("project-root").value = result; }); };
     byId("source-import-assets").onclick = function () { var resultTarget = byId("source-import-result"); callHost("aetoolkitCepImportAssetPaths", byId("source-asset-paths").value, function (result) { try { var summary = JSON.parse(result); resultTarget.textContent = summary.imported ? "Imported " + summary.imported + " asset" + (summary.imported === 1 ? "." : "s.") + (summary.errors.length ? " " + summary.errors.join(" ") : "") : summary.errors.join(" ") || "No assets were imported."; resultTarget.style.color = summary.errors.length ? "#ffcb8f" : "#91d0a4"; } catch (error) { resultTarget.textContent = result || error.message; resultTarget.style.color = "#ff9d9d"; } }); };
     byId("source-discover-projects").onclick = function () { callHost("aetoolkitCepDiscoverSourceProjects", "", function (result) { try { sourceDiscovery = JSON.parse(result); renderSourceDiscovery(); status(sourceDiscovery.records.length ? "Source projects found. Review the list before importing." : "No source projects found in the selected footage.", !sourceDiscovery.records.length); } catch (error) { status(result || error.message, true); } }); };
-    byId("source-import-projects").onclick = function () { var chosen = []; document.querySelectorAll("#source-project-records input[type=checkbox]:checked").forEach(function (check) { chosen.push(check.value); }); if (!chosen.length) { status("Select at least one found source project.", true); return; } callHost("aetoolkitCepImportSourceProjects", JSON.stringify({ paths: chosen, sourceNames: sourceDiscovery.sourceNames || [] }), function (result) { try { var summary = JSON.parse(result); status(summary.imported ? "Imported " + summary.imported + " source project" + (summary.imported === 1 ? "." : "s.") + (summary.errors.length ? " " + summary.errors.join(" ") : "") : summary.errors.join(" ") || "No source projects were imported.", !!summary.errors.length); } catch (error) { status(result || error.message, true); } }); };
+    byId("source-import-projects").onclick = function () {
+        var chosen = []; document.querySelectorAll("#source-project-records input[type=checkbox]:checked").forEach(function (check) { chosen.push(check.value); });
+        if (!chosen.length) { status("Select at least one found source project.", true); return; }
+        var records = sourceDiscovery.records || [], associated = records.every(function (record) { return Array.isArray(record.sourceNames); });
+        byId("source-import-projects").disabled = true; clearChildren(byId("source-comp-results"));
+        callHost("aetoolkitCepImportSourceProjects", JSON.stringify({ paths: chosen, records: associated ? records : undefined, sourceNames: sourceDiscovery.sourceNames || [] }), function (result) {
+            byId("source-import-projects").disabled = false;
+            try {
+                var summary = JSON.parse(result), review = (summary.matches || []).filter(function (match) { return match.status === "unmatched" || match.status === "ambiguous"; }).length;
+                renderSourceCompResults(summary.matches);
+                status(summary.imported ? "Imported " + summary.imported + " source project(s). Moved " + (summary.isolated || 0) + " comp(s) to ImportedComps." + (review ? " Review " + review + " unmatched or unclear render(s) below." : "") + (summary.errors.length ? " " + summary.errors.join(" ") : "") : summary.errors.join(" ") || "No source projects were imported.", !!summary.errors.length || !!review);
+            } catch (error) { status(result || error.message, true); }
+        });
+    };
     wireFormatPreset("comp"); wireFormatPreset("modify"); wireFormatPreset("cover"); wireFormatPreset("checker");
     byId("format-dialog").addEventListener("close", function () { startCompPresetDraft(compPresetById(selectedCompPresetId)); renderCompPresetForm(); });
     byId("cancel-format-dialog").onclick = function () { byId("format-dialog").close(); startCompPresetDraft(compPresetById(selectedCompPresetId)); renderCompPresetForm(); };
@@ -637,7 +763,7 @@
     byId("move-animation-to-null").onclick = function () { callHost("aetoolkitCepMoveAnimationKeysToParentNull", "", function (result) { try { var summary = JSON.parse(result); status("Moved transform animation on " + summary.changed + " layer" + (summary.changed === 1 ? "" : "s") + " to parent null; opacity keys were left in place" + (summary.skipped.length ? ". Skipped: " + summary.skipped.join("; ") : "."), summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
     byId("unparent-layers").onclick = function () { callHost("aetoolkitCepUnparentSelectedLayers", "", function (result) { try { var summary = JSON.parse(result); status("Unparented " + summary.changed + " layer" + (summary.changed === 1 ? "." : "s.") + "."); } catch (error) { status(result || error.message, true); } }); };
     byId("mark-guides").onclick = function () { callHost("aetoolkitCepToggleSelectedGuideLayers", "", function (result) { try { var summary = JSON.parse(result), message = "Toggled " + summary.changed + " guide layer" + (summary.changed === 1 ? "" : "s") + ": " + summary.guides + " guide, " + summary.normal + " normal."; if (summary.skipped.length) message += " Skipped: " + summary.skipped.join(", "); status(message, summary.skipped.length > 0); } catch (error) { status(result || error.message, true); } }); };
-    byId("curve-preset").onchange = function () { var preset = store.curvePresets(state).filter(function (entry) { return entry.id === byId("curve-preset").value; })[0]; if (preset) activeCurve = preset.curve.slice(); byId("remove-curve-preset").disabled = !preset || preset.builtIn === true; drawCurve(false); };
+    byId("curve-preset").onchange = function () { var preset = store.curvePresets(state).filter(function (entry) { return entry.id === byId("curve-preset").value; })[0]; if (preset) activeCurve = preset.curve.slice(); byId("remove-curve-preset").disabled = !libraryReady || !preset || preset.builtIn === true; drawCurve(false); };
     wireCurveHandle("curve-handle-one", 0); wireCurveHandle("curve-handle-two", 2);
     Array.prototype.forEach.call(document.querySelectorAll("[data-animation-subtab]"), function (button) { button.onclick = function () { setAnimationSubtab(button.getAttribute("data-animation-subtab"), true); }; });
     var initialAnimationSubtab = "key-graph"; try { initialAnimationSubtab = window.localStorage.getItem("toolbox2.animation-subtab") || initialAnimationSubtab; } catch (ignoreAnimationSubtab) {} setAnimationSubtab(initialAnimationSubtab, false);

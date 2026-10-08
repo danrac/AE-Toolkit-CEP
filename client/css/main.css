@@ -59,6 +59,8 @@ button:disabled { cursor: default; opacity: .45; }
 .item-list:empty::after { content: "Nothing connected yet."; color: #8697a8; display: block; padding: 10px 0 0; }
 .source-record { align-items: start; display: grid; gap: 8px; grid-template-columns: auto minmax(0, 1fr); padding: 10px; margin-top: 8px; border: 1px solid #647d94; border-top: 2px solid #ad795d; border-radius: 5px; text-transform: none; letter-spacing: normal; }
 .source-record input { margin: 2px 0 0; width: auto; }
+.source-comp-result { grid-template-columns: minmax(0, 1fr); }
+#source-comp-results:empty { display: none; }
 .source-record-status { display: block; margin-bottom: 7px; }
 .source-record-field { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 6px; margin-top: 5px; }
 .source-record-caption { color: #b9c8d8; }

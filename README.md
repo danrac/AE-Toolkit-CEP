@@ -2,11 +2,15 @@
 
 Toolbox 2 is a dockable After Effects CEP extension for project navigation, composition creation, sourcing, checkers, cleanup, and reusable production presets. It is separate from the original ScriptUI Toolbox.
 
-**Documented version: 0.1.39.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.39) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.39.md)
+**Documented version: 0.1.40.** [Download the signed ZXP](https://github.com/danrac/AE-Toolkit-CEP/releases/tag/v0.1.40) · [Release history](https://github.com/danrac/AE-Toolkit-CEP/releases) · [Latest release notes](RELEASE-0.1.40.md)
 
 ## User guide
 
 See [client-specific formats and repeatable CSV imports](docs/CLIENT-FORMATS.md) for the column schema, update rules, FPS defaults, and guide/matte assembly.
+
+Version 0.1.40 adds [automatic local backups of shared libraries](docs/SHARED-BACKUPS.md), including cached preset use when the shared path is unavailable.
+
+It also adds [source composition matching](docs/SOURCE-COMP-MATCHING.md): importing source projects isolates the best render-name matches in ImportedComps, handles FPS/dimension suffixes, and keeps one comp per name.
 
 The [illustrated panel guide](docs/PANELS.md) documents every toolbar section and its modules:
 
@@ -53,6 +57,8 @@ Drag the toolbar grip to any edge, or focus it and use the arrow keys. Click mod
 - Fade in/out uses named layer markers plus an opacity expression. Reuse the fade buttons to create the markers, then drag `fadeIn_start`/`fadeIn_end` or `fadeOut_start`/`fadeOut_end` in the timeline to adjust timing without a duration field.
 - The 0.1.39 build adds client-specific aspect/checker presets and repeatable CSV import. Read CSV opens a file browser and applies new or changed definitions automatically, preserving unchanged presets and the existing Default formats.
 - Presets store FPS as well as dimensions. Composition creation uses the preset settings and assembles centered guides above mattes, with guide availability checked before creating the comp.
+- Shared libraries keep two completed local backup snapshots. If the shared source is unavailable, cached presets and media can be used without enabling offline shared-library edits.
+- Source-project import matches comps against each render's original filename, moves them to ImportedComps, and leaves same-named copies with their imported projects. Result modules report matches requiring review.
 
 ## Compatibility and limits
 
@@ -75,7 +81,7 @@ Before releasing host changes, run `tests/after-effects-load-check.jsx` through 
 
 Published GitHub releases trigger the workflow that signs and attaches `AE-Toolkit-CEP-v<version>.zxp`. Configure repository secrets `ZXP_CERT_BASE64` and `ZXP_CERT_PASSWORD`; optionally set `ZXP_TSA_URL`. For local signing, set `ZXPSIGNCMD_PATH`, `ZXP_CERT_PATH`, and `ZXP_CERT_PASSWORD`, then run `npm run package:zxp`. Never commit signing material.
 
-Use a distinct package version for each distributed build so installers can distinguish updates. The current release tag is `v0.1.39`. The panel badge and cache identifiers are generated from `package.json` during staging.
+Use a distinct package version for each distributed build so installers can distinguish updates. The current release tag is `v0.1.40`. The panel badge and cache identifiers are generated from `package.json` during staging.
 
 ## License and credit
 

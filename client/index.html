@@ -66,6 +66,7 @@
         <button id="source-discover-projects" title="Find AE project links in selected rendered images or videos, including XMP sidecars">Discover selected sources</button>
         <div id="source-project-records" class="item-list"></div>
         <button id="source-import-projects" class="primary" disabled>Import selected source projects</button>
+        <div id="source-comp-results" class="item-list" aria-live="polite"></div>
       </details>
     </section>
 
@@ -308,6 +309,8 @@
         <div class="input-action folder-action"><label>Shared templates<input id="checker-library-root" readonly placeholder="Local library (default)"></label><button id="choose-checker-library">Browse</button></div>
         <div class="project-actions"><button id="refresh-checker-library">Refresh library</button><button id="use-local-library">Use local library</button></div>
         <p class="help">Projects, project presets, naming presets, aspect ratios, and checker templates use this library. Local storage is the default.</p>
+        <p id="library-backup-status" class="help" aria-live="polite">Local library active.</p>
+        <button id="reveal-library-backup" class="quiet" disabled>Reveal Local Backup</button>
       </details>
       <details class="card module-panel" data-panel="composition-formats" open>
         <summary>Create Aspect Ratio Presets</summary>
